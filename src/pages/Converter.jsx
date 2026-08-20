@@ -40,6 +40,7 @@ export default function Converter() {
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [dragIndex, setDragIndex] = useState(null);
   const choose = (list) => {
     const selected = Array.from(list);
     const pattern =
@@ -68,14 +69,16 @@ export default function Converter() {
     setFiles(selected);
     setMessage("");
   };
-  const move = (i, dir) =>
+  const reorder = (from, to) =>
     setFiles((current) => {
-      const next = [...current],
-        j = i + dir;
-      if (j < 0 || j >= next.length) return next;
-      [next[i], next[j]] = [next[j], next[i]];
+      if (from === to || from < 0 || to < 0 || to >= current.length)
+        return current;
+      const next = [...current];
+      const [selected] = next.splice(from, 1);
+      next.splice(to, 0, selected);
       return next;
     });
+  const move = (index, direction) => reorder(index, index + direction);
   const convert = async () => {
     if (!files.length) {
       setMessage("Choose at least one file first.");
@@ -204,16 +207,36 @@ export default function Converter() {
           </p>
         </label>
         {files.length > 0 && (
-          <div className="file-list">
+          <div className={`file-list ${mode === "merge" ? "merge-queue" : ""}`}>
             <div className="file-list-head">
-              <b>
-                {files.length} file{files.length > 1 ? "s" : ""} ready
-              </b>
+              <div>
+                <b>
+                  {mode === "merge" ? "PDF MERGE ORDER" : `${files.length} file${files.length > 1 ? "s" : ""} ready`}
+                </b>
+                {mode === "merge" && (
+                  <small>
+                    Files merge from top to bottom. Drag them or use the arrow
+                    buttons to set the final order.
+                  </small>
+                )}
+              </div>
               <button onClick={() => setFiles([])}>Clear all</button>
             </div>
             {files.map((file, i) => (
-              <div className="file-row" key={`${file.name}-${i}`}>
-                <GripVertical />
+              <div
+                className={`file-row ${dragIndex === i ? "dragging" : ""}`}
+                key={`${file.name}-${file.size}-${i}`}
+                draggable={mode === "merge"}
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => {
+                  if (dragIndex !== null) reorder(dragIndex, i);
+                  setDragIndex(null);
+                }}
+                onDragEnd={() => setDragIndex(null)}
+              >
+                {mode === "merge" && <span className="file-order">{i + 1}</span>}
+                <GripVertical aria-hidden="true" />
                 <FilePlus2 />
                 <span>
                   <b>{file.name}</b>
@@ -221,10 +244,18 @@ export default function Converter() {
                 </span>
                 {files.length > 1 && (
                   <>
-                    <button aria-label="Move up" onClick={() => move(i, -1)}>
+                    <button
+                      aria-label={`Move ${file.name} up`}
+                      disabled={i === 0}
+                      onClick={() => move(i, -1)}
+                    >
                       <ArrowUp />
                     </button>
-                    <button aria-label="Move down" onClick={() => move(i, 1)}>
+                    <button
+                      aria-label={`Move ${file.name} down`}
+                      disabled={i === files.length - 1}
+                      onClick={() => move(i, 1)}
+                    >
                       <ArrowDown />
                     </button>
                   </>

@@ -425,6 +425,89 @@ export const setswana = {
     "Tsena go boloka di-draft le go dirisa didiriswa tsa ditokomane",
   "Payment receipts and account details are stored securely and used only to provide the service.":
     "Ditlankana tsa tuelo le dintlha tsa akhaonto di bolokiwa ka pabalesego mme di dirisiwa fela go go direla.",
+  "Pay for the pace that fits your work.":
+    "Duela go ya ka lebelo le le siametseng tiro ya gago.",
+  "Try every tool for seven days, then choose occasional credits or unlimited monthly access. No automatic debit.":
+    "Leka sedirisiwa sengwe le sengwe malatsi a supa, morago o tlhophe di-credit kgotsa tetla e e se nang selekanyo ya malatsi a le 30. Ga go na tuelo e e itiragalelang.",
+  "THE QUICK ANSWER": "KARABO E KHUTSHWANE",
+  "Which option is best?": "Ke tsela efe e e siameng?",
+  "Up to 5 documents": "Ditokomane di le 5 kgotsa kwa tlase",
+  "Choose credits. Pay once and keep them until you need them.":
+    "Tlhopha di-credit. Duela gangwe mme o di boloke go fitlha o di tlhoka.",
+  "6+ documents in 30 days": "Ditokomane di le 6 kgotsa go feta mo malatsing a 30",
+  "Choose monthly. It is usually the better value.":
+    "Tlhopha malatsi a 30. Gantsi e na le boleng jo bo botoka.",
+  "FOR THE URGENT JOB": "YA TIRO E E POTLAKILENG",
+  "Buy once, use across any tool and keep what you do not use.":
+    "Reka gangwe, dirisa mo sedirisiweng sengwe le sengwe mme o boloke tse o sa di diriseng.",
+  "P5 per credit": "P5 ka credit",
+  "No expiry": "Ga di felelwe",
+  "No recurring payment": "Ga go na tuelo e e boelediwang",
+  "Shared across all tools": "Di dirisiwa mo didirisiweng tsotlhe",
+  "Buy five credits": "Reka di-credit di le tlhano",
+  "BEST FOR REGULAR USE": "E SIAMETSE TIRISO YA KA METLHA",
+  "FOR REGULAR USE": "YA TIRISO YA KA METLHA",
+  "For applications, client work and file admin that keeps coming back.":
+    "Ya dikopo tsa tiro, tiro ya bareki le difaele tse di tlang gangwe le gape.",
+  "Unlimited use for 30 days": "Tiriso e e se nang selekanyo malatsi a 30",
+  "Unlimited tool use": "Dirisa didirisiwa ntle le selekanyo",
+  "Manual monthly renewal": "Ntšhwafatso ya malatsi a 30 ka seatla",
+  "No automatic debit": "Ga go na go ntshiwa madi ka go itiragalela",
+  "CHOOSE BY SITUATION": "TLHOPHA GO YA KA MAEMO",
+  "A practical way to decide.": "Tsela e e bonolo ya go tsaya tshwetso.",
+  "One job application": "Kopo e le nngwe ya tiro",
+  "A CV, cover letter and a few file conversions fit comfortably inside five credits.":
+    "CV, lekwalo la kopo le go fetola difaele di le mmalwa di lekana mo di-credit di le tlhano.",
+  "Best fit: Credits": "E e siameng: Di-credit",
+  "Frequent client work": "Tiro ya bareki ya ka metlha",
+  "If invoices, quotations or applications arrive every week, monthly access removes the need to count documents.":
+    "Fa di-invoice, di-quotation kgotsa dikopo di tla beke le beke, tetla ya malatsi a 30 e tlosa go bala ditokomane.",
+  "Best fit: Monthly": "E e siameng: Malatsi a 30",
+  "Still deciding": "O santse o akanya",
+  "Use the full seven-day trial first. You do not need a card or a payment to understand which tools you use most.":
+    "Dirisa teko ya malatsi a supa pele. Ga o tlhoke karata kgotsa tuelo go bona didirisiwa tse o di dirisang thata.",
+  "Best fit: Free trial": "E e siameng: Teko ya mahala",
+  "EVERY OPTION INCLUDES": "TSHELA NNGWE LE NNGWE E AKARETSA",
+  "CV, invoice and conversion tools":
+    "Didirisiwa tsa CV, invoice le go fetola difaele",
+  "Private browser-based file handling":
+    "Go dira difaele ka bosephiri mo browser",
+  "English and Setswana interface": "Tiriso ya English le Setswana",
+  "No card required to begin": "Ga go tlhokege karata go simolola",
+  "GOOD TO KNOW": "GO BOTLHOKWA GO ITSE",
+  "Clear before you pay.": "Tlhaloganya pele ga o duela.",
+  "What uses a credit?": "Ke eng se se dirisang credit?",
+  "Each document-generation or file-conversion action uses one credit. Your remaining balance stays on your account.":
+    "Tiro nngwe le nngwe ya go dira tokomane kgotsa go fetola faele e dirisa credit e le nngwe. Tse di setseng di nna mo akhaontong ya gago.",
+  "Does monthly access renew automatically?":
+    "A tetla ya malatsi a 30 e intšhwafatsa ka boyone?",
+  "No. Monthly access lasts 30 days and only renews when you make another payment.":
+    "Nnyaa. Tetla e tsaya malatsi a 30 mme e ntšhwafala fela fa o duela gape.",
+  "Do unused credits expire?": "A di-credit tse di sa dirisiwang di a fela?",
+  "No. Purchased credits remain available until you use them.":
+    "Nnyaa. Di-credit tse di rekilweng di nna teng go fitlha o di dirisa.",
+  "When is access activated?": "Tetla e simololwa leng?",
+  "Payment submissions are reviewed before credits or monthly access are added to your account.":
+    "Dituelo di tlhatlhobiwa pele di-credit kgotsa tetla ya malatsi a 30 e tsenngwa mo akhaontong.",
+  "READY WHEN YOU ARE": "RE SIAME FA O SIAME",
+  "Your next document can be done today.":
+    "Tokomane ya gago e e latelang e ka wediwa gompieno.",
+  "Professional documents and practical file tools, built for the work you need to finish.":
+    "Ditokomane tsa maemo le didirisiwa tsa difaele tse di diretsweng tiro e o tshwanetseng go e fetsa.",
+  "7 days free · No card required":
+    "Malatsi a 7 mahala · Ga go tlhokege karata",
+  Explore: "Bona",
+  Contact: "Ikgolaganye",
+  "Create an account": "Dira akhaonto",
+  Workspace: "Lefelo la tiro",
+  "Gaborone · Botswana": "Gaborone · Botswana",
+  "Merge PDFs": "Kopanya di-PDF",
+  "PDF files · arrange them before merging":
+    "Difaele tsa PDF · di rulaganye pele ga go di kopanya",
+  "PDF MERGE ORDER": "THULAGANYO YA GO KOPANYA DI-PDF",
+  "Files merge from top to bottom. Drag them or use the arrow buttons to set the final order.":
+    "Difaele di kopanngwa go tswa kwa godimo go ya kwa tlase. Di gogele kgotsa dirisa marumo go rulaganya tatelano.",
+  "Merge & download PDF": "Kopanya mme o kopolole PDF",
 };
 
 export const english = Object.fromEntries(

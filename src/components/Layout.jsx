@@ -70,24 +70,43 @@ export default function Layout({ children }) {
       </header>
       <main>{children}</main>
       <footer>
-        <div className="container footer-grid">
+        <div className="container footer-lead">
           <div>
+            <span className="micro-label light">READY WHEN YOU ARE</span>
+            <h2>Your next document can be done today.</h2>
+          </div>
+          <Link className="btn btn-white" to="/auth?mode=signup">
+            Get started
+            <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+        <div className="container footer-grid">
+          <div className="footer-brand">
             <Logo />
-            <p>Documents, sorted.</p>
+            <p>
+              Professional documents and practical file tools, built for the
+              work you need to finish.
+            </p>
+            <span>7 days free · No card required</span>
           </div>
           <div>
-            <b>Product</b>
+            <b>Explore</b>
             <Link to="/tools">Document tools</Link>
             <Link to="/how-it-works">How it works</Link>
             <Link to="/pricing">Pricing</Link>
-            <Link to="/about">About Baakanya</Link>
           </div>
           <div>
-            <b>Support</b>
+            <b>Company</b>
+            <Link to="/about">About Baakanya</Link>
+            <Link to="/auth?mode=signup">Create an account</Link>
+            <Link to="/workspace">Workspace</Link>
+          </div>
+          <div>
+            <b>Contact</b>
             <a href="mailto:futurifydesigns@gmail.com">
               futurifydesigns@gmail.com
             </a>
-            <span>Gaborone, Botswana</span>
+            <span>Gaborone · Botswana</span>
           </div>
         </div>
         <div className="container footer-bottom">
