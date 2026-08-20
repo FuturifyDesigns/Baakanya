@@ -1,6 +1,239 @@
-import { Download,Plus,Trash2 } from 'lucide-react'
-import { useMemo,useState } from 'react'
-import { jsPDF } from 'jspdf'
-import ToolShell from '../components/ToolShell'
-const money=n=>Number(n||0).toLocaleString('en-BW',{minimumFractionDigits:2,maximumFractionDigits:2})
-export default function Invoice(){const[kind,setKind]=useState('Invoice');const[vat,setVat]=useState(false);const[form,setForm]=useState({business:'',client:'',number:`INV-${new Date().getFullYear()}-001`,date:new Date().toISOString().slice(0,10),notes:'Thank you for your business.'});const[items,setItems]=useState([{description:'',qty:1,price:''}]);const subtotal=useMemo(()=>items.reduce((sum,x)=>sum+Number(x.qty||0)*Number(x.price||0),0),[items]);const vatAmount=vat?subtotal*.14:0,total=subtotal+vatAmount;const set=(key,value)=>setForm(x=>({...x,[key]:value}));const setItem=(i,key,value)=>setItems(x=>x.map((item,j)=>j===i?{...item,[key]:value}:item));const download=()=>{const pdf=new jsPDF();pdf.setFillColor(102,181,229);pdf.rect(0,0,210,42,'F');pdf.setTextColor(15,27,34);pdf.setFont('helvetica','bold');pdf.setFontSize(22);pdf.text(form.business||'Your business',16,20);pdf.setFontSize(10);pdf.text(kind.toUpperCase(),166,20);pdf.setTextColor(35,49,58);pdf.text(`To: ${form.client||'Client'}`,16,57);pdf.text(`${kind} no: ${form.number}`,130,52);pdf.text(`Date: ${form.date}`,130,58);pdf.setFillColor(240,245,247);pdf.rect(16,70,178,10,'F');pdf.setFont('helvetica','bold');pdf.text('DESCRIPTION',20,76);pdf.text('QTY',130,76);pdf.text('PRICE',151,76);pdf.text('AMOUNT',174,76);let y=89;pdf.setFont('helvetica','normal');items.forEach(item=>{pdf.text(item.description||'Item / service',20,y);pdf.text(String(item.qty||0),132,y);pdf.text(money(item.price),151,y);pdf.text(money(Number(item.qty||0)*Number(item.price||0)),174,y);y+=10});y=Math.max(y+8,125);pdf.line(125,y,194,y);pdf.text('Subtotal',130,y+9);pdf.text(`P ${money(subtotal)}`,170,y+9);if(vat){pdf.text('VAT (14%)',130,y+18);pdf.text(`P ${money(vatAmount)}`,170,y+18)}pdf.setFont('helvetica','bold');pdf.setFontSize(13);pdf.text('TOTAL',130,y+31);pdf.text(`P ${money(total)}`,168,y+31);pdf.setFontSize(9);pdf.setFont('helvetica','normal');pdf.text(form.notes,16,270);pdf.save(`${kind.toLowerCase()}-${form.number}.pdf`)};return <ToolShell eyebrow="BUSINESS DOCUMENTS" title="Invoice without the admin." description="Add the details, let Baakanya calculate the totals, and download a client-ready PDF."><div className="builder-grid"><div className="form-card"><div className="tabs compact"><button className={kind==='Invoice'?'active':''} onClick={()=>setKind('Invoice')}>Invoice</button><button className={kind==='Quotation'?'active':''} onClick={()=>setKind('Quotation')}>Quotation</button></div><div className="field-grid"><label>Business name<input value={form.business} onChange={e=>set('business',e.target.value)} placeholder="e.g. Kgetsi Creative"/></label><label>Client name<input value={form.client} onChange={e=>set('client',e.target.value)} placeholder="Client or company"/></label><label>{kind} number<input value={form.number} onChange={e=>set('number',e.target.value)}/></label><label>Issue date<input type="date" value={form.date} onChange={e=>set('date',e.target.value)}/></label></div><div className="items"><div className="items-head"><b>Items or services</b><button onClick={()=>setItems(x=>[...x,{description:'',qty:1,price:''}])}><Plus/>Add item</button></div>{items.map((item,i)=><div className="item-fields" key={i}><input aria-label="Description" value={item.description} onChange={e=>setItem(i,'description',e.target.value)} placeholder="Description"/><input aria-label="Quantity" type="number" min="1" value={item.qty} onChange={e=>setItem(i,'qty',e.target.value)}/><div className="money-input"><span>P</span><input aria-label="Price" type="number" min="0" value={item.price} onChange={e=>setItem(i,'price',e.target.value)} placeholder="0.00"/></div><button aria-label="Delete item" onClick={()=>setItems(x=>x.filter((_,j)=>j!==i))} disabled={items.length===1}><Trash2/></button></div>)}</div><label className="check-row"><input type="checkbox" checked={vat} onChange={e=>setVat(e.target.checked)}/><span><b>Add Botswana VAT (14%)</b><small>Only select this if your business is VAT registered.</small></span></label><label>Footer note<textarea value={form.notes} onChange={e=>set('notes',e.target.value)} rows="2"/></label></div><aside className="summary-card"><span className="kicker">LIVE TOTAL</span><h3>{kind}</h3><dl><div><dt>Subtotal</dt><dd>P {money(subtotal)}</dd></div>{vat&&<div><dt>VAT</dt><dd>P {money(vatAmount)}</dd></div>}<div className="grand"><dt>Total</dt><dd>P {money(total)}</dd></div></dl><button className="btn btn-blue" onClick={download}><Download/>Download PDF</button><p>Your PDF is generated on this device.</p></aside></div></ToolShell>}
+import { Download, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { jsPDF } from "jspdf";
+import ToolShell from "../components/ToolShell";
+const money = (n) =>
+  Number(n || 0).toLocaleString("en-BW", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+export default function Invoice() {
+  const [kind, setKind] = useState("Invoice");
+  const [vat, setVat] = useState(false);
+  const [form, setForm] = useState({
+    business: "",
+    client: "",
+    number: `INV-${new Date().getFullYear()}-001`,
+    date: new Date().toISOString().slice(0, 10),
+    notes: "Thank you for your business.",
+  });
+  const [items, setItems] = useState([{ description: "", qty: 1, price: "" }]);
+  const subtotal = useMemo(
+    () =>
+      items.reduce(
+        (sum, x) => sum + Number(x.qty || 0) * Number(x.price || 0),
+        0,
+      ),
+    [items],
+  );
+  const vatAmount = vat ? subtotal * 0.14 : 0,
+    total = subtotal + vatAmount;
+  const set = (key, value) => setForm((x) => ({ ...x, [key]: value }));
+  const setItem = (i, key, value) =>
+    setItems((x) =>
+      x.map((item, j) => (j === i ? { ...item, [key]: value } : item)),
+    );
+  const download = () => {
+    const pdf = new jsPDF();
+    pdf.setFillColor(102, 181, 229);
+    pdf.rect(0, 0, 210, 42, "F");
+    pdf.setTextColor(15, 27, 34);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(22);
+    pdf.text(form.business || "Your business", 16, 20);
+    pdf.setFontSize(10);
+    pdf.text(kind.toUpperCase(), 166, 20);
+    pdf.setTextColor(35, 49, 58);
+    pdf.text(`To: ${form.client || "Client"}`, 16, 57);
+    pdf.text(`${kind} no: ${form.number}`, 130, 52);
+    pdf.text(`Date: ${form.date}`, 130, 58);
+    pdf.setFillColor(240, 245, 247);
+    pdf.rect(16, 70, 178, 10, "F");
+    pdf.setFont("helvetica", "bold");
+    pdf.text("DESCRIPTION", 20, 76);
+    pdf.text("QTY", 130, 76);
+    pdf.text("PRICE", 151, 76);
+    pdf.text("AMOUNT", 174, 76);
+    let y = 89;
+    pdf.setFont("helvetica", "normal");
+    items.forEach((item) => {
+      pdf.text(item.description || "Item / service", 20, y);
+      pdf.text(String(item.qty || 0), 132, y);
+      pdf.text(money(item.price), 151, y);
+      pdf.text(money(Number(item.qty || 0) * Number(item.price || 0)), 174, y);
+      y += 10;
+    });
+    y = Math.max(y + 8, 125);
+    pdf.line(125, y, 194, y);
+    pdf.text("Subtotal", 130, y + 9);
+    pdf.text(`P ${money(subtotal)}`, 170, y + 9);
+    if (vat) {
+      pdf.text("VAT (14%)", 130, y + 18);
+      pdf.text(`P ${money(vatAmount)}`, 170, y + 18);
+    }
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    pdf.text("TOTAL", 130, y + 31);
+    pdf.text(`P ${money(total)}`, 168, y + 31);
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(form.notes, 16, 270);
+    pdf.save(`${kind.toLowerCase()}-${form.number}.pdf`);
+  };
+  return (
+    <ToolShell
+      eyebrow="BUSINESS DOCUMENTS"
+      title="Invoice without the admin."
+      description="Add the details, let Baakanya calculate the totals, and download a client-ready PDF."
+    >
+      <div className="builder-grid">
+        <div className="form-card">
+          <div className="tabs compact">
+            <button
+              className={kind === "Invoice" ? "active" : ""}
+              onClick={() => setKind("Invoice")}
+            >
+              Invoice
+            </button>
+            <button
+              className={kind === "Quotation" ? "active" : ""}
+              onClick={() => setKind("Quotation")}
+            >
+              Quotation
+            </button>
+          </div>
+          <div className="field-grid">
+            <label>
+              Business name
+              <input
+                value={form.business}
+                onChange={(e) => set("business", e.target.value)}
+                placeholder="e.g. Kgetsi Creative"
+              />
+            </label>
+            <label>
+              Client name
+              <input
+                value={form.client}
+                onChange={(e) => set("client", e.target.value)}
+                placeholder="Client or company"
+              />
+            </label>
+            <label>
+              {kind} number
+              <input
+                value={form.number}
+                onChange={(e) => set("number", e.target.value)}
+              />
+            </label>
+            <label>
+              Issue date
+              <input
+                type="date"
+                value={form.date}
+                onChange={(e) => set("date", e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="items">
+            <div className="items-head">
+              <b>Items or services</b>
+              <button
+                onClick={() =>
+                  setItems((x) => [
+                    ...x,
+                    { description: "", qty: 1, price: "" },
+                  ])
+                }
+              >
+                <Plus />
+                Add item
+              </button>
+            </div>
+            {items.map((item, i) => (
+              <div className="item-fields" key={i}>
+                <input
+                  aria-label="Description"
+                  value={item.description}
+                  onChange={(e) => setItem(i, "description", e.target.value)}
+                  placeholder="Description"
+                />
+                <input
+                  aria-label="Quantity"
+                  type="number"
+                  min="1"
+                  value={item.qty}
+                  onChange={(e) => setItem(i, "qty", e.target.value)}
+                />
+                <div className="money-input">
+                  <span>P</span>
+                  <input
+                    aria-label="Price"
+                    type="number"
+                    min="0"
+                    value={item.price}
+                    onChange={(e) => setItem(i, "price", e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+                <button
+                  aria-label="Delete item"
+                  onClick={() => setItems((x) => x.filter((_, j) => j !== i))}
+                  disabled={items.length === 1}
+                >
+                  <Trash2 />
+                </button>
+              </div>
+            ))}
+          </div>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={vat}
+              onChange={(e) => setVat(e.target.checked)}
+            />
+            <span>
+              <b>Add Botswana VAT (14%)</b>
+              <small>
+                Only select this if your business is VAT registered.
+              </small>
+            </span>
+          </label>
+          <label>
+            Footer note
+            <textarea
+              value={form.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              rows="2"
+            />
+          </label>
+        </div>
+        <aside className="summary-card">
+          <span className="kicker">LIVE TOTAL</span>
+          <h3>{kind}</h3>
+          <dl>
+            <div>
+              <dt>Subtotal</dt>
+              <dd>P {money(subtotal)}</dd>
+            </div>
+            {vat && (
+              <div>
+                <dt>VAT</dt>
+                <dd>P {money(vatAmount)}</dd>
+              </div>
+            )}
+            <div className="grand">
+              <dt>Total</dt>
+              <dd>P {money(total)}</dd>
+            </div>
+          </dl>
+          <button className="btn btn-blue" onClick={download}>
+            <Download />
+            Download PDF
+          </button>
+          <p>Your PDF is generated on this device.</p>
+        </aside>
+      </div>
+    </ToolShell>
+  );
+}

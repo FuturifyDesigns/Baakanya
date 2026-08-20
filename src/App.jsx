@@ -1,4 +1,33 @@
-import { lazy,Suspense } from 'react'
-import { Navigate,Route,Routes } from 'react-router-dom'
-const Landing=lazy(()=>import('./pages/Landing'));const Workspace=lazy(()=>import('./pages/Workspace'));const Converter=lazy(()=>import('./pages/Converter'));const Invoice=lazy(()=>import('./pages/Invoice'));const Career=lazy(()=>import('./pages/Career'));const Auth=lazy(()=>import('./pages/Auth'));const Payment=lazy(()=>import('./pages/Payment'));const Admin=lazy(()=>import('./pages/Admin'))
-export default function App(){return <Suspense fallback={<div className="page-loader"><span/></div>}><Routes><Route path="/" element={<Landing/>}/><Route path="/workspace" element={<Workspace/>}/><Route path="/tools/convert" element={<Converter/>}/><Route path="/tools/invoice" element={<Invoice/>}/><Route path="/tools/career" element={<Career/>}/><Route path="/auth" element={<Auth/>}/><Route path="/payment" element={<Payment/>}/><Route path="/admin" element={<Admin/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></Suspense>}
+import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+const Landing = lazy(() => import("./pages/Landing"));
+const Workspace = lazy(() => import("./pages/Workspace"));
+const Converter = lazy(() => import("./pages/Converter"));
+const Invoice = lazy(() => import("./pages/Invoice"));
+const Career = lazy(() => import("./pages/Career"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Payment = lazy(() => import("./pages/Payment"));
+const Admin = lazy(() => import("./pages/Admin"));
+export default function App() {
+  return (
+    <Suspense
+      fallback={
+        <div className="page-loader">
+          <span />
+        </div>
+      }
+    >
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/workspace" element={<Workspace />} />
+        <Route path="/tools/convert" element={<Converter />} />
+        <Route path="/tools/invoice" element={<Invoice />} />
+        <Route path="/tools/career" element={<Career />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/payment" element={<Payment />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}

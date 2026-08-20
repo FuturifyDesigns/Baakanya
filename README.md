@@ -10,7 +10,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The app works in preview mode without Supabase. To enable accounts, trials, payment submissions and admin review, add the browser-safe project URL and anon key to `.env.local`, then run `supabase/schema.sql` in the Supabase SQL editor. After the owner's account exists, add its user ID and email to `public.admin_users` from the SQL editor.
+The production app is connected to its browser-safe Supabase project configuration. For another environment, override the project URL and anon key in `.env.local`, then run `supabase/schema.sql` in the Supabase SQL editor. After the owner's account exists, add its user ID and email to `public.admin_users` from the SQL editor.
 
 Never place a Supabase personal access token or service-role key in Vite environment variables. Every `VITE_` variable is bundled into public browser code.
 

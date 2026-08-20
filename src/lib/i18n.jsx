@@ -1,6 +1,56 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext,useContext,useMemo,useState } from 'react'
-const copy={en:{tools:'Tools',pricing:'Pricing',how:'How it works',login:'Log in',start:'Start free',dashboard:'My workspace',eyebrow:'Built in Botswana, for Botswana',hero:'Your documents, sorted.',sub:'Create polished documents, convert files and get application-ready — without the admin headache.',explore:'Explore the tools',trust:'7 days free · No card needed · Your files stay private'},tn:{tools:'Didiriswa',pricing:'Ditlhwatlhwa',how:'E bereka jang',login:'Tsena',start:'Simolola mahala',dashboard:'Lefelo la me',eyebrow:'E diretswe Botswana',hero:'Ditokomane tsa gago, di rulagantswe.',sub:'Dira ditokomane tsa maemo, fetola difaele mme o ipaakanyetse go romela — ntle le matsapa.',explore:'Bona didiriswa',trust:'Malatsi a le 7 mahala · Ga go tlhokege karata · Difaele tsa gago di sireletsegile'}}
-const LanguageContext=createContext(null)
-export function LanguageProvider({children}){const[language,setLanguage]=useState(()=>localStorage.getItem('baakanya-language')||'en');const value=useMemo(()=>({language,t:copy[language],toggle:()=>setLanguage(current=>{const next=current==='en'?'tn':'en';localStorage.setItem('baakanya-language',next);return next})}),[language]);return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>}
-export const useLanguage=()=>useContext(LanguageContext)
+import { createContext, useContext, useMemo, useState } from "react";
+const copy = {
+  en: {
+    tools: "Tools",
+    pricing: "Pricing",
+    how: "How it works",
+    login: "Log in",
+    start: "Start free",
+    dashboard: "My workspace",
+    eyebrow: "Built in Botswana, for Botswana",
+    hero: "Your documents, sorted.",
+    sub: "Create polished documents, convert files and get application-ready — without the admin headache.",
+    explore: "Explore the tools",
+    trust: "7 days free · No card needed · Your files stay private",
+  },
+  tn: {
+    tools: "Didiriswa",
+    pricing: "Ditlhwatlhwa",
+    how: "E bereka jang",
+    login: "Tsena",
+    start: "Simolola mahala",
+    dashboard: "Lefelo la me",
+    eyebrow: "E diretswe Botswana",
+    hero: "Ditokomane tsa gago, di rulagantswe.",
+    sub: "Dira ditokomane tsa maemo, fetola difaele mme o ipaakanyetse go romela — ntle le matsapa.",
+    explore: "Bona didiriswa",
+    trust:
+      "Malatsi a le 7 mahala · Ga go tlhokege karata · Difaele tsa gago di sireletsegile",
+  },
+};
+const LanguageContext = createContext(null);
+export function LanguageProvider({ children }) {
+  const [language, setLanguage] = useState(
+    () => localStorage.getItem("baakanya-language") || "en",
+  );
+  const value = useMemo(
+    () => ({
+      language,
+      t: copy[language],
+      toggle: () =>
+        setLanguage((current) => {
+          const next = current === "en" ? "tn" : "en";
+          localStorage.setItem("baakanya-language", next);
+          return next;
+        }),
+    }),
+    [language],
+  );
+  return (
+    <LanguageContext.Provider value={value}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+export const useLanguage = () => useContext(LanguageContext);

@@ -1,6 +1,87 @@
-import { ArrowRight,BriefcaseBusiness,FileOutput,Files,ShieldCheck } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import Layout from '../components/Layout'
-import { useAuth } from '../lib/auth'
-const tools=[{icon:BriefcaseBusiness,title:'CV + Cover Letter',copy:'Build an application-ready CV and cover letter.',href:'/tools/career'},{icon:FileOutput,title:'Invoice & Quotation',copy:'Create a professional, VAT-ready business document.',href:'/tools/invoice'},{icon:Files,title:'Convert & Merge',copy:'Turn Word and images into PDF or combine PDF files.',href:'/tools/convert'}]
-export default function Workspace(){const{user,configured}=useAuth();return <Layout><section className="workspace container"><div className="workspace-head"><div><span className="kicker">YOUR WORKSPACE</span><h1>Dumela{user?.user_metadata?.name?`, ${user.user_metadata.name.split(' ')[0]}`:''}.</h1><p>What are we sorting out today?</p></div><div className="access-pill"><ShieldCheck/><span><b>{configured&&user?'Trial access active':'Preview mode'}</b><small>{configured&&user?'7-day access is checked on every tool use':'Connect Supabase to enable accounts and access checks'}</small></span></div></div><div className="workspace-grid">{tools.map(({icon:Icon,...tool})=><Link to={tool.href} className="workspace-tool" key={tool.title}><div className="workspace-icon"><Icon/></div><h2>{tool.title}</h2><p>{tool.copy}</p><span>Open tool<ArrowRight/></span></Link>)}</div><div className="workspace-note"><b>Privacy by default</b><p>Conversion files stay in your browser and are not uploaded. Only payment receipts and account data use Supabase when configured.</p></div></section></Layout>}
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  FileOutput,
+  Files,
+  ShieldCheck,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import Layout from "../components/Layout";
+import { useAuth } from "../lib/auth";
+const tools = [
+  {
+    icon: BriefcaseBusiness,
+    title: "CV + Cover Letter",
+    copy: "Build an application-ready CV and cover letter.",
+    href: "/tools/career",
+  },
+  {
+    icon: FileOutput,
+    title: "Invoice & Quotation",
+    copy: "Create a professional, VAT-ready business document.",
+    href: "/tools/invoice",
+  },
+  {
+    icon: Files,
+    title: "Convert & Merge",
+    copy: "Turn Word and images into PDF or combine PDF files.",
+    href: "/tools/convert",
+  },
+];
+export default function Workspace() {
+  const { user, configured } = useAuth();
+  return (
+    <Layout>
+      <section className="workspace container">
+        <div className="workspace-head">
+          <div>
+            <span className="kicker">YOUR WORKSPACE</span>
+            <h1>
+              Dumela
+              {user?.user_metadata?.name
+                ? `, ${user.user_metadata.name.split(" ")[0]}`
+                : ""}
+              .
+            </h1>
+            <p>What are we sorting out today?</p>
+          </div>
+          <div className="access-pill">
+            <ShieldCheck />
+            <span>
+              <b>
+                {configured && user ? "Trial access active" : "Preview mode"}
+              </b>
+              <small>
+                {configured && user
+                  ? "7-day access is checked on every tool use"
+                  : "Connect Supabase to enable accounts and access checks"}
+              </small>
+            </span>
+          </div>
+        </div>
+        <div className="workspace-grid">
+          {tools.map(({ icon: Icon, ...tool }) => (
+            <Link to={tool.href} className="workspace-tool" key={tool.title}>
+              <div className="workspace-icon">
+                <Icon />
+              </div>
+              <h2>{tool.title}</h2>
+              <p>{tool.copy}</p>
+              <span>
+                Open tool
+                <ArrowRight />
+              </span>
+            </Link>
+          ))}
+        </div>
+        <div className="workspace-note">
+          <b>Privacy by default</b>
+          <p>
+            Conversion files stay in your browser and are not uploaded. Only
+            payment receipts and account data use Supabase when configured.
+          </p>
+        </div>
+      </section>
+    </Layout>
+  );
+}
