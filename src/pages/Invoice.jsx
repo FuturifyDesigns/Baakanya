@@ -1,5 +1,5 @@
 import { Download, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
@@ -37,6 +37,10 @@ export default function Invoice() {
   const [logoCrop, setLogoCrop] = useState({ zoom: 1, x: 0, y: 0 });
   const [customization, setCustomization] = useState(defaultCustomization);
   const [studioMessage, setStudioMessage] = useState("");
+  const logoPreview = useMemo(() => logo ? URL.createObjectURL(logo) : "", [logo]);
+  useEffect(() => () => {
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
+  }, [logoPreview]);
   const templates = kind === "Invoice" ? invoiceTemplates : quotationTemplates;
   const templateId =
     kind === "Invoice" ? invoiceTemplateId : quotationTemplateId;
@@ -196,19 +200,17 @@ export default function Invoice() {
       title="Invoice without the admin."
       description="Add the details, let Baakanya calculate the totals, and download a client-ready PDF."
     >
-      <div className="document-type-switch tabs compact">
-        <button
-          className={kind === "Invoice" ? "active" : ""}
-          onClick={() => changeKind("Invoice")}
-        >
-          Invoice
+      <nav className="document-workflow" aria-label="Business document being edited">
+        <button className={kind === "Invoice" ? "active" : ""} onClick={() => changeKind("Invoice")}>
+          <span>01</span><div><b>Invoice</b><small>{invoiceTemplates.find(({ id }) => id === invoiceTemplateId)?.name}</small></div><em>{kind === "Invoice" ? "Editing now" : "Open invoice"}</em>
         </button>
-        <button
-          className={kind === "Quotation" ? "active" : ""}
-          onClick={() => changeKind("Quotation")}
-        >
-          Quotation
+        <button className={kind === "Quotation" ? "active" : ""} onClick={() => changeKind("Quotation")}>
+          <span>02</span><div><b>Quotation</b><small>{quotationTemplates.find(({ id }) => id === quotationTemplateId)?.name}</small></div><em>{kind === "Quotation" ? "Editing now" : "Open quotation"}</em>
         </button>
+      </nav>
+      <div className="editing-context">
+        <div><span className="kicker">CURRENT DOCUMENT</span><h2>You’re editing an {kind.toLowerCase()}.</h2></div>
+        <p>Client and line-item details carry across when you switch document type.</p>
       </div>
       <TemplatePicker
         label={`${kind} template`}
@@ -355,9 +357,17 @@ export default function Invoice() {
             </div>
           )}
         </div>
-        <aside className="summary-card">
-          <span className="kicker">LIVE TOTAL</span>
-          <h3>{kind}</h3>
+        <aside className="summary-card business-live-preview">
+          <div className="preview-label">LIVE {kind.toUpperCase()} PREVIEW</div>
+          <div className="business-preview-head">
+            <div>{logoPreview ? <img src={logoPreview} alt="Business logo preview" /> : <span>{(form.business || "B").slice(0, 2).toUpperCase()}</span>}<b>{form.business || "Your business"}</b></div>
+            <h3>{kind.toUpperCase()}</h3>
+          </div>
+          <div className="business-preview-meta"><span>Bill to<b>{form.client || "Client name"}</b></span><span>No.<b>{form.number}</b></span><span>Date<b>{form.date}</b></span></div>
+          <div className="business-preview-items">
+            <div><b>Description</b><b>Qty</b><b>Amount</b></div>
+            {items.slice(0, 5).map((item, index) => <div key={index}><span>{item.description || "Item or service"}</span><span>{item.qty || 0}</span><span>P {money(Number(item.qty || 0) * Number(item.price || 0))}</span></div>)}
+          </div>
           <dl>
             <div>
               <dt>Subtotal</dt>
@@ -378,7 +388,7 @@ export default function Invoice() {
             <Download />
             Download PDF
           </button>
-          <p>Your PDF is generated on this device.</p>
+          <p>The preview updates as you type. Your PDF is generated on this device.</p>
         </aside>
       </div>
       <DocumentStudio

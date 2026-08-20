@@ -17,6 +17,7 @@ const split = (text) =>
     .map((x) => x.trim())
     .filter(Boolean);
 export default function Career() {
+  const [activeDocument, setActiveDocument] = useState("cv");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -49,8 +50,8 @@ export default function Career() {
   const coverTemplate = coverLetterTemplates.find(
     ({ id }) => id === coverTemplateId,
   );
-  const photoShape =
-    cvTemplate.photo !== "none" ? cvTemplate.photo : coverTemplate.photo;
+  const activeTemplate = activeDocument === "cv" ? cvTemplate : coverTemplate;
+  const photoShape = activeTemplate.photo;
   const styledCvTemplate = {
     ...cvTemplate,
     accent: customization.accent || cvTemplate.accent,
@@ -262,18 +263,20 @@ export default function Career() {
       title="Put your best work on paper."
       description="Build a clear ATS-friendly CV and tailored cover letter from one guided form."
     >
-      <TemplatePicker
-        label="CV template"
-        templates={cvTemplates}
-        value={cvTemplateId}
-        onChange={setCvTemplateId}
-      />
-      <TemplatePicker
-        label="Cover letter template"
-        templates={coverLetterTemplates}
-        value={coverTemplateId}
-        onChange={setCoverTemplateId}
-      />
+      <nav className="document-workflow" aria-label="Career document being edited">
+        <button className={activeDocument === "cv" ? "active" : ""} onClick={() => setActiveDocument("cv")}>
+          <span>01</span><div><b>Curriculum vitae</b><small>{cvTemplate.name}</small></div><em>{activeDocument === "cv" ? "Editing now" : "Open CV"}</em>
+        </button>
+        <button className={activeDocument === "cover" ? "active" : ""} onClick={() => setActiveDocument("cover")}>
+          <span>02</span><div><b>Cover letter</b><small>{coverTemplate.name}</small></div><em>{activeDocument === "cover" ? "Editing now" : "Open letter"}</em>
+        </button>
+      </nav>
+      <div className="editing-context">
+        <div><span className="kicker">CURRENT DOCUMENT</span><h2>You’re editing your {activeDocument === "cv" ? "CV" : "cover letter"}.</h2></div>
+        <p>Your contact and experience details stay in sync across both documents.</p>
+      </div>
+      {activeDocument === "cv" ? <TemplatePicker label="CV template" templates={cvTemplates} value={cvTemplateId} onChange={setCvTemplateId} />
+        : <TemplatePicker label="Cover letter template" templates={coverLetterTemplates} value={coverTemplateId} onChange={setCoverTemplateId} />}
       {photoShape !== "none" && (
         <MediaAdjuster
           label={`${photoShape === "circle" ? "Circular" : "Square"} profile photo`}
@@ -366,7 +369,7 @@ export default function Career() {
               />
             </label>
           </div>
-          <div className="research-box">
+          {activeDocument === "cover" && <div className="research-box">
             <div>
               <b>Company research</b>
               <span>
@@ -410,7 +413,7 @@ export default function Career() {
                 </button>
               </div>
             )}
-          </div>
+          </div>}
           <label>
             Professional summary
             <textarea
@@ -453,26 +456,26 @@ export default function Career() {
             </div>
           )}
           <div className="form-downloads">
-            <button className="btn btn-blue" onClick={cv}>
+            <button className="btn btn-blue" onClick={activeDocument === "cv" ? cv : cover}>
               <Download />
-              Download CV
+              Download {activeDocument === "cv" ? "CV" : "cover letter"}
             </button>
-            <button className="btn btn-outline" onClick={cover}>
-              <Download />
-              Cover letter
-            </button>
+            <button className="btn btn-outline" onClick={() => setActiveDocument(activeDocument === "cv" ? "cover" : "cv")}>Edit {activeDocument === "cv" ? "cover letter" : "CV"}</button>
           </div>
         </div>
-        <aside className="letter-preview">
+        <aside className={`letter-preview live-document-preview ${activeDocument}`}>
           <div className="preview-label">
             <Sparkles />
-            Draft preview
+            Live {activeDocument === "cv" ? "CV" : "letter"} preview
           </div>
-          <h3>{form.role || "Your target role"}</h3>
-          <p className="preline">{letter}</p>
+          {activeDocument === "cv" ? <div className="cv-preview-content">
+            <header><h3>{form.name || "Your name"}</h3><b>{form.role || "Target role"}</b><small>{[form.email, form.phone, form.location].filter(Boolean).join(" · ")}</small></header>
+            <section><strong>PROFILE</strong><p>{form.summary || "Your professional summary will appear here as you type."}</p></section>
+            <section><strong>EXPERIENCE</strong><p className="preline">{form.experience || "Add your roles, projects and achievements to build this section."}</p></section>
+            <section><strong>SKILLS</strong><div className="preview-skills">{(split(form.skills).length ? split(form.skills) : ["Your skills"]).map((skill) => <span key={skill}>{skill}</span>)}</div></section>
+          </div> : <><h3>{form.role || "Your target role"}</h3><p className="preline">{letter}</p></>}
           <small>
-            Web research runs only when you select “Research company”. Your CV
-            and PDF generation remain on this device.
+            This preview updates as you type. PDF and Word generation remain on this device.
           </small>
         </aside>
       </div>
@@ -482,13 +485,7 @@ export default function Career() {
         onSave={saveDraft}
         onLoad={loadDraft}
         message={studioMessage}
-        wordActions={[
-          { label: "Download CV for Word", onClick: downloadCvWord },
-          {
-            label: "Download cover letter for Word",
-            onClick: downloadCoverWord,
-          },
-        ]}
+        wordActions={[activeDocument === "cv" ? { label: "Download CV for Word", onClick: downloadCvWord } : { label: "Download cover letter for Word", onClick: downloadCoverWord }]}
       />
     </ToolShell>
   );

@@ -12,7 +12,7 @@ const Invoice = lazyWithRefresh(() => import("./pages/Invoice"));
 const Career = lazyWithRefresh(() => import("./pages/Career"));
 const Auth = lazyWithRefresh(() => import("./pages/Auth"));
 const Payment = lazyWithRefresh(() => import("./pages/Payment"));
-const Admin = lazyWithRefresh(() => import("./pages/Admin"));
+const Admin = lazyWithRefresh(() => import("./pages/AdminControl"));
 const NotFound = lazyWithRefresh(() => import("./pages/NotFound"));
 const About = lazyWithRefresh(() => import("./pages/About"));
 function ScrollToTop() {

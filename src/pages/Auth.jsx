@@ -17,7 +17,7 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user } = useAuth();
+  const { user, isAdmin, roleLoading } = useAuth();
   const navigate = useNavigate();
   const passwordChecks = {
     length: form.password.length >= 10,
@@ -39,8 +39,9 @@ export default function Auth() {
           ? { label: "Good", className: "good" }
           : { label: "Strong", className: "strong" };
   useEffect(() => {
-    if (user) navigate("/workspace");
-  }, [user, navigate]);
+    if (user && !roleLoading)
+      navigate(isAdmin ? "/admin" : "/workspace", { replace: true });
+  }, [user, isAdmin, roleLoading, navigate]);
   const submit = async (e) => {
     e.preventDefault();
     if (!supabase) {
@@ -96,7 +97,8 @@ export default function Auth() {
       setMessage(
         "Check your email to verify your account and activate your 7-day trial.",
       );
-    else navigate("/workspace");
+    // The authenticated-session effect waits for the database-backed role
+    // lookup before choosing the correct dashboard.
   };
   return (
     <div className="auth-page">

@@ -15,7 +15,7 @@ export function Logo() {
 }
 export default function Layout({ children }) {
   const [open, setOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const { language, toggle, t } = useLanguage();
   const close = () => setOpen(false);
   return (
@@ -49,8 +49,8 @@ export default function Layout({ children }) {
             </button>
             {user ? (
               <>
-                <NavLink to="/workspace" onClick={close}>
-                  {t.dashboard}
+                <NavLink to={isAdmin ? "/admin" : "/workspace"} onClick={close}>
+                  {isAdmin ? "Admin" : t.dashboard}
                 </NavLink>
                 <button className="btn btn-small btn-ink" onClick={signOut}>
                   Sign out
