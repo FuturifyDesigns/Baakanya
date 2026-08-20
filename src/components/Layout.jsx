@@ -31,15 +31,15 @@ export default function Layout({ children }) {
             {open ? <X /> : <Menu />}
           </button>
           <div className={`nav-links ${open ? "open" : ""}`}>
-            <a href="#tools" onClick={close}>
+            <NavLink to="/tools" onClick={close}>
               {t.tools}
-            </a>
-            <a href="#how" onClick={close}>
+            </NavLink>
+            <NavLink to="/how-it-works" onClick={close}>
               {t.how}
-            </a>
-            <a href="#pricing" onClick={close}>
+            </NavLink>
+            <NavLink to="/pricing" onClick={close}>
               {t.pricing}
-            </a>
+            </NavLink>
             <button className="language" onClick={toggle}>
               <Globe2 size={16} />
               {language === "en" ? "Setswana" : "English"}
@@ -79,8 +79,9 @@ export default function Layout({ children }) {
           </div>
           <div>
             <b>Product</b>
-            <Link to="/workspace">Document tools</Link>
-            <a href="#pricing">Pricing</a>
+            <Link to="/tools">Document tools</Link>
+            <Link to="/how-it-works">How it works</Link>
+            <Link to="/pricing">Pricing</Link>
           </div>
           <div>
             <b>Support</b>
@@ -90,7 +91,16 @@ export default function Layout({ children }) {
         </div>
         <div className="container footer-bottom">
           <span>© {new Date().getFullYear()} Baakanya</span>
-          <span>Made with botho in Botswana 🇧🇼</span>
+          <span>
+            Built by{" "}
+            <a
+              href="https://futurifydesigns.com/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Futurify Designs
+            </a>
+          </span>
         </div>
       </footer>
     </div>
