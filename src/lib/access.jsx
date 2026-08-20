@@ -6,12 +6,12 @@ export function useAccess() {
   const [state, setState] = useState({
     loading: configured,
     allowed: !configured,
-    reason: configured ? "Checking access…" : "Preview mode",
+    reason: configured ? "Checking access…" : "Ready to use",
   });
   useEffect(() => {
     let active = true;
     if (!configured) {
-      setState({ loading: false, allowed: true, reason: "Preview mode" });
+      setState({ loading: false, allowed: true, reason: "Ready to use" });
       return;
     }
     if (authLoading) return;

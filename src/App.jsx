@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
+import CustomCursor from "./components/CustomCursor";
 const Landing = lazy(() => import("./pages/Landing"));
 const ToolsOverview = lazy(() => import("./pages/ToolsOverview"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
@@ -29,6 +30,7 @@ export default function App() {
         </div>
       }
     >
+      <CustomCursor />
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Landing />} />

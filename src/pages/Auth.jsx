@@ -16,7 +16,7 @@ export default function Auth() {
   });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const { configured, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
     if (user) navigate("/workspace");
@@ -25,7 +25,7 @@ export default function Auth() {
     e.preventDefault();
     if (!supabase) {
       setMessage(
-        "Supabase is not connected yet. You can still explore every tool in preview mode.",
+        "Account services are temporarily unavailable. Please try again shortly.",
       );
       return;
     }
@@ -96,11 +96,10 @@ export default function Auth() {
             </li>
             <li>
               <CheckCircle2 />
-              Botswana-ready templates
+              Editable Word and PDF downloads
             </li>
           </ul>
         </div>
-        <p>Made with botho in Botswana 🇧🇼</p>
       </div>
       <div className="auth-form-wrap">
         <Link to="/" className="auth-back">
@@ -186,11 +185,6 @@ export default function Auth() {
             {busy ? "Please wait…" : signup ? "Start my free trial" : "Log in"}
           </button>
           {message && <div className="form-message">{message}</div>}
-          {!configured && (
-            <Link className="demo-link" to="/workspace">
-              Continue in preview mode →
-            </Link>
-          )}
           <p className="switch-auth">
             {signup ? "Already have an account?" : "New to Baakanya?"}{" "}
             <button

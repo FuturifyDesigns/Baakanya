@@ -7,17 +7,36 @@ export default function CustomCursor() {
     const element = cursor.current;
     if (!element || !window.matchMedia("(pointer: fine)").matches) return;
     let frame;
+    const isDarkBackground = (target) => {
+      let node = target instanceof Element ? target : target?.parentElement;
+      while (node && node !== document.documentElement) {
+        const theme = node.dataset?.cursorTheme;
+        if (theme) return theme === "dark";
+
+        const color = window.getComputedStyle(node).backgroundColor;
+        const values = color.match(/[\d.]+/g)?.map(Number);
+        if (values?.length >= 3 && (values[3] ?? 1) > 0.15) {
+          const [red, green, blue] = values;
+          const luminance =
+            (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+          return luminance < 0.5;
+        }
+        node = node.parentElement;
+      }
+      return false;
+    };
+
     const move = (event) => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
+        const target = document.elementFromPoint(event.clientX, event.clientY);
         element.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
         element.classList.add("visible");
         element.classList.toggle(
           "interactive",
-          Boolean(
-            event.target.closest("a, button, input, textarea, select, label"),
-          ),
+          Boolean(target?.closest("a, button, input, textarea, select, label")),
         );
+        element.classList.toggle("on-dark", isDarkBackground(target));
       });
     };
     const leave = () => element.classList.remove("visible");

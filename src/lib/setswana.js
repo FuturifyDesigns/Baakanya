@@ -378,6 +378,16 @@ export const setswana = {
     "sekai: Fetola dintlha tsa kopano go nna ditiro",
   "Describe the repetitive work and the result you need.":
     "Tlhalosa tiro e e boelediwang le se o batlang go se bona.",
+  "Editable Word and PDF downloads":
+    "Kopolola ditokomane tsa Word le PDF tse di ka baakanngwang",
+  "Account ready": "Akhaonto e siametse go dirisiwa",
+  "Get started": "Simolola",
+  "Your document tools are ready to use":
+    "Didiriswa tsa ditokomane di siametse go dirisiwa",
+  "Sign in to save drafts and use document tools":
+    "Tsena go boloka di-draft le go dirisa didiriswa tsa ditokomane",
+  "Payment receipts and account details are stored securely and used only to provide the service.":
+    "Ditlankana tsa tuelo le dintlha tsa akhaonto di bolokiwa ka pabalesego mme di dirisiwa fela go go direla.",
 };
 
 export const english = Object.fromEntries(

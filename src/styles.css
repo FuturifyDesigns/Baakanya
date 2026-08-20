@@ -71,6 +71,16 @@ body {
     filter: drop-shadow(0 0 6px #79d5ff) drop-shadow(0 0 16px #44baff)
       drop-shadow(0 0 30px rgba(64, 180, 255, 0.95));
   }
+  .custom-cursor.on-dark {
+    background: #f8fbfc;
+    border-color: rgba(5, 17, 24, 0.95);
+    filter: drop-shadow(0 0 4px #4bbcff) drop-shadow(0 0 13px #4bbcff)
+      drop-shadow(0 0 24px rgba(90, 201, 255, 0.92));
+  }
+  .custom-cursor.on-dark.interactive {
+    filter: drop-shadow(0 0 6px #8cddff) drop-shadow(0 0 18px #55c7ff)
+      drop-shadow(0 0 32px rgba(90, 201, 255, 1));
+  }
   .custom-cursor.pressed {
     opacity: 0.72;
   }
@@ -79,6 +89,11 @@ button,
 input,
 textarea {
   font: inherit;
+}
+.site .lucide,
+.auth-page .lucide {
+  stroke-width: 1.75;
+  stroke-linecap: square;
 }
 button,
 a {
@@ -474,12 +489,12 @@ p {
 .tool-card:after {
   content: "";
   position: absolute;
-  width: 180px;
-  height: 180px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-  right: -65px;
-  top: -55px;
+  width: 110px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.16;
+  right: 29px;
+  top: 55px;
 }
 .tool-card:hover {
   transform: translateY(-6px);
@@ -509,13 +524,15 @@ p {
 .tool-icon {
   width: 52px;
   height: 52px;
-  border-radius: 13px;
+  border-radius: 9px;
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(16, 44, 58, 0.16);
 }
 .dark .tool-icon {
   background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 .tool-card h3 {
   font-size: 28px;
@@ -828,8 +845,9 @@ footer {
 .workspace-icon {
   width: 55px;
   height: 55px;
-  border-radius: 14px;
-  background: var(--pale);
+  border-radius: 9px;
+  background: #f5fafc;
+  border: 1px solid #c8d8df;
   display: grid;
   place-items: center;
   color: var(--blue-deep);
@@ -1868,12 +1886,23 @@ footer {
   font-weight: 800;
 }
 .editorial-tool-icon {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
+  width: 124px;
+  height: 124px;
+  border-radius: 18px;
   border: 1px solid currentColor;
   display: grid;
   place-items: center;
+  position: relative;
+  box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.08);
+}
+.editorial-tool-icon::after {
+  content: "";
+  position: absolute;
+  width: 28px;
+  height: 3px;
+  right: -1px;
+  bottom: 18px;
+  background: currentColor;
 }
 .editorial-tool-icon svg {
   width: 48px;
@@ -3209,8 +3238,9 @@ footer {
     grid-template-columns: 1fr;
   }
   .editorial-tool-icon {
-    width: 90px;
-    height: 90px;
+    width: 88px;
+    height: 88px;
+    border-radius: 14px;
   }
   .process-stage {
     width: 100%;

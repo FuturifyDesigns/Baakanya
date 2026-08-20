@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
-import CustomCursor from "./CustomCursor";
 export function Logo() {
   return (
     <Link className="logo" to="/">
@@ -21,7 +20,6 @@ export default function Layout({ children }) {
   const close = () => setOpen(false);
   return (
     <div className="site">
-      <CustomCursor />
       <header className="nav-wrap">
         <nav className="nav container">
           <Logo />
@@ -59,18 +57,13 @@ export default function Layout({ children }) {
                 </button>
               </>
             ) : (
-              <>
-                <NavLink to="/auth" onClick={close}>
-                  {t.login}
-                </NavLink>
-                <NavLink
-                  className="btn btn-small btn-blue"
-                  to="/auth?mode=signup"
-                  onClick={close}
-                >
-                  {t.start}
-                </NavLink>
-              </>
+              <NavLink
+                className="btn btn-small btn-blue"
+                to="/auth?mode=signup"
+                onClick={close}
+              >
+                {t.getStarted}
+              </NavLink>
             )}
           </div>
         </nav>

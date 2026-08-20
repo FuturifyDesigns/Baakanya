@@ -29,7 +29,7 @@ const tools = [
   },
 ];
 export default function Workspace() {
-  const { user, configured } = useAuth();
+  const { user } = useAuth();
   return (
     <Layout>
       <section className="workspace container">
@@ -49,12 +49,12 @@ export default function Workspace() {
             <ShieldCheck />
             <span>
               <b>
-                {configured && user ? "Trial access active" : "Preview mode"}
+                {user ? "Account ready" : "Get started"}
               </b>
               <small>
-                {configured && user
-                  ? "7-day access is checked on every tool use"
-                  : "Connect Supabase to enable accounts and access checks"}
+                {user
+                  ? "Your document tools are ready to use"
+                  : "Sign in to save drafts and use document tools"}
               </small>
             </span>
           </div>
@@ -77,8 +77,9 @@ export default function Workspace() {
         <div className="workspace-note">
           <b>Privacy by default</b>
           <p>
-            Conversion files stay in your browser and are not uploaded. Only
-            payment receipts and account data use Supabase when configured.
+            Conversion files stay in your browser and are not uploaded. Payment
+            receipts and account details are stored securely and used only to
+            provide the service.
           </p>
         </div>
       </section>
