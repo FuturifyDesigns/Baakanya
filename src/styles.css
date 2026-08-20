@@ -2923,9 +2923,10 @@ footer {
   fill: #112630;
   stroke: #112630;
 }
-.about-system-svg .system-b {
-  fill: #61b7e7;
-  stroke: none;
+.about-system-svg .system-logo-tile {
+  fill: #f7fbfd;
+  stroke: #65b8e3;
+  stroke-width: 1;
 }
 .about-system-svg .system-route,
 .about-system-svg .system-arrow {

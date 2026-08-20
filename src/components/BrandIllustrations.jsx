@@ -96,7 +96,22 @@ export function BaakanyaSystemGraphic() {
       <rect className="system-card" x="28" y="230" width="125" height="100" />
       <path d="M51 253h46M51 272h74M51 291h59M51 310h32" />
       <rect className="system-core" x="205" y="170" width="210" height="220" />
-      <path className="system-b" d="M264 226h65c23 0 38 12 38 30 0 12-6 21-18 26 15 5 23 15 23 29 0 20-16 33-42 33h-66zM296 253v19h30c7 0 11-4 11-10s-4-9-11-9zm0 45v20h32c8 0 13-4 13-10s-5-10-13-10z" />
+      <rect
+        className="system-logo-tile"
+        x="247"
+        y="203"
+        width="126"
+        height="154"
+        rx="8"
+      />
+      <image
+        href={`${import.meta.env.BASE_URL}baakanya-mark.png?v=2`}
+        x="252"
+        y="211"
+        width="116"
+        height="138"
+        preserveAspectRatio="xMidYMid meet"
+      />
       <rect className="system-card" x="467" y="208" width="125" height="145" />
       <path d="M492 235h52l22 22v69h-74zM544 235v23h22M508 282h42M508 302h42" />
       <circle className="system-dot" cx="79" cy="107" r="7" />
