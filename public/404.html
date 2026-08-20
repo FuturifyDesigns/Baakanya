@@ -2,61 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Page not found — Baakanya</title>
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-        background: #f8fbfc;
-        color: #10202a;
-        font-family: Arial, sans-serif;
-      }
-      main {
-        width: min(850px, 100%);
-      }
-      .number {
-        color: #2785b1;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 2px;
-      }
-      h1 {
-        max-width: 820px;
-        margin: 22px 0;
-        font-size: clamp(58px, 10vw, 110px);
-        line-height: 0.9;
-        letter-spacing: -0.07em;
-      }
-      p {
-        color: #586971;
-        font-size: 18px;
-        line-height: 1.6;
-      }
-      a {
-        display: inline-block;
-        margin-top: 28px;
-        padding: 15px 22px;
-        border-radius: 6px;
-        background: #10202a;
-        color: white;
-        text-decoration: none;
-        font-weight: 700;
-      }
-    </style>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Opening Baakanya…</title>
+    <script>
+      (function () {
+        var base = "/Baakanya";
+        var path =
+          window.location.pathname.indexOf(base) === 0
+            ? window.location.pathname.slice(base.length)
+            : window.location.pathname;
+        var route = path + window.location.search + window.location.hash;
+        window.location.replace(base + "/?route=" + encodeURIComponent(route));
+      })();
+    </script>
   </head>
-  <body>
-    <main>
-      <div class="number">404 / PAGE NOT FOUND</div>
-      <h1>This page moved without leaving paperwork.</h1>
-      <p>The address may be incomplete, outdated or no longer available.</p>
-      <a href="./#/">Back to Baakanya</a>
-    </main>
-  </body>
+  <body></body>
 </html>

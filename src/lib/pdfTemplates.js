@@ -19,18 +19,25 @@ const safeName = (value, fallback) =>
 
 const writeSection = (pdf, title, body, options) => {
   let { x, y, width, accent } = options;
+  const font = options.font || "helvetica";
+  const lineHeight =
+    options.density === "compact"
+      ? 4.5
+      : options.density === "spacious"
+        ? 6.2
+        : 5.2;
   if (!body) return y;
   if (y > 265) {
     pdf.addPage();
     y = 22;
   }
   setColour(pdf, accent);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   pdf.setFontSize(9);
   pdf.text(title.toUpperCase(), x, y);
   y += 7;
   pdf.setTextColor(38, 50, 57);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   pdf.setFontSize(9.5);
   const lines = pdf.splitTextToSize(body, width);
   for (const line of lines) {
@@ -39,7 +46,7 @@ const writeSection = (pdf, title, body, options) => {
       y = 22;
     }
     pdf.text(line, x, y);
-    y += 5.2;
+    y += lineHeight;
   }
   return y + 7;
 };
@@ -50,6 +57,8 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
   const band = template.layout === "band";
   const primary = template.primary;
   const accent = template.accent;
+  const font = template.font || "helvetica";
+  const density = template.density || "comfortable";
   let contentX = sidebar ? 73 : 18;
   let contentWidth = sidebar ? 119 : 174;
   let y = band ? 62 : 58;
@@ -59,10 +68,10 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     pdf.rect(0, 0, 61, 297, "F");
     if (photoData) pdf.addImage(photoData, "PNG", 13, 16, 35, 35);
     pdf.setTextColor(255, 255, 255);
-    pdf.setFont("helvetica", "bold");
+    pdf.setFont(font, "bold");
     pdf.setFontSize(17);
     pdf.text(pdf.splitTextToSize(form.name, 45), 9, photoData ? 65 : 25);
-    pdf.setFont("helvetica", "normal");
+    pdf.setFont(font, "normal");
     pdf.setFontSize(8.5);
     const contact = [form.email, form.phone, form.location].filter(Boolean);
     pdf.text(contact, 9, photoData ? 86 : 48);
@@ -70,10 +79,10 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     setColour(pdf, primary, true);
     pdf.rect(0, 0, 210, 47, "F");
     pdf.setTextColor(255, 255, 255);
-    pdf.setFont("helvetica", "bold");
+    pdf.setFont(font, "bold");
     pdf.setFontSize(23);
     pdf.text(form.name, 18, 20);
-    pdf.setFont("helvetica", "normal");
+    pdf.setFont(font, "normal");
     pdf.setFontSize(10);
     pdf.text(form.role, 18, 31);
     if (photoData) pdf.addImage(photoData, "PNG", 165, 7, 32, 32);
@@ -86,7 +95,7 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     );
   } else {
     setColour(pdf, primary);
-    pdf.setFont("helvetica", "bold");
+    pdf.setFont(font, "bold");
     pdf.setFontSize(template.layout === "classic" ? 25 : 23);
     pdf.text(form.name, 18, 21);
     setColour(pdf, accent);
@@ -95,7 +104,7 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     setColour(pdf, accent, true);
     pdf.rect(18, 37, 174, 1.2, "F");
     pdf.setTextColor(65, 77, 84);
-    pdf.setFont("helvetica", "normal");
+    pdf.setFont(font, "normal");
     pdf.setFontSize(8.5);
     pdf.text(
       [form.email, form.phone, form.location].filter(Boolean).join("  •  "),
@@ -113,18 +122,24 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     y,
     width: contentWidth,
     accent,
+    font,
+    density,
   });
   y = writeSection(pdf, "Experience and achievements", form.experience, {
     x: contentX,
     y,
     width: contentWidth,
     accent,
+    font,
+    density,
   });
   writeSection(pdf, "Core skills", skills.join("  •  "), {
     x: contentX,
     y,
     width: contentWidth,
     accent,
+    font,
+    density,
   });
   pdf.save(
     `${safeName(form.name, "baakanya")}-${safeName(template.name, "cv")}-cv.pdf`,
@@ -134,6 +149,13 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
 export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
   const pdf = new jsPDF();
   const { primary, accent } = template;
+  const font = template.font || "helvetica";
+  const lineHeight =
+    template.density === "compact"
+      ? 5.1
+      : template.density === "spacious"
+        ? 7
+        : 6;
   if (template.layout === "band" || template.layout === "sidebar") {
     setColour(pdf, primary, true);
     pdf.rect(
@@ -148,10 +170,10 @@ export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
   const width = template.layout === "sidebar" ? 138 : 170;
   const lightHeader = template.layout === "band";
   pdf.setTextColor(...(lightHeader ? [255, 255, 255] : rgb(primary)));
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   pdf.setFontSize(21);
   pdf.text(form.name, x, 20);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   pdf.setFontSize(8.5);
   if (!lightHeader) setColour(pdf, accent);
   pdf.text(
@@ -173,7 +195,7 @@ export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
       y = 22;
     }
     pdf.text(line, x, y);
-    y += 6;
+    y += lineHeight;
   }
   pdf.save(
     `${safeName(form.name, "baakanya")}-${safeName(template.name, "cover-letter")}-cover-letter.pdf`,
@@ -190,6 +212,13 @@ export const renderBusinessPdf = ({
 }) => {
   const pdf = new jsPDF();
   const { primary, accent } = template;
+  const font = template.font || "helvetica";
+  const rowHeight =
+    template.density === "compact"
+      ? 9.5
+      : template.density === "spacious"
+        ? 15
+        : 12;
   const amount = (value) =>
     Number(value || 0).toLocaleString("en-BW", {
       minimumFractionDigits: 2,
@@ -211,7 +240,7 @@ export const renderBusinessPdf = ({
   const left = template.layout === "side" ? 56 : 16;
   const right = 194;
   if (logoData) pdf.addImage(logoData, "PNG", left, 10, 28, 20);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   pdf.setFontSize(logoData ? 15 : 22);
   pdf.setTextColor(
     ...(template.layout === "band" ? [255, 255, 255] : rgb(primary)),
@@ -220,7 +249,7 @@ export const renderBusinessPdf = ({
   pdf.setFontSize(20);
   pdf.text(kind.toUpperCase(), right, 21, { align: "right" });
   pdf.setTextColor(48, 60, 67);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   pdf.setFontSize(9);
   pdf.text(`Prepared for: ${form.client}`, left, 58);
   pdf.text(`${kind} no: ${form.number}`, right, 52, { align: "right" });
@@ -229,7 +258,7 @@ export const renderBusinessPdf = ({
     setColour(pdf, accent, true);
     pdf.rect(left, top, right - left, 10, "F");
     pdf.setTextColor(20, 31, 37);
-    pdf.setFont("helvetica", "bold");
+    pdf.setFont(font, "bold");
     pdf.text("DESCRIPTION", left + 4, top + 6.5);
     pdf.text("QTY", 137, top + 6.5);
     pdf.text("PRICE", 158, top + 6.5);
@@ -237,12 +266,12 @@ export const renderBusinessPdf = ({
   };
   drawTableHead(70);
   let y = 91;
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   items.forEach((item) => {
     if (y > 250) {
       pdf.addPage();
       drawTableHead(20);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(font, "normal");
       y = 36;
     }
     pdf.text(pdf.splitTextToSize(item.description, 82)[0], left + 4, y);
@@ -253,7 +282,7 @@ export const renderBusinessPdf = ({
     });
     pdf.setDrawColor(222, 228, 231);
     pdf.line(left, y + 4, right, y + 4);
-    y += 12;
+    y += rowHeight;
   });
   y = Math.max(y + 8, 135);
   if (y > 252) {
@@ -266,12 +295,12 @@ export const renderBusinessPdf = ({
     pdf.text("VAT (14%)", 145, y + 9);
     pdf.text(`P ${amount(vatAmount)}`, right, y + 9, { align: "right" });
   }
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   pdf.setFontSize(13);
   setColour(pdf, primary);
   pdf.text("TOTAL", 145, y + 23);
   pdf.text(`P ${amount(total)}`, right, y + 23, { align: "right" });
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   pdf.setFontSize(8.5);
   pdf.setTextColor(75, 87, 94);
   pdf.text(pdf.splitTextToSize(form.notes, right - left), left, 272);

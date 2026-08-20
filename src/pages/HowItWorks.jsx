@@ -143,7 +143,7 @@ export default function HowItWorks() {
                     <i />
                   </div>
                   <span className="browser-address">
-                    https://baakanya.co.bw/#/workspace
+                    https://baakanya.co.bw/workspace
                   </span>
                 </div>
                 <div className="browser-canvas">

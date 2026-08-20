@@ -2819,11 +2819,98 @@ footer {
   display: grid;
   gap: 8px;
 }
+.document-studio {
+  margin: 70px 0 20px;
+  padding: 45px;
+  border: 1px solid #334751;
+  background: var(--ink);
+  color: white;
+}
+.document-studio-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 45px;
+  align-items: start;
+}
+.document-studio h3 {
+  margin: 10px 0 12px;
+  font-size: 32px;
+}
+.document-studio p {
+  max-width: 680px;
+  margin: 0;
+  color: #adbbc1;
+}
+.draft-actions,
+.word-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.document-studio .btn-outline {
+  border-color: #536771;
+  background: transparent;
+  color: white;
+}
+.document-studio .btn svg {
+  width: 17px;
+}
+.studio-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 35px 0 25px;
+}
+.studio-controls > label {
+  display: grid;
+  gap: 9px;
+  color: #b8c6cc;
+  font-size: 11px;
+  font-weight: 700;
+}
+.studio-controls select,
+.colour-control {
+  min-height: 46px;
+  border: 1px solid #4b606a;
+  background: #172832;
+  color: white;
+}
+.studio-controls select {
+  width: 100%;
+  padding: 0 12px;
+}
+.colour-control {
+  display: flex;
+  align-items: center;
+  padding: 7px;
+}
+.colour-control input {
+  width: 43px;
+  height: 31px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.colour-control button {
+  border: 0;
+  background: none;
+  color: #c6d2d7;
+  font-size: 10px;
+}
+.document-studio .form-message {
+  margin-top: 18px;
+  border-color: #49616c;
+  background: #172832;
+  color: #dbe7ec;
+}
 @media (max-width: 900px) {
   .template-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .media-adjuster {
+    grid-template-columns: 1fr;
+  }
+  .document-studio-head {
     grid-template-columns: 1fr;
   }
   .about-story-grid {
@@ -2989,6 +3076,54 @@ footer {
   .media-crop-panel {
     grid-template-columns: 1fr;
   }
+  .document-studio {
+    margin-top: 38px;
+    padding: 24px;
+  }
+  .document-studio-head {
+    gap: 22px;
+  }
+  .document-studio h3 {
+    font-size: 26px;
+  }
+  .studio-controls {
+    grid-template-columns: 1fr;
+    margin: 25px 0;
+  }
+  .draft-actions .btn,
+  .word-actions .btn {
+    width: 100%;
+  }
+  .template-section {
+    padding: 42px 0;
+  }
+  .document-type-switch {
+    margin-top: 30px;
+  }
+  .media-adjuster {
+    gap: 28px;
+    margin: 35px 0;
+  }
+  .tool-title {
+    margin-bottom: 34px;
+  }
+  .tool-page {
+    padding-bottom: 55px;
+  }
+  .page-hero {
+    min-height: 350px;
+    padding: 55px 0 45px;
+  }
+  .simple-cta,
+  .process-notes {
+    padding: 75px 0;
+  }
+  .about-story,
+  .about-principles,
+  .automation-future {
+    padding-top: 65px;
+    padding-bottom: 65px;
+  }
   .about-story {
     padding-top: 85px;
     padding-bottom: 85px;
@@ -3079,10 +3214,10 @@ footer {
   }
   .process-stage {
     width: 100%;
-    padding: 85px 16px 20px;
+    padding: 48px 16px 20px;
   }
   .process-copy {
-    height: 225px;
+    height: 205px;
   }
   .process-chapter h2 {
     font-size: 36px;

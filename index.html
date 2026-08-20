@@ -8,8 +8,17 @@
       name="description"
       content="Baakanya helps Botswana create, convert and organise professional documents."
     />
-    <link rel="icon" type="image/png" href="/Baakanya/baakanya-mark.png" />
-    <link rel="apple-touch-icon" href="/Baakanya/baakanya-mark.png" />
+    <link id="baakanya-favicon" rel="icon" type="image/png" sizes="32x32" />
+    <link id="baakanya-shortcut" rel="shortcut icon" />
+    <link id="baakanya-apple-icon" rel="apple-touch-icon" />
+    <script>
+      (function () {
+        var icon = "/Baakanya/baakanya-mark.png?v=3";
+        document.getElementById("baakanya-favicon").href = icon;
+        document.getElementById("baakanya-shortcut").href = icon;
+        document.getElementById("baakanya-apple-icon").href = icon;
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -20,6 +29,22 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        var route = new URLSearchParams(window.location.search).get("route");
+        if (route) {
+          window.history.replaceState(null, "", "/Baakanya" + route);
+          return;
+        }
+        if (window.location.hash.indexOf("#/") === 0) {
+          window.history.replaceState(
+            null,
+            "",
+            "/Baakanya" + window.location.hash.slice(1),
+          );
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

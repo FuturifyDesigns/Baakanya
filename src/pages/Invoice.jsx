@@ -3,10 +3,13 @@ import { useMemo, useState } from "react";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
+import DocumentStudio from "../components/DocumentStudio";
+import { defaultCustomization } from "../lib/customization";
 import { authorizeGeneration } from "../lib/generation";
 import { invoiceTemplates, quotationTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 import { renderBusinessPdf } from "../lib/pdfTemplates";
+import { exportBusinessWord } from "../lib/wordExport";
 const money = (n) =>
   Number(n || 0).toLocaleString("en-BW", {
     minimumFractionDigits: 2,
@@ -32,10 +35,18 @@ export default function Invoice() {
   );
   const [logo, setLogo] = useState(null);
   const [logoCrop, setLogoCrop] = useState({ zoom: 1, x: 0, y: 0 });
+  const [customization, setCustomization] = useState(defaultCustomization);
+  const [studioMessage, setStudioMessage] = useState("");
   const templates = kind === "Invoice" ? invoiceTemplates : quotationTemplates;
   const templateId =
     kind === "Invoice" ? invoiceTemplateId : quotationTemplateId;
   const template = templates.find(({ id }) => id === templateId);
+  const styledTemplate = {
+    ...template,
+    accent: customization.accent || template.accent,
+    font: customization.font,
+    density: customization.density,
+  };
   const setTemplate =
     kind === "Invoice" ? setInvoiceTemplateId : setQuotationTemplateId;
   const subtotal = useMemo(
@@ -98,9 +109,86 @@ export default function Invoice() {
       form,
       items,
       vat,
-      template,
+      template: styledTemplate,
       logoData,
     });
+  };
+  const validateDocument = () => {
+    if (form.business.trim().length < 2) return "Enter your business name.";
+    if (form.client.trim().length < 2) return "Enter the client name.";
+    if (!form.number.trim()) return `Enter a ${kind} number.`;
+    if (!form.date) return "Choose an issue date.";
+    if (
+      items.some(
+        (item) =>
+          !item.description.trim() ||
+          Number(item.qty) <= 0 ||
+          !Number.isFinite(Number(item.price)) ||
+          Number(item.price) < 0,
+      )
+    )
+      return "Every item needs a description, quantity and valid price.";
+    return "";
+  };
+  const saveDraft = () => {
+    localStorage.setItem(
+      "baakanya-business-draft",
+      JSON.stringify({
+        kind,
+        vat,
+        form,
+        items,
+        invoiceTemplateId,
+        quotationTemplateId,
+        logoCrop,
+        customization,
+      }),
+    );
+    setStudioMessage(
+      `Draft saved on this device.${logo ? " For privacy, select your logo again when you return." : ""}`,
+    );
+  };
+  const loadDraft = () => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("baakanya-business-draft") || "null",
+      );
+      if (!saved) return setStudioMessage("No saved business draft was found.");
+      if (["Invoice", "Quotation"].includes(saved.kind)) setKind(saved.kind);
+      setVat(Boolean(saved.vat));
+      if (saved.form) setForm((current) => ({ ...current, ...saved.form }));
+      if (Array.isArray(saved.items) && saved.items.length)
+        setItems(saved.items);
+      if (invoiceTemplates.some(({ id }) => id === saved.invoiceTemplateId))
+        setInvoiceTemplateId(saved.invoiceTemplateId);
+      if (quotationTemplates.some(({ id }) => id === saved.quotationTemplateId))
+        setQuotationTemplateId(saved.quotationTemplateId);
+      if (saved.logoCrop) setLogoCrop(saved.logoCrop);
+      if (saved.customization)
+        setCustomization({ ...defaultCustomization, ...saved.customization });
+      setStudioMessage(
+        "Saved business draft loaded. You can continue editing.",
+      );
+    } catch {
+      setStudioMessage("The saved draft could not be opened.");
+    }
+  };
+  const downloadWord = async () => {
+    const invalid = validateDocument();
+    if (invalid) return setValidation(invalid);
+    try {
+      await authorizeGeneration(`${kind.toLowerCase()}_word`);
+      exportBusinessWord({
+        kind,
+        form,
+        items,
+        vat,
+        template: styledTemplate,
+        customization,
+      });
+    } catch (error) {
+      setValidation(error.message);
+    }
   };
   return (
     <ToolShell
@@ -293,6 +381,19 @@ export default function Invoice() {
           <p>Your PDF is generated on this device.</p>
         </aside>
       </div>
+      <DocumentStudio
+        customization={customization}
+        onChange={setCustomization}
+        onSave={saveDraft}
+        onLoad={loadDraft}
+        message={studioMessage}
+        wordActions={[
+          {
+            label: `Download editable ${kind} for Word`,
+            onClick: downloadWord,
+          },
+        ]}
+      />
     </ToolShell>
   );
 }

@@ -3,11 +3,14 @@ import { useMemo, useState } from "react";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
+import DocumentStudio from "../components/DocumentStudio";
+import { defaultCustomization } from "../lib/customization";
 import { supabase } from "../lib/supabase";
 import { authorizeGeneration } from "../lib/generation";
 import { coverLetterTemplates, cvTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 import { renderCoverLetterPdf, renderCvPdf } from "../lib/pdfTemplates";
+import { exportCoverWord, exportCvWord } from "../lib/wordExport";
 const split = (text) =>
   text
     .split(/\n|,/)
@@ -40,12 +43,26 @@ export default function Career() {
   const [photo, setPhoto] = useState(null);
   const [photoCrop, setPhotoCrop] = useState({ zoom: 1, x: 0, y: 0 });
   const [validation, setValidation] = useState("");
+  const [customization, setCustomization] = useState(defaultCustomization);
+  const [studioMessage, setStudioMessage] = useState("");
   const cvTemplate = cvTemplates.find(({ id }) => id === cvTemplateId);
   const coverTemplate = coverLetterTemplates.find(
     ({ id }) => id === coverTemplateId,
   );
   const photoShape =
     cvTemplate.photo !== "none" ? cvTemplate.photo : coverTemplate.photo;
+  const styledCvTemplate = {
+    ...cvTemplate,
+    accent: customization.accent || cvTemplate.accent,
+    font: customization.font,
+    density: customization.density,
+  };
+  const styledCoverTemplate = {
+    ...coverTemplate,
+    accent: customization.accent || coverTemplate.accent,
+    font: customization.font,
+    density: customization.density,
+  };
   const set = (k, v) => {
     setValidation("");
     setForm((x) => ({ ...x, [k]: v }));
@@ -144,7 +161,7 @@ export default function Career() {
         : null;
     renderCvPdf({
       form,
-      template: cvTemplate,
+      template: styledCvTemplate,
       photoData,
       skills: split(form.skills),
     });
@@ -167,10 +184,77 @@ export default function Career() {
         : null;
     renderCoverLetterPdf({
       form,
-      template: coverTemplate,
+      template: styledCoverTemplate,
       photoData,
       letter,
     });
+  };
+  const saveDraft = () => {
+    localStorage.setItem(
+      "baakanya-career-draft",
+      JSON.stringify({
+        form,
+        researchText: research.text,
+        cvTemplateId,
+        coverTemplateId,
+        photoCrop,
+        customization,
+      }),
+    );
+    setStudioMessage(
+      `Draft saved on this device.${photo ? " For privacy, select your photo again when you return." : ""}`,
+    );
+  };
+  const loadDraft = () => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("baakanya-career-draft") || "null",
+      );
+      if (!saved) return setStudioMessage("No saved career draft was found.");
+      if (saved.form) setForm((current) => ({ ...current, ...saved.form }));
+      if (saved.researchText)
+        setResearch({ loading: false, error: "", text: saved.researchText });
+      if (cvTemplates.some(({ id }) => id === saved.cvTemplateId))
+        setCvTemplateId(saved.cvTemplateId);
+      if (coverLetterTemplates.some(({ id }) => id === saved.coverTemplateId))
+        setCoverTemplateId(saved.coverTemplateId);
+      if (saved.photoCrop) setPhotoCrop(saved.photoCrop);
+      if (saved.customization)
+        setCustomization({ ...defaultCustomization, ...saved.customization });
+      setStudioMessage("Saved career draft loaded. You can continue editing.");
+    } catch {
+      setStudioMessage("The saved draft could not be opened.");
+    }
+  };
+  const downloadCvWord = async () => {
+    const invalid = validate(false);
+    if (invalid) return setValidation(invalid);
+    try {
+      await authorizeGeneration("cv_word");
+      exportCvWord({
+        form,
+        skills: split(form.skills),
+        template: styledCvTemplate,
+        customization,
+      });
+    } catch (error) {
+      setValidation(error.message);
+    }
+  };
+  const downloadCoverWord = async () => {
+    const invalid = validate(true);
+    if (invalid) return setValidation(invalid);
+    try {
+      await authorizeGeneration("cover_letter_word");
+      exportCoverWord({
+        form,
+        letter,
+        template: styledCoverTemplate,
+        customization,
+      });
+    } catch (error) {
+      setValidation(error.message);
+    }
   };
   return (
     <ToolShell
@@ -392,6 +476,20 @@ export default function Career() {
           </small>
         </aside>
       </div>
+      <DocumentStudio
+        customization={customization}
+        onChange={setCustomization}
+        onSave={saveDraft}
+        onLoad={loadDraft}
+        message={studioMessage}
+        wordActions={[
+          { label: "Download CV for Word", onClick: downloadCvWord },
+          {
+            label: "Download cover letter for Word",
+            onClick: downloadCoverWord,
+          },
+        ]}
+      />
     </ToolShell>
   );
 }

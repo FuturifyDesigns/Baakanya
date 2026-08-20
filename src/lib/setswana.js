@@ -325,6 +325,29 @@ export const setswana = {
   "Square profile photo": "Setshwantsho sa sefatlhego se se khutlonne",
   "What does the company do?": "Khampani e dira eng?",
   "Format company description": "Rulaganya tlhaloso ya khampani",
+  "DOCUMENT STUDIO": "LEFELO LA GO RULAGANYA TOKOMANE",
+  "Keep editing until it feels like yours.":
+    "Tswelela go baakanya go fitlha e nna ya gago.",
+  "Change the information above at any time, customise the final style, save a draft on this device, or download an editable Word copy.":
+    "Fetola dintlha nako nngwe le nngwe, baakanya mokgwa, boloka draft mo sedirisiweng seno kgotsa kopolola Word e e ka baakanngwang.",
+  "Save draft": "Boloka draft",
+  "Load saved": "Bula e e bolokilweng",
+  "Accent colour": "Mmala wa konokono",
+  "Use template colour": "Dirisa mmala wa template",
+  Typography: "Mofuta wa mokwalo",
+  Spacing: "Sebaka",
+  "Clean sans serif": "Mokwalo o o phepa",
+  "Classic serif": "Mokwalo wa setso",
+  "Technical mono": "Mokwalo wa botegeniki",
+  Comfortable: "E e iketlileng",
+  Compact: "E e kitlaneng",
+  Spacious: "E e atlhameng",
+  "Download CV for Word": "Kopolola CV ya Word",
+  "Download cover letter for Word": "Kopolola lekwalo la kopo la Word",
+  "Saved career draft loaded. You can continue editing.":
+    "Draft ya tiro e butswe. O ka tswelela go e baakanya.",
+  "Saved business draft loaded. You can continue editing.":
+    "Draft ya kgwebo e butswe. O ka tswelela go e baakanya.",
   "Describe its services, customers, mission or recent work in your own words.":
     "Tlhalosa ditirelo, bareki, maikaelelo kgotsa tiro ya bosheng ka mafoko a gago.",
   "We could not find enough reliable public information. Tell us about the company below.":
