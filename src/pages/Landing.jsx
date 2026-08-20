@@ -116,19 +116,28 @@ export default function Landing() {
               Choose the thing you need to finish.
             </h2>
           </div>
-          <Link className="home-tool-row sky motion-line" to="/tools/career">
+          <Link
+            className="home-tool-row sky motion-line"
+            to="/auth?mode=signup"
+          >
             <span>01</span>
             <h3>Apply for the role</h3>
             <p>CV + cover letter</p>
             <ArrowRight />
           </Link>
-          <Link className="home-tool-row ink motion-line" to="/tools/invoice">
+          <Link
+            className="home-tool-row ink motion-line"
+            to="/auth?mode=signup"
+          >
             <span>02</span>
             <h3>Bill the client</h3>
             <p>Invoices + quotations</p>
             <ArrowRight />
           </Link>
-          <Link className="home-tool-row sand motion-line" to="/tools/convert">
+          <Link
+            className="home-tool-row sand motion-line"
+            to="/auth?mode=signup"
+          >
             <span>03</span>
             <h3>Get the file ready</h3>
             <p>Convert + merge PDFs</p>

@@ -37,6 +37,9 @@ export default function Layout({ children }) {
             <NavLink to="/how-it-works" onClick={close}>
               {t.how}
             </NavLink>
+            <NavLink to="/about" onClick={close}>
+              {t.about}
+            </NavLink>
             <NavLink to="/pricing" onClick={close}>
               {t.pricing}
             </NavLink>
@@ -75,17 +78,20 @@ export default function Layout({ children }) {
         <div className="container footer-grid">
           <div>
             <Logo />
-            <p>Documents, sorted. Botswana-style.</p>
+            <p>Documents, sorted.</p>
           </div>
           <div>
             <b>Product</b>
             <Link to="/tools">Document tools</Link>
             <Link to="/how-it-works">How it works</Link>
             <Link to="/pricing">Pricing</Link>
+            <Link to="/about">About Baakanya</Link>
           </div>
           <div>
             <b>Support</b>
-            <a href="mailto:hello@baakanya.co.bw">hello@baakanya.co.bw</a>
+            <a href="mailto:futurifydesigns@gmail.com">
+              futurifydesigns@gmail.com
+            </a>
             <span>Gaborone, Botswana</span>
           </div>
         </div>

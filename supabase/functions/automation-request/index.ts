@@ -1,0 +1,122 @@
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+const encoder = new TextEncoder();
+const hex = (buffer: ArrayBuffer) =>
+  Array.from(new Uint8Array(buffer), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+const hmac = async (secret: string, value: string) => {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  return hex(await crypto.subtle.sign("HMAC", key, encoder.encode(value)));
+};
+const clean = (value: unknown) =>
+  typeof value === "string"
+    ? value.replace(/[<>]/g, "").replace(/\s+/g, " ").trim()
+    : "";
+
+Deno.serve(async (request) => {
+  if (request.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
+  if (request.method !== "POST")
+    return Response.json(
+      { error: "Method not allowed" },
+      { status: 405, headers: corsHeaders },
+    );
+  try {
+    const bodyText = await request.text();
+    if (bodyText.length > 3000) throw new Error("Request is too large");
+    const body = JSON.parse(bodyText);
+    const email = clean(body.email).toLowerCase();
+    const tool = clean(body.tool);
+    const details = clean(body.reason);
+    if (clean(body.website))
+      return Response.json({ ok: true }, { headers: corsHeaders });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return Response.json(
+        { error: "Enter a valid email address." },
+        { status: 400, headers: corsHeaders },
+      );
+    if (
+      tool.length < 3 ||
+      tool.length > 120 ||
+      details.length < 10 ||
+      details.length > 800
+    )
+      return Response.json(
+        { error: "Add a short tool name and a useful description." },
+        { status: 400, headers: corsHeaders },
+      );
+
+    const url = Deno.env.get("SUPABASE_URL") || "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const secret = Deno.env.get("TRIAL_FINGERPRINT_SECRET") || "";
+    const forwarded = request.headers.get("x-forwarded-for") || "";
+    const ip =
+      forwarded.split(",")[0].trim() ||
+      request.headers.get("cf-connecting-ip") ||
+      "unknown";
+    const emailHash = await hmac(secret, `automation-email:${email}`);
+    const ipHash = await hmac(secret, `automation-ip:${ip}`);
+    const admin = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const dayAgo = new Date(Date.now() - 86400000).toISOString();
+    const [emailRequests, ipRequests] = await Promise.all([
+      admin
+        .from("automation_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("email_fingerprint_hash", emailHash)
+        .gte("created_at", dayAgo),
+      admin
+        .from("automation_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("ip_fingerprint_hash", ipHash)
+        .gte("created_at", dayAgo),
+    ]);
+    if ((emailRequests.count || 0) >= 3 || (ipRequests.count || 0) >= 5)
+      return Response.json(
+        { error: "Request limit reached. Please try again tomorrow." },
+        { status: 429, headers: corsHeaders },
+      );
+
+    let userId: string | null = null;
+    const authorization = request.headers.get("authorization") || "";
+    const token = authorization.replace(/^Bearer\s+/i, "");
+    if (token && token !== anonKey) {
+      const authClient = createClient(url, anonKey, {
+        global: { headers: { Authorization: authorization } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data } = await authClient.auth.getUser(token);
+      userId = data.user?.id || null;
+    }
+    const { error } = await admin.from("automation_requests").insert({
+      user_id: userId,
+      email,
+      tool_name: tool,
+      details,
+      email_fingerprint_hash: emailHash,
+      ip_fingerprint_hash: ipHash,
+    });
+    if (error) throw error;
+    return Response.json({ ok: true }, { headers: corsHeaders });
+  } catch (error) {
+    console.error(error);
+    return Response.json(
+      { error: "Your request could not be sent right now." },
+      { status: 500, headers: corsHeaders },
+    );
+  }
+});

@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { english, setswana } from "./setswana";
 const copy = {
   en: {
     tools: "Tools",
@@ -8,6 +9,7 @@ const copy = {
     login: "Log in",
     start: "Start free",
     dashboard: "My workspace",
+    about: "About",
     eyebrow: "Built in Botswana, for Botswana",
     hero: "Your documents, sorted.",
     sub: "Create polished documents, convert files and get application-ready — without the admin headache.",
@@ -21,6 +23,7 @@ const copy = {
     login: "Tsena",
     start: "Simolola mahala",
     dashboard: "Lefelo la me",
+    about: "Ka ga rona",
     eyebrow: "E diretswe Botswana",
     hero: "Ditokomane tsa gago, di rulagantswe.",
     sub: "Dira ditokomane tsa maemo, fetola difaele mme o ipaakanyetse go romela — ntle le matsapa.",
@@ -47,6 +50,43 @@ export function LanguageProvider({ children }) {
     }),
     [language],
   );
+  useEffect(() => {
+    document.documentElement.lang = language === "tn" ? "tn" : "en";
+    const dictionary = language === "tn" ? setswana : english;
+    const translate = (root = document.body) => {
+      if (!root) return;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach((node) => {
+        if (
+          ["SCRIPT", "STYLE", "TEXTAREA"].includes(node.parentElement?.tagName)
+        )
+          return;
+        const trimmed = node.nodeValue.trim();
+        if (!dictionary[trimmed]) return;
+        node.nodeValue = node.nodeValue.replace(trimmed, dictionary[trimmed]);
+      });
+      root
+        .querySelectorAll?.("[placeholder], [title], [aria-label]")
+        .forEach((element) => {
+          ["placeholder", "title", "aria-label"].forEach((attribute) => {
+            const current = element.getAttribute(attribute);
+            if (current && dictionary[current])
+              element.setAttribute(attribute, dictionary[current]);
+          });
+        });
+    };
+    const run = () => requestAnimationFrame(() => translate());
+    run();
+    const observer = new MutationObserver(run);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return () => observer.disconnect();
+  }, [language]);
   return (
     <LanguageContext.Provider value={value}>
       {children}

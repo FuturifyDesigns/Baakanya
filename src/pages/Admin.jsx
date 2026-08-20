@@ -5,18 +5,29 @@ import { supabase } from "../lib/supabase";
 export default function Admin() {
   const { user, configured } = useAuth();
   const [rows, setRows] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [message, setMessage] = useState("");
   const allowed =
     user?.email ===
     (import.meta.env.VITE_ADMIN_EMAIL || "baakanya@baakanya.com");
   const load = useCallback(async () => {
     if (!supabase || !allowed) return;
-    const { data, error } = await supabase
-      .from("payment_submissions")
-      .select("*")
-      .order("submitted_at", { ascending: false });
-    if (error) setMessage(error.message);
-    else setRows(data || []);
+    const [payments, automation] = await Promise.all([
+      supabase
+        .from("payment_submissions")
+        .select("*")
+        .order("submitted_at", { ascending: false }),
+      supabase
+        .from("automation_requests")
+        .select("*")
+        .order("created_at", { ascending: false }),
+    ]);
+    if (payments.error || automation.error)
+      setMessage(payments.error?.message || automation.error?.message);
+    else {
+      setRows(payments.data || []);
+      setRequests(automation.data || []);
+    }
   }, [allowed]);
   useEffect(() => {
     load();
@@ -79,6 +90,28 @@ export default function Admin() {
                         </button>
                       </div>
                     )}
+                  </article>
+                ))
+              )}
+            </div>
+            <div className="admin-section-head">
+              <span className="kicker">PRODUCT IDEAS</span>
+              <h2>Automation requests</h2>
+            </div>
+            <div className="admin-list automation-admin-list">
+              {requests.length === 0 ? (
+                <div className="empty-state">No automation requests yet.</div>
+              ) : (
+                requests.map((request) => (
+                  <article key={request.id}>
+                    <div>
+                      <b>{request.tool_name}</b>
+                      <small>{request.email}</small>
+                      <small>
+                        {new Date(request.created_at).toLocaleString()}
+                      </small>
+                    </div>
+                    <p>{request.details}</p>
                   </article>
                 ))
               )}

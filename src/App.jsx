@@ -12,6 +12,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Payment = lazy(() => import("./pages/Payment"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const About = lazy(() => import("./pages/About"));
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/tools" element={<ToolsOverview />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/about" element={<About />} />
         <Route path="/workspace" element={<Workspace />} />
         <Route path="/tools/convert" element={<Converter />} />
         <Route path="/tools/invoice" element={<Invoice />} />

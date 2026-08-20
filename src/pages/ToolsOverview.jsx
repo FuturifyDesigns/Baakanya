@@ -1,6 +1,9 @@
 import { ArrowRight, BriefcaseBusiness, FileOutput, Files } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/auth";
 
 const tools = [
   {
@@ -36,6 +39,32 @@ const tools = [
 ];
 
 export default function ToolsOverview() {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [request, setRequest] = useState({
+    email: user?.email || "",
+    tool: "",
+    reason: "",
+    website: "",
+  });
+  const submitRequest = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    const { data, error } = await supabase.functions.invoke(
+      "automation-request",
+      { body: request },
+    );
+    setBusy(false);
+    if (error || !data?.ok) {
+      setMessage(data?.error || "Your request could not be sent right now.");
+      return;
+    }
+    setMessage("Thank you. Your automation idea has been sent to the admin.");
+    setRequest((current) => ({ ...current, tool: "", reason: "" }));
+  };
   return (
     <Layout>
       <section className="page-hero page-hero-cream">
@@ -46,6 +75,96 @@ export default function ToolsOverview() {
             Focused tools for the document jobs that tend to arrive at the worst
             possible time.
           </p>
+        </div>
+      </section>
+      <section className="automation-future">
+        <div className="container automation-future-grid">
+          <div>
+            <span className="micro-label light">WHAT SHOULD COME NEXT?</span>
+            <h2>More automation tools are on the way.</h2>
+            <p>
+              Tell us about a repetitive task you want Baakanya to make shorter.
+              Good requests go directly into the admin review queue.
+            </p>
+          </div>
+          <div className="automation-request-card">
+            {!open ? (
+              <button className="btn btn-white" onClick={() => setOpen(true)}>
+                Recommend an automation <ArrowRight />
+              </button>
+            ) : (
+              <form onSubmit={submitRequest}>
+                <div className="bot-field" aria-hidden="true">
+                  <label>
+                    Website
+                    <input
+                      tabIndex="-1"
+                      autoComplete="off"
+                      value={request.website}
+                      onChange={(event) =>
+                        setRequest((current) => ({
+                          ...current,
+                          website: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+                <label>
+                  Your email
+                  <input
+                    required
+                    type="email"
+                    value={request.email}
+                    onChange={(event) =>
+                      setRequest((current) => ({
+                        ...current,
+                        email: event.target.value,
+                      }))
+                    }
+                    placeholder="you@example.com"
+                  />
+                </label>
+                <label>
+                  Automation idea
+                  <input
+                    required
+                    minLength="3"
+                    maxLength="120"
+                    value={request.tool}
+                    onChange={(event) =>
+                      setRequest((current) => ({
+                        ...current,
+                        tool: event.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Turn meeting notes into action items"
+                  />
+                </label>
+                <label>
+                  What would it help you finish?
+                  <textarea
+                    required
+                    minLength="10"
+                    maxLength="800"
+                    rows="4"
+                    value={request.reason}
+                    onChange={(event) =>
+                      setRequest((current) => ({
+                        ...current,
+                        reason: event.target.value,
+                      }))
+                    }
+                    placeholder="Describe the repetitive work and the result you need."
+                  />
+                </label>
+                <button className="btn btn-white" disabled={busy}>
+                  {busy ? "Sending…" : "Send recommendation"}
+                </button>
+                {message && <div className="form-message">{message}</div>}
+              </form>
+            )}
+          </div>
         </div>
       </section>
       <section className="tools-editorial">
