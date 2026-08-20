@@ -303,6 +303,32 @@ export const setswana = {
   "Your PDF is generated on this device.":
     "PDF ya gago e dirwa mo sedirisiweng seno.",
   "CAREER DOCUMENTS": "DITOKOMANE TSA TIRO",
+  "CHOOSE A STYLE": "TLHOPHA MOKGWA",
+  "20 professional templates": "Di-template tsa maemo di le 20",
+  "CV template": "Template ya CV",
+  "Cover letter template": "Template ya lekwalo la kopo",
+  "Invoice template": "Template ya invoice",
+  "Quotation template": "Template ya quotation",
+  "OPTIONAL BRANDING": "LETSWAO FA O BATLA",
+  PHOTO: "SETSHWANTSHO",
+  "Business logo": "Letshwao la kgwebo",
+  "Upload an image, then adjust its crop and zoom before download.":
+    "Romela setshwantsho, o se segole le go se godisa pele ga go kopolola.",
+  "Choose image": "Tlhopha setshwantsho",
+  "Replace image": "Fetola setshwantsho",
+  "Remove image": "Tlosa setshwantsho",
+  "No image selected": "Ga go setshwantsho se se tlhophilweng",
+  Zoom: "Godisa",
+  "Left / right": "Molema / moja",
+  "Up / down": "Godimo / tlase",
+  "Circular profile photo": "Setshwantsho sa sefatlhego se se sediko",
+  "Square profile photo": "Setshwantsho sa sefatlhego se se khutlonne",
+  "What does the company do?": "Khampani e dira eng?",
+  "Format company description": "Rulaganya tlhaloso ya khampani",
+  "Describe its services, customers, mission or recent work in your own words.":
+    "Tlhalosa ditirelo, bareki, maikaelelo kgotsa tiro ya bosheng ka mafoko a gago.",
+  "We could not find enough reliable public information. Tell us about the company below.":
+    "Ga re a bona tshedimosetso e e lekaneng e e ikanyegang. Re bolelele ka khampani fa tlase.",
   "Put your best work on paper.":
     "Bontsha tiro ya gago e e molemo mo pampiring.",
   "Company website": "Website ya khampani",

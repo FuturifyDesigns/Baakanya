@@ -1,8 +1,12 @@
 import { Download, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { jsPDF } from "jspdf";
 import ToolShell from "../components/ToolShell";
+import TemplatePicker from "../components/TemplatePicker";
+import MediaAdjuster from "../components/MediaAdjuster";
 import { authorizeGeneration } from "../lib/generation";
+import { invoiceTemplates, quotationTemplates } from "../lib/documentTemplates";
+import { cropImage } from "../lib/media";
+import { renderBusinessPdf } from "../lib/pdfTemplates";
 const money = (n) =>
   Number(n || 0).toLocaleString("en-BW", {
     minimumFractionDigits: 2,
@@ -20,6 +24,20 @@ export default function Invoice() {
   });
   const [items, setItems] = useState([{ description: "", qty: 1, price: "" }]);
   const [validation, setValidation] = useState("");
+  const [invoiceTemplateId, setInvoiceTemplateId] = useState(
+    invoiceTemplates[0].id,
+  );
+  const [quotationTemplateId, setQuotationTemplateId] = useState(
+    quotationTemplates[0].id,
+  );
+  const [logo, setLogo] = useState(null);
+  const [logoCrop, setLogoCrop] = useState({ zoom: 1, x: 0, y: 0 });
+  const templates = kind === "Invoice" ? invoiceTemplates : quotationTemplates;
+  const templateId =
+    kind === "Invoice" ? invoiceTemplateId : quotationTemplateId;
+  const template = templates.find(({ id }) => id === templateId);
+  const setTemplate =
+    kind === "Invoice" ? setInvoiceTemplateId : setQuotationTemplateId;
   const subtotal = useMemo(
     () =>
       items.reduce(
@@ -38,6 +56,16 @@ export default function Invoice() {
     setItems((x) =>
       x.map((item, j) => (j === i ? { ...item, [key]: value } : item)),
     );
+  const changeKind = (next) => {
+    setKind(next);
+    setForm((current) => ({
+      ...current,
+      number: current.number.replace(
+        /^(INV|QUO)/,
+        next === "Invoice" ? "INV" : "QUO",
+      ),
+    }));
+  };
   const download = async () => {
     if (form.business.trim().length < 2)
       return setValidation("Enter your business name.");
@@ -64,51 +92,15 @@ export default function Invoice() {
       window.alert(error.message);
       return;
     }
-    const pdf = new jsPDF();
-    pdf.setFillColor(102, 181, 229);
-    pdf.rect(0, 0, 210, 42, "F");
-    pdf.setTextColor(15, 27, 34);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(22);
-    pdf.text(form.business || "Your business", 16, 20);
-    pdf.setFontSize(10);
-    pdf.text(kind.toUpperCase(), 166, 20);
-    pdf.setTextColor(35, 49, 58);
-    pdf.text(`To: ${form.client || "Client"}`, 16, 57);
-    pdf.text(`${kind} no: ${form.number}`, 130, 52);
-    pdf.text(`Date: ${form.date}`, 130, 58);
-    pdf.setFillColor(240, 245, 247);
-    pdf.rect(16, 70, 178, 10, "F");
-    pdf.setFont("helvetica", "bold");
-    pdf.text("DESCRIPTION", 20, 76);
-    pdf.text("QTY", 130, 76);
-    pdf.text("PRICE", 151, 76);
-    pdf.text("AMOUNT", 174, 76);
-    let y = 89;
-    pdf.setFont("helvetica", "normal");
-    items.forEach((item) => {
-      pdf.text(item.description || "Item / service", 20, y);
-      pdf.text(String(item.qty || 0), 132, y);
-      pdf.text(money(item.price), 151, y);
-      pdf.text(money(Number(item.qty || 0) * Number(item.price || 0)), 174, y);
-      y += 10;
+    const logoData = logo ? await cropImage(logo, logoCrop, "square") : null;
+    renderBusinessPdf({
+      kind,
+      form,
+      items,
+      vat,
+      template,
+      logoData,
     });
-    y = Math.max(y + 8, 125);
-    pdf.line(125, y, 194, y);
-    pdf.text("Subtotal", 130, y + 9);
-    pdf.text(`P ${money(subtotal)}`, 170, y + 9);
-    if (vat) {
-      pdf.text("VAT (14%)", 130, y + 18);
-      pdf.text(`P ${money(vatAmount)}`, 170, y + 18);
-    }
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(13);
-    pdf.text("TOTAL", 130, y + 31);
-    pdf.text(`P ${money(total)}`, 168, y + 31);
-    pdf.setFontSize(9);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(form.notes, 16, 270);
-    pdf.save(`${kind.toLowerCase()}-${form.number}.pdf`);
   };
   return (
     <ToolShell
@@ -116,22 +108,36 @@ export default function Invoice() {
       title="Invoice without the admin."
       description="Add the details, let Baakanya calculate the totals, and download a client-ready PDF."
     >
+      <div className="document-type-switch tabs compact">
+        <button
+          className={kind === "Invoice" ? "active" : ""}
+          onClick={() => changeKind("Invoice")}
+        >
+          Invoice
+        </button>
+        <button
+          className={kind === "Quotation" ? "active" : ""}
+          onClick={() => changeKind("Quotation")}
+        >
+          Quotation
+        </button>
+      </div>
+      <TemplatePicker
+        label={`${kind} template`}
+        templates={templates}
+        value={templateId}
+        onChange={setTemplate}
+      />
+      <MediaAdjuster
+        label="Business logo"
+        file={logo}
+        onFile={setLogo}
+        crop={logoCrop}
+        onCrop={setLogoCrop}
+        shape="square"
+      />
       <div className="builder-grid">
         <div className="form-card">
-          <div className="tabs compact">
-            <button
-              className={kind === "Invoice" ? "active" : ""}
-              onClick={() => setKind("Invoice")}
-            >
-              Invoice
-            </button>
-            <button
-              className={kind === "Quotation" ? "active" : ""}
-              onClick={() => setKind("Quotation")}
-            >
-              Quotation
-            </button>
-          </div>
           <div className="field-grid">
             <label>
               Business name

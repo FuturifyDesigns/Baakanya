@@ -175,16 +175,20 @@ Deno.serve(async (request) => {
     }
 
     const useful = evidence.filter(Boolean).join(" ").slice(0, 520);
-    const overview = useful
-      ? useful.replace(/([.!?])\s+.*/, "$1")
-      : `Public search results for ${company} were limited. Refer to the organisation's mission, customers, or recent work after checking its official website.`;
+    const found = useful.length >= 40;
+    const overview = useful ? useful.replace(/([.!?])\s+.*/, "$1") : "";
     await admin.from("generations").insert({
       user_id: userId,
       tool_used: "company_research",
       access_type: trialActive ? "trial" : "paid",
     });
     return Response.json(
-      { company, overview, sources: [...new Set(sources)].slice(0, 5) },
+      {
+        company,
+        found,
+        overview,
+        sources: [...new Set(sources)].slice(0, 5),
+      },
       { headers: corsHeaders },
     );
   } catch (error) {

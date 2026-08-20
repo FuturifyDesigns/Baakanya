@@ -23,8 +23,15 @@ export default function HowItWorks() {
     const ctx = gsap.context(() => {
       const chapters = gsap.utils.toArray(".process-chapter");
       const panels = gsap.utils.toArray(".process-screen");
+      const cursorStops = [
+        { left: "51%", top: "68%" },
+        { left: "76%", top: "48%" },
+        { left: "78%", top: "76%" },
+        { left: "68%", top: "88%" },
+      ];
       gsap.set(chapters.slice(1), { autoAlpha: 0, y: 24 });
       gsap.set(panels.slice(1), { autoAlpha: 0, xPercent: 18 });
+      gsap.set(".process-cursor", cursorStops[0]);
       let activeChapter = 0;
       const showChapter = (index) => {
         if (index === activeChapter) return;
@@ -53,6 +60,18 @@ export default function HowItWorks() {
             overwrite: true,
           });
         });
+        gsap.to(".process-cursor", {
+          ...cursorStops[index],
+          duration: 0.55,
+          ease: "power2.inOut",
+          overwrite: true,
+          onComplete: () =>
+            gsap.fromTo(
+              ".process-cursor",
+              { scale: 1 },
+              { scale: 0.72, yoyo: true, repeat: 1, duration: 0.12 },
+            ),
+        });
       };
       ScrollTrigger.create({
         trigger: ".process-story",
@@ -61,14 +80,6 @@ export default function HowItWorks() {
         scrub: 0.7,
         onUpdate: (self) =>
           showChapter(Math.min(3, Math.floor(self.progress * 4))),
-      });
-      gsap.to(".process-cursor", {
-        x: 105,
-        y: 62,
-        repeat: -1,
-        yoyo: true,
-        duration: 1.25,
-        ease: "power1.inOut",
       });
     }, root);
     return () => ctx.revert();
@@ -132,7 +143,7 @@ export default function HowItWorks() {
                     <i />
                   </div>
                   <span className="browser-address">
-                    https://futurifydesigns.github.io/Baakanya/#/workspace
+                    https://baakanya.co.bw/#/workspace
                   </span>
                 </div>
                 <div className="browser-canvas">
