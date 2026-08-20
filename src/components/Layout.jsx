@@ -7,7 +7,7 @@ export function Logo() {
   return (
     <Link className="logo" to="/">
       <span className="logo-mark">
-        <img src={`${import.meta.env.BASE_URL}baakanya-mark.png`} alt="" />
+        <img src={`${import.meta.env.BASE_URL}baakanya-mark.png?v=2`} alt="" />
       </span>
       <span>Baakanya</span>
     </Link>
