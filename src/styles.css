@@ -2220,6 +2220,33 @@ footer {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.error-page {
+  min-height: 72vh;
+  display: grid;
+  align-items: center;
+  padding: 120px 0;
+  background: #f8fbfc;
+}
+.error-page h1 {
+  max-width: 980px;
+  margin: 26px 0;
+  font-size: clamp(64px, 9vw, 120px);
+  line-height: 0.92;
+  letter-spacing: -0.07em;
+}
+.error-page p {
+  max-width: 520px;
+  margin-bottom: 34px;
+  color: var(--muted);
+  font-size: 18px;
+}
+.bot-field {
+  position: fixed !important;
+  left: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+}
 @media (max-width: 900px) {
   .editorial-hero {
     min-height: auto;

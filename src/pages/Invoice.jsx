@@ -2,6 +2,7 @@ import { Download, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import ToolShell from "../components/ToolShell";
+import { authorizeGeneration } from "../lib/generation";
 const money = (n) =>
   Number(n || 0).toLocaleString("en-BW", {
     minimumFractionDigits: 2,
@@ -33,7 +34,13 @@ export default function Invoice() {
     setItems((x) =>
       x.map((item, j) => (j === i ? { ...item, [key]: value } : item)),
     );
-  const download = () => {
+  const download = async () => {
+    try {
+      await authorizeGeneration(kind.toLowerCase());
+    } catch (error) {
+      window.alert(error.message);
+      return;
+    }
     const pdf = new jsPDF();
     pdf.setFillColor(102, 181, 229);
     pdf.rect(0, 0, 210, 42, "F");

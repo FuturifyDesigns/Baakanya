@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import ToolShell from "../components/ToolShell";
 import { supabase } from "../lib/supabase";
+import { authorizeGeneration } from "../lib/generation";
 const split = (text) =>
   text
     .split(/\n|,/)
@@ -54,7 +55,13 @@ export default function Career() {
       `Dear Hiring Team,\n\nI am writing to apply for the ${form.role || "[role]"} position at ${form.company || "[company]"}. ${form.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` I was particularly drawn to your organisation's work: ${research.text}` : ""}\n\n${form.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(form.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${form.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${form.name || "[Your name]"}`,
     [form, research.text],
   );
-  const cv = () => {
+  const cv = async () => {
+    try {
+      await authorizeGeneration("cv");
+    } catch (error) {
+      window.alert(error.message);
+      return;
+    }
     const pdf = new jsPDF();
     pdf.setFillColor(16, 27, 34);
     pdf.rect(0, 0, 210, 42, "F");
@@ -101,7 +108,13 @@ export default function Career() {
       `${(form.name || "baakanya").replace(/\s+/g, "-").toLowerCase()}-cv.pdf`,
     );
   };
-  const cover = () => {
+  const cover = async () => {
+    try {
+      await authorizeGeneration("cover_letter");
+    } catch (error) {
+      window.alert(error.message);
+      return;
+    }
     const pdf = new jsPDF();
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(18);

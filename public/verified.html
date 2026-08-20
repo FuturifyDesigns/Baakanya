@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Email verified — Baakanya</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #57b8e5;
+        color: #10202a;
+        font-family: Arial, sans-serif;
+      }
+      main {
+        width: min(720px, 100%);
+      }
+      .mark {
+        width: 54px;
+        height: 54px;
+        object-fit: contain;
+        margin-bottom: 52px;
+      }
+      .label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 26px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .label::before {
+        content: "";
+        width: 28px;
+        height: 3px;
+        background: #10202a;
+      }
+      h1 {
+        max-width: 650px;
+        margin: 0;
+        font-size: clamp(54px, 10vw, 96px);
+        line-height: 0.92;
+        letter-spacing: -0.065em;
+      }
+      p {
+        max-width: 520px;
+        margin: 34px 0 0;
+        font-size: 20px;
+        line-height: 1.55;
+      }
+      .check {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        margin-right: 8px;
+        border-radius: 50%;
+        background: #10202a;
+        color: white;
+        font-size: 16px;
+        vertical-align: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img class="mark" src="./baakanya-mark.png?v=2" alt="Baakanya" />
+      <div class="label">Verification complete</div>
+      <h1><span class="check">✓</span>Email verified.</h1>
+      <p>Your Baakanya account is ready. You can close this page now.</p>
+    </main>
+  </body>
+</html>

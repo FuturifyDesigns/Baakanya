@@ -4,10 +4,16 @@ import { CheckCircle2 } from "lucide-react";
 import { Logo } from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
+import { getDeviceFingerprint } from "../lib/fingerprint";
 export default function Auth() {
   const [params] = useSearchParams();
   const [signup, setSignup] = useState(params.get("mode") === "signup");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    website: "",
+  });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const { configured, user } = useAuth();
@@ -25,16 +31,45 @@ export default function Auth() {
     }
     setBusy(true);
     setMessage("");
-    const result = signup
-      ? await supabase.auth.signUp({
-          email: form.email.trim().toLowerCase(),
-          password: form.password,
-          options: { data: { name: form.name } },
-        })
-      : await supabase.auth.signInWithPassword({
-          email: form.email.trim().toLowerCase(),
-          password: form.password,
+    const email = form.email.trim().toLowerCase();
+    let result;
+    if (signup) {
+      try {
+        const device = await getDeviceFingerprint();
+        const gate = await supabase.functions.invoke("trial-gate", {
+          body: {
+            email,
+            ...device,
+            website: form.website,
+            clientTimestamp: new Date().toISOString(),
+          },
         });
+        if (gate.error || !gate.data?.reservationToken) {
+          throw new Error(
+            gate.data?.error ||
+              "This account is not eligible for another free trial.",
+          );
+        }
+        result = await supabase.auth.signUp({
+          email,
+          password: form.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}verified.html`,
+            data: {
+              name: form.name,
+              trial_reservation_token: gate.data.reservationToken,
+            },
+          },
+        });
+      } catch (error) {
+        result = { error };
+      }
+    } else {
+      result = await supabase.auth.signInWithPassword({
+        email,
+        password: form.password,
+      });
+    }
     setBusy(false);
     if (result.error) setMessage(result.error.message);
     else if (signup)
@@ -72,6 +107,23 @@ export default function Auth() {
           ← Back to home
         </Link>
         <form className="auth-form" onSubmit={submit}>
+          <div className="bot-field" aria-hidden="true">
+            <label>
+              Website
+              <input
+                name="website"
+                tabIndex="-1"
+                autoComplete="off"
+                value={form.website}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    website: e.target.value,
+                  }))
+                }
+              />
+            </label>
+          </div>
           <span className="kicker">
             {signup ? "START FREE" : "WELCOME BACK"}
           </span>
@@ -110,13 +162,13 @@ export default function Auth() {
             Password
             <input
               required
-              minLength="8"
+              minLength="10"
               type="password"
               value={form.password}
               onChange={(e) =>
                 setForm((x) => ({ ...x, password: e.target.value }))
               }
-              placeholder="At least 8 characters"
+              placeholder="At least 10 characters"
             />
           </label>
           <button className="btn btn-blue" disabled={busy}>

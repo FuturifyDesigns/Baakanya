@@ -14,6 +14,7 @@ import { jsPDF } from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import mammoth from "mammoth";
 import ToolShell from "../components/ToolShell";
+import { authorizeGeneration } from "../lib/generation";
 const saveBlob = (blob, name) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -56,6 +57,7 @@ export default function Converter() {
     setBusy(true);
     setMessage("");
     try {
+      await authorizeGeneration(`converter_${mode}`);
       if (mode === "images") {
         const pdf = new jsPDF();
         for (let i = 0; i < files.length; i++) {
