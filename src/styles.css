@@ -1415,6 +1415,109 @@ footer {
   width: 100%;
   margin-top: 4px;
 }
+.password-field {
+  position: relative;
+}
+.auth-form .password-field input {
+  width: 100%;
+  padding-right: 48px;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #4b626d;
+}
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  background: #eaf4f8;
+  color: var(--blue-deep);
+}
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+.password-strength {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  margin: -6px 0 20px;
+  border: 1px solid #d3e0e5;
+  background: #f8fbfc;
+}
+.password-strength-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 750;
+}
+.password-strength-head b {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.password-strength-head .weak {
+  color: #b44b4b;
+}
+.password-strength-head .fair {
+  color: #a66b16;
+}
+.password-strength-head .good {
+  color: #277c61;
+}
+.password-strength-head .strong {
+  color: #176fa3;
+}
+.strength-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+.strength-bar > span {
+  height: 4px;
+  background: #dce5e9;
+}
+.strength-bar.weak > span.active {
+  background: #ca6666;
+}
+.strength-bar.fair > span.active {
+  background: #d49b3d;
+}
+.strength-bar.good > span.active {
+  background: #48a57f;
+}
+.strength-bar.strong > span.active {
+  background: #379bd1;
+}
+.password-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.password-requirements span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #7c8c93;
+  font-size: 10px;
+  font-weight: 650;
+}
+.password-requirements span.met {
+  color: #277c61;
+}
+.password-requirements svg {
+  width: 12px;
+  height: 12px;
+}
 .form-message {
   background: #edf6f9;
   border-left: 3px solid var(--blue-deep);

@@ -508,6 +508,17 @@ export const setswana = {
   "Files merge from top to bottom. Drag them or use the arrow buttons to set the final order.":
     "Difaele di kopanngwa go tswa kwa godimo go ya kwa tlase. Di gogele kgotsa dirisa marumo go rulaganya tatelano.",
   "Merge & download PDF": "Kopanya mme o kopolole PDF",
+  "Enter your password": "Tsenya lefoko la gago la sephiri",
+  "Show password": "Bontsha lefoko la sephiri",
+  "Hide password": "Fitlha lefoko la sephiri",
+  "Password strength": "Nonofelo ya lefoko la sephiri",
+  Weak: "Bokoa",
+  Fair: "Go siame go le gonnye",
+  Good: "Go siame",
+  Strong: "Go nonofile",
+  "10 or more characters": "Ditlhaka di le 10 kgotsa go feta",
+  "At least one letter": "Bonnyane tlhaka e le nngwe",
+  "At least one number": "Bonnyane nomoro e le nngwe",
 };
 
 export const english = Object.fromEntries(

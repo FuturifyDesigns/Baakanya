@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
+import { Check, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { Logo } from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
@@ -16,8 +16,28 @@ export default function Auth() {
   });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const passwordChecks = {
+    length: form.password.length >= 10,
+    letter: /[A-Za-z]/.test(form.password),
+    number: /[0-9]/.test(form.password),
+  };
+  const strengthScore = [
+    passwordChecks.length,
+    /[a-z]/.test(form.password) && /[A-Z]/.test(form.password),
+    passwordChecks.number,
+    /[^A-Za-z0-9]/.test(form.password),
+  ].filter(Boolean).length;
+  const strength =
+    strengthScore <= 1
+      ? { label: "Weak", className: "weak" }
+      : strengthScore === 2
+        ? { label: "Fair", className: "fair" }
+        : strengthScore === 3
+          ? { label: "Good", className: "good" }
+          : { label: "Strong", className: "strong" };
   useEffect(() => {
     if (user) navigate("/workspace");
   }, [user, navigate]);
@@ -166,21 +186,74 @@ export default function Auth() {
           </label>
           <label>
             Password
-            <input
-              required
-              minLength="10"
-              maxLength="72"
-              pattern="(?=.*[A-Za-z])(?=.*[0-9]).{10,72}"
-              title="Use 10–72 characters with at least one letter and one number."
-              type="password"
-              autoComplete={signup ? "new-password" : "current-password"}
-              value={form.password}
-              onChange={(e) =>
-                setForm((x) => ({ ...x, password: e.target.value }))
-              }
-              placeholder="At least 10 characters"
-            />
+            <div className="password-field">
+              <input
+                required
+                minLength={signup ? 10 : undefined}
+                maxLength={signup ? 72 : undefined}
+                pattern={
+                  signup ? "(?=.*[A-Za-z])(?=.*[0-9]).{10,72}" : undefined
+                }
+                title={
+                  signup
+                    ? "Use 10–72 characters with at least one letter and one number."
+                    : undefined
+                }
+                type={showPassword ? "text" : "password"}
+                autoComplete={signup ? "new-password" : "current-password"}
+                value={form.password}
+                onChange={(e) =>
+                  setForm((x) => ({ ...x, password: e.target.value }))
+                }
+                placeholder={
+                  signup ? "At least 10 characters" : "Enter your password"
+                }
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((current) => !current)}
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
           </label>
+          {signup && form.password && (
+            <div className="password-strength">
+              <div className="password-strength-head">
+                <span>Password strength</span>
+                <b className={strength.className}>{strength.label}</b>
+              </div>
+              <div
+                className={`strength-bar ${strength.className}`}
+                role="progressbar"
+                aria-label="Password strength"
+                aria-valuemin="0"
+                aria-valuemax="4"
+                aria-valuenow={strengthScore}
+              >
+                {[1, 2, 3, 4].map((step) => (
+                  <span
+                    className={step <= strengthScore ? "active" : ""}
+                    key={step}
+                  />
+                ))}
+              </div>
+              <div className="password-requirements">
+                <span className={passwordChecks.length ? "met" : ""}>
+                  <Check /> 10 or more characters
+                </span>
+                <span className={passwordChecks.letter ? "met" : ""}>
+                  <Check /> At least one letter
+                </span>
+                <span className={passwordChecks.number ? "met" : ""}>
+                  <Check /> At least one number
+                </span>
+              </div>
+            </div>
+          )}
           <button className="btn btn-blue" disabled={busy}>
             {busy ? "Please wait…" : signup ? "Start my free trial" : "Log in"}
           </button>
@@ -192,6 +265,7 @@ export default function Auth() {
               onClick={() => {
                 setSignup(!signup);
                 setMessage("");
+                setShowPassword(false);
               }}
             >
               {signup ? "Log in" : "Start free"}
