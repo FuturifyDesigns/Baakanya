@@ -138,6 +138,11 @@ export default function Auth() {
               Full name
               <input
                 required
+                minLength="2"
+                maxLength="80"
+                pattern=".*\S.*"
+                title="Enter your full name."
+                autoComplete="name"
                 value={form.name}
                 onChange={(e) =>
                   setForm((x) => ({ ...x, name: e.target.value }))
@@ -151,6 +156,8 @@ export default function Auth() {
             <input
               required
               type="email"
+              maxLength="254"
+              autoComplete="email"
               value={form.email}
               onChange={(e) =>
                 setForm((x) => ({ ...x, email: e.target.value }))
@@ -163,7 +170,11 @@ export default function Auth() {
             <input
               required
               minLength="10"
+              maxLength="72"
+              pattern="(?=.*[A-Za-z])(?=.*[0-9]).{10,72}"
+              title="Use 10–72 characters with at least one letter and one number."
               type="password"
+              autoComplete={signup ? "new-password" : "current-password"}
               value={form.password}
               onChange={(e) =>
                 setForm((x) => ({ ...x, password: e.target.value }))

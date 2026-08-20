@@ -19,6 +19,7 @@ export default function Invoice() {
     notes: "Thank you for your business.",
   });
   const [items, setItems] = useState([{ description: "", qty: 1, price: "" }]);
+  const [validation, setValidation] = useState("");
   const subtotal = useMemo(
     () =>
       items.reduce(
@@ -29,12 +30,34 @@ export default function Invoice() {
   );
   const vatAmount = vat ? subtotal * 0.14 : 0,
     total = subtotal + vatAmount;
-  const set = (key, value) => setForm((x) => ({ ...x, [key]: value }));
+  const set = (key, value) => {
+    setValidation("");
+    setForm((x) => ({ ...x, [key]: value }));
+  };
   const setItem = (i, key, value) =>
     setItems((x) =>
       x.map((item, j) => (j === i ? { ...item, [key]: value } : item)),
     );
   const download = async () => {
+    if (form.business.trim().length < 2)
+      return setValidation("Enter your business name.");
+    if (form.client.trim().length < 2)
+      return setValidation("Enter the client name.");
+    if (!form.number.trim()) return setValidation(`Enter a ${kind} number.`);
+    if (!form.date) return setValidation("Choose an issue date.");
+    if (
+      items.some(
+        (item) =>
+          !item.description.trim() ||
+          Number(item.qty) <= 0 ||
+          !Number.isFinite(Number(item.price)) ||
+          Number(item.price) < 0,
+      )
+    )
+      return setValidation(
+        "Every item needs a description, quantity and valid price.",
+      );
+    setValidation("");
     try {
       await authorizeGeneration(kind.toLowerCase());
     } catch (error) {
@@ -113,6 +136,9 @@ export default function Invoice() {
             <label>
               Business name
               <input
+                required
+                minLength="2"
+                maxLength="120"
                 value={form.business}
                 onChange={(e) => set("business", e.target.value)}
                 placeholder="e.g. Kgetsi Creative"
@@ -121,6 +147,9 @@ export default function Invoice() {
             <label>
               Client name
               <input
+                required
+                minLength="2"
+                maxLength="120"
                 value={form.client}
                 onChange={(e) => set("client", e.target.value)}
                 placeholder="Client or company"
@@ -129,6 +158,8 @@ export default function Invoice() {
             <label>
               {kind} number
               <input
+                required
+                maxLength="60"
                 value={form.number}
                 onChange={(e) => set("number", e.target.value)}
               />
@@ -136,6 +167,7 @@ export default function Invoice() {
             <label>
               Issue date
               <input
+                required
                 type="date"
                 value={form.date}
                 onChange={(e) => set("date", e.target.value)}
@@ -160,6 +192,8 @@ export default function Invoice() {
             {items.map((item, i) => (
               <div className="item-fields" key={i}>
                 <input
+                  required
+                  maxLength="180"
                   aria-label="Description"
                   value={item.description}
                   onChange={(e) => setItem(i, "description", e.target.value)}
@@ -169,6 +203,9 @@ export default function Invoice() {
                   aria-label="Quantity"
                   type="number"
                   min="1"
+                  max="9999"
+                  step="1"
+                  required
                   value={item.qty}
                   onChange={(e) => setItem(i, "qty", e.target.value)}
                 />
@@ -178,6 +215,9 @@ export default function Invoice() {
                     aria-label="Price"
                     type="number"
                     min="0"
+                    max="99999999"
+                    step="0.01"
+                    required
                     value={item.price}
                     onChange={(e) => setItem(i, "price", e.target.value)}
                     placeholder="0.00"
@@ -209,11 +249,17 @@ export default function Invoice() {
           <label>
             Footer note
             <textarea
+              maxLength="300"
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               rows="2"
             />
           </label>
+          {validation && (
+            <div className="form-message validation-error" role="alert">
+              {validation}
+            </div>
+          )}
         </div>
         <aside className="summary-card">
           <span className="kicker">LIVE TOTAL</span>

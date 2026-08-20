@@ -115,6 +115,8 @@ export default function ToolsOverview() {
                   <input
                     required
                     type="email"
+                    maxLength="254"
+                    autoComplete="email"
                     value={request.email}
                     onChange={(event) =>
                       setRequest((current) => ({
@@ -131,6 +133,8 @@ export default function ToolsOverview() {
                     required
                     minLength="3"
                     maxLength="120"
+                    pattern=".*\S.*"
+                    title="Describe the automation in at least three characters."
                     value={request.tool}
                     onChange={(event) =>
                       setRequest((current) => ({
@@ -192,7 +196,7 @@ export default function ToolsOverview() {
         <div className="container">
           <h2>Not sure where to begin?</h2>
           <p>Open the workspace and choose the output you need.</p>
-          <Link className="btn btn-ink" to="/workspace">
+          <Link className="btn btn-ink" to="/auth?mode=signup">
             Open workspace <ArrowRight />
           </Link>
         </div>

@@ -27,7 +27,35 @@ export default function Career() {
     text: "",
     error: "",
   });
-  const set = (k, v) => setForm((x) => ({ ...x, [k]: v }));
+  const [validation, setValidation] = useState("");
+  const set = (k, v) => {
+    setValidation("");
+    setForm((x) => ({ ...x, [k]: v }));
+  };
+  const validate = (needsCompany = false) => {
+    if (form.name.trim().length < 2) return "Enter your full name.";
+    if (form.role.trim().length < 2) return "Enter the role you are targeting.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
+      return "Enter a valid email address.";
+    if (form.phone && !/^\+?[0-9 ()-]{7,20}$/.test(form.phone.trim()))
+      return "Enter a valid phone number.";
+    if (needsCompany && form.company.trim().length < 2)
+      return "Enter the company you are applying to.";
+    if (form.website) {
+      try {
+        new URL(form.website);
+      } catch {
+        return "Enter a complete company website URL, including https://.";
+      }
+    }
+    if (form.summary.trim().length < 30)
+      return "Add a professional summary of at least 30 characters.";
+    if (form.experience.trim().length < 30)
+      return "Add at least 30 characters about your experience.";
+    if (split(form.skills).length < 2)
+      return "Add at least two relevant skills.";
+    return "";
+  };
   const researchCompany = async () => {
     if (!form.company.trim()) {
       setResearch({
@@ -56,6 +84,11 @@ export default function Career() {
     [form, research.text],
   );
   const cv = async () => {
+    const invalid = validate(false);
+    if (invalid) {
+      setValidation(invalid);
+      return;
+    }
     try {
       await authorizeGeneration("cv");
     } catch (error) {
@@ -109,6 +142,11 @@ export default function Career() {
     );
   };
   const cover = async () => {
+    const invalid = validate(true);
+    if (invalid) {
+      setValidation(invalid);
+      return;
+    }
     try {
       await authorizeGeneration("cover_letter");
     } catch (error) {
@@ -152,6 +190,10 @@ export default function Career() {
             <label>
               Full name
               <input
+                required
+                minLength="2"
+                maxLength="80"
+                autoComplete="name"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
                 placeholder="Your full name"
@@ -160,6 +202,9 @@ export default function Career() {
             <label>
               Target role
               <input
+                required
+                minLength="2"
+                maxLength="100"
                 value={form.role}
                 onChange={(e) => set("role", e.target.value)}
                 placeholder="e.g. Project Coordinator"
@@ -168,7 +213,10 @@ export default function Career() {
             <label>
               Email
               <input
+                required
                 type="email"
+                maxLength="254"
+                autoComplete="email"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
                 placeholder="you@example.com"
@@ -177,6 +225,10 @@ export default function Career() {
             <label>
               Phone
               <input
+                type="tel"
+                maxLength="20"
+                pattern="\+?[0-9 ()-]{7,20}"
+                autoComplete="tel"
                 value={form.phone}
                 onChange={(e) => set("phone", e.target.value)}
                 placeholder="+267 ..."
@@ -185,6 +237,8 @@ export default function Career() {
             <label>
               Target company
               <input
+                minLength="2"
+                maxLength="120"
                 value={form.company}
                 onChange={(e) => set("company", e.target.value)}
                 placeholder="Company name"
@@ -194,6 +248,7 @@ export default function Career() {
               Company website <span className="optional">Optional</span>
               <input
                 type="url"
+                maxLength="300"
                 value={form.website}
                 onChange={(e) => set("website", e.target.value)}
                 placeholder="https://company.co.bw"
@@ -202,6 +257,10 @@ export default function Career() {
             <label>
               Location
               <input
+                required
+                minLength="2"
+                maxLength="120"
+                autoComplete="address-level2"
                 value={form.location}
                 onChange={(e) => set("location", e.target.value)}
               />
@@ -233,6 +292,9 @@ export default function Career() {
           <label>
             Professional summary
             <textarea
+              required
+              minLength="30"
+              maxLength="800"
               rows="4"
               value={form.summary}
               onChange={(e) => set("summary", e.target.value)}
@@ -242,6 +304,9 @@ export default function Career() {
           <label>
             Experience and achievements
             <textarea
+              required
+              minLength="30"
+              maxLength="3000"
               rows="7"
               value={form.experience}
               onChange={(e) => set("experience", e.target.value)}
@@ -251,12 +316,20 @@ export default function Career() {
           <label>
             Skills
             <textarea
+              required
+              minLength="3"
+              maxLength="500"
               rows="3"
               value={form.skills}
               onChange={(e) => set("skills", e.target.value)}
               placeholder="Project coordination, Excel, customer service..."
             />
           </label>
+          {validation && (
+            <div className="form-message validation-error" role="alert">
+              {validation}
+            </div>
+          )}
           <div className="form-downloads">
             <button className="btn btn-blue" onClick={cv}>
               <Download />

@@ -12,6 +12,7 @@ export default function Payment() {
   const [receipt, setReceipt] = useState(null);
   const [method, setMethod] = useState("bank");
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
   const { user } = useAuth();
   const bank = {
     name: import.meta.env.VITE_BANK_NAME || "FNB Botswana",
@@ -20,6 +21,24 @@ export default function Payment() {
     branch: import.meta.env.VITE_BANK_BRANCH_CODE || "283567",
     branchName: import.meta.env.VITE_BANK_BRANCH_NAME || "Airport Junction",
     ewallet: import.meta.env.VITE_EWALLET_NUMBER || "+267 77 783 823",
+  };
+  const chooseReceipt = (file) => {
+    setMessage("");
+    if (!file) return setReceipt(null);
+    const allowed = /^(image\/(jpeg|png|webp)|application\/pdf)$/i.test(
+      file.type,
+    );
+    if (!allowed) {
+      setReceipt(null);
+      setMessage("Upload a JPG, PNG, WebP or PDF receipt.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setReceipt(null);
+      setMessage("The receipt must be smaller than 10 MB.");
+      return;
+    }
+    setReceipt(file);
   };
   const submit = async () => {
     if (!user || !supabase) {
@@ -30,12 +49,16 @@ export default function Payment() {
       setMessage("Choose a receipt image first.");
       return;
     }
-    const path = `${user.id}/${crypto.randomUUID()}-${receipt.name}`;
+    setBusy(true);
+    setMessage("");
+    const safeName = receipt.name.replace(/[^a-z0-9._-]/gi, "-");
+    const path = `${user.id}/${crypto.randomUUID()}-${safeName}`;
     const upload = await supabase.storage
       .from("payment-receipts")
       .upload(path, receipt);
     if (upload.error) {
       setMessage(upload.error.message);
+      setBusy(false);
       return;
     }
     const amount = plan === "credits" ? 25 : 40;
@@ -51,6 +74,7 @@ export default function Payment() {
         ? result.error.message
         : "Receipt submitted. We will review it and update your access.",
     );
+    setBusy(false);
   };
   return (
     <Layout>
@@ -137,16 +161,17 @@ export default function Payment() {
             <label className="receipt-upload">
               <input
                 type="file"
-                accept="image/*,.pdf"
-                onChange={(e) => setReceipt(e.target.files[0])}
+                required
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={(e) => chooseReceipt(e.target.files[0])}
               />
               <UploadCloud />
               <span>
                 {receipt ? receipt.name : "Choose receipt image or PDF"}
               </span>
             </label>
-            <button className="btn btn-blue" onClick={submit}>
-              Submit for review
+            <button className="btn btn-blue" onClick={submit} disabled={busy}>
+              {busy ? "Submitting…" : "Submit for review"}
             </button>
             {message && <div className="form-message">{message}</div>}
           </div>

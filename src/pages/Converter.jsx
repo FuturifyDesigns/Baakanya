@@ -41,7 +41,31 @@ export default function Converter() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const choose = (list) => {
-    setFiles(Array.from(list));
+    const selected = Array.from(list);
+    const pattern =
+      mode === "images"
+        ? /\.(jpe?g|png)$/i
+        : mode === "merge"
+          ? /\.pdf$/i
+          : /\.docx$/i;
+    if (selected.length > 20) {
+      setFiles([]);
+      setMessage("Choose no more than 20 files at a time.");
+      return;
+    }
+    if (selected.some((file) => !pattern.test(file.name))) {
+      setFiles([]);
+      setMessage(
+        "One or more files do not match the selected conversion type.",
+      );
+      return;
+    }
+    if (selected.some((file) => file.size > 20 * 1024 * 1024)) {
+      setFiles([]);
+      setMessage("Each file must be smaller than 20 MB.");
+      return;
+    }
+    setFiles(selected);
     setMessage("");
   };
   const move = (i, dir) =>
@@ -53,7 +77,14 @@ export default function Converter() {
       return next;
     });
   const convert = async () => {
-    if (!files.length) return;
+    if (!files.length) {
+      setMessage("Choose at least one file first.");
+      return;
+    }
+    if (mode === "merge" && files.length < 2) {
+      setMessage("Choose at least two PDF files to merge.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -212,7 +243,9 @@ export default function Converter() {
           <p>{message}</p>
           <button
             className="btn btn-blue"
-            disabled={!files.length || busy}
+            disabled={
+              !files.length || (mode === "merge" && files.length < 2) || busy
+            }
             onClick={convert}
           >
             {busy

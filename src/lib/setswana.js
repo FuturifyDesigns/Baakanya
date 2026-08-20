@@ -106,6 +106,82 @@ export const setswana = {
     "Bula lefelo la tiro mme o tlhophe se o se tlhokang.",
   "Open workspace": "Bula lefelo la tiro",
   "HOW BAAKANYA WORKS": "GORE BAAKANYA E BEREKA JANG",
+  "01 / SIGN UP": "01 / IKWADISE",
+  "02 / CHOOSE A TOOL": "02 / TLHOPHA SEDIRISIWA",
+  "03 / AUTOMATE": "03 / DIRA KA BOITIRISO",
+  "04 / DOWNLOAD": "04 / KOPOLOLA",
+  "MY WORKSPACE": "LEFELO LA ME LA TIRO",
+  "CAREER AUTOMATION": "BOITIRISO JWA DITOKOMANE TSA TIRO",
+  PROFILE: "TSHOBOKANYO",
+  "CORE SKILLS": "BOKGONI JO BOGOLO",
+  "From sign-up to finished document.":
+    "Go tswa mo go ikwadiseng go ya kwa tokomane e e feditsweng.",
+  "Scroll through the real journey: create an account, choose a tool, add the useful details and download the result.":
+    "Tsamaisa o bone dikgato tsa nnete: dira akhaonto, tlhopha sedirisiwa, tsenya dintlha mme o kopolole se se dirilweng.",
+  "Create one secure workspace.": "Dira lefelo le le sireletsegileng.",
+  "Register with your name and email, verify your address and start the seven-day trial. No card is required.":
+    "Ikwadise ka leina le imeile, netefatsa aterese mme o simolole teko ya malatsi a supa. Ga go tlhokege karata.",
+  "Start with what you need finished.": "Simolola ka se o batlang go se fetsa.",
+  "Choose career documents, business paperwork or file tools. Each workspace only asks for information relevant to the job.":
+    "Tlhopha ditokomane tsa tiro, tsa kgwebo kgotsa didirisiwa tsa difaele. Lefelo lengwe le lengwe le botsa fela dintlha tse di maleba.",
+  "Baakanya handles the repetitive work.":
+    "Baakanya e dira tiro e e boelediwang.",
+  "Guided inputs, public company research, calculations and document formatting turn your details into useful output.":
+    "Dintlha tse di kaelwang, patlisiso ya khampani, dipalo le popego di fetola tshedimosetso ya gago go nna tokomane e e mosola.",
+  "Review, download and move forward.": "Sekaseka, kopolola mme o tswelele.",
+  "Get a clean PDF ready to send, print or combine with other files. The result belongs to you.":
+    "Bona PDF e e phepa e e siametseng go romelwa, go printiwa kgotsa go kopanngwa le difaele tse dingwe. Se se dirilweng ke sa gago.",
+  "Create your Baakanya account": "Dira akhaonto ya gago ya Baakanya",
+  "Email verification protects your account":
+    "Netefatso ya imeile e sireletsa akhaonto ya gago",
+  "What do you need to finish?": "O batla go fetsa eng?",
+  "Career documents": "Ditokomane tsa tiro",
+  "CV and tailored cover letter": "CV le lekwalo la kopo le le rulagantsweng",
+  "Invoice or quotation": "Invoice kgotsa quotation",
+  "Totals, VAT and client-ready PDF": "Palogotlhe, VAT le PDF ya moreki",
+  "Convert and merge": "Fetola le go kopanya",
+  "Images, Word and PDF files": "Ditshwantsho, Word le difaele tsa PDF",
+  "Turn the job details into an application.":
+    "Fetola dintlha tsa tiro go nna kopo.",
+  "Strongest skills": "Bokgoni jo bogolo",
+  "Planning · Client care · Excel": "Thulaganyo · Tlhokomelo ya bareki · Excel",
+  "Company context added": "Tshedimosetso ya khampani e tsentswe",
+  "Public, relevant information only":
+    "Tshedimosetso ya botlhe e e maleba fela",
+  "CV and cover letter formatted": "CV le lekwalo la kopo di rulagantswe",
+  "ATS-friendly and ready to review": "E siame mo ATS le go sekasekiwa",
+  "Organised project professional with hands-on client service and reporting experience.":
+    "Modiri wa diporojeke yo o rulaganyegang yo o nang le maitemogelo a bareki le dipego.",
+  "Project planning and coordination": "Thulaganyo le tsamaiso ya porojeke",
+  "Client communication": "Puisano le bareki",
+  "Excel reporting": "Dipego tsa Excel",
+  "Download PDFs": "Kopolola di-PDF",
+  "Enter your full name.": "Tsenya maina a gago ka botlalo.",
+  "Enter the role you are targeting.": "Tsenya tiro e o e batlang.",
+  "Enter a valid email address.": "Tsenya aterese ya imeile e e siameng.",
+  "Enter a valid phone number.": "Tsenya nomoro ya mogala e e siameng.",
+  "Enter the company you are applying to.":
+    "Tsenya khampani e o e kopang tiro kwa go yone.",
+  "Add a professional summary of at least 30 characters.":
+    "Tsenya tshobokanyo ya tiro ya ditlhaka di le 30 kgotsa go feta.",
+  "Add at least 30 characters about your experience.":
+    "Tsenya ditlhaka di le 30 kgotsa go feta ka maitemogelo a gago.",
+  "Add at least two relevant skills.": "Tsenya bokgoni jo bo maleba jo bobedi.",
+  "Enter your business name.": "Tsenya leina la kgwebo ya gago.",
+  "Enter the client name.": "Tsenya leina la moreki.",
+  "Choose an issue date.": "Tlhopha letsatsi la tokomane.",
+  "Every item needs a description, quantity and valid price.":
+    "Selo sengwe le sengwe se tlhoka tlhaloso, palo le tlhwatlhwa e e siameng.",
+  "Upload a JPG, PNG, WebP or PDF receipt.":
+    "Romela rasiti ya JPG, PNG, WebP kgotsa PDF.",
+  "The receipt must be smaller than 10 MB.":
+    "Rasiti e tshwanetse go nna kwa tlase ga 10 MB.",
+  "Choose no more than 20 files at a time.":
+    "Tlhopha difaele tse di sa feteng 20 ka nako.",
+  "Each file must be smaller than 20 MB.":
+    "Faele nngwe le nngwe e tshwanetse go nna kwa tlase ga 20 MB.",
+  "Choose at least two PDF files to merge.":
+    "Tlhopha bobotlana difaele tse pedi tsa PDF go di kopanya.",
   "Watch a document come together.": "Bona tokomane e dirwa.",
   "Keep scrolling. The demonstration follows the same four steps you use inside the workspace.":
     "Tswelela go tsamaisa. Pontsho e latela dikgato tse nne tse o di dirisang mo lefelong la tiro.",
