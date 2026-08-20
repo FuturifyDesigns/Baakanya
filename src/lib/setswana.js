@@ -46,6 +46,14 @@ export const setswana = {
   "ABOUT BAAKANYA": "KA GA BAAKANYA",
   "Less paperwork. More forward motion.":
     "Dipampiri di le mmalwa. Kgatelopele e ntsi.",
+  "Less paperwork.": "Dipampiri di le mmalwa.",
+  "More forward motion.": "Kgatelopele e ntsi.",
+  "Baakanya is a practical document workspace that helps people turn everyday admin into finished, professional work.":
+    "Baakanya ke lefelo la ditokomane le le thusang batho go fetola tiro ya letsatsi le letsatsi go nna tiro ya maemo e e feditsweng.",
+  "Explore the tools": "Bona didiriswa",
+  "01 / Career documents": "01 / Ditokomane tsa tiro",
+  "02 / Business paperwork": "02 / Ditokomane tsa kgwebo",
+  "03 / File preparation": "03 / Go baakanya difaele",
   "Baakanya is a practical document and automation workspace built to help people finish everyday admin without expensive software or complicated processes.":
     "Baakanya ke lefelo la ditokomane le automation le le thusang batho go fetsa ditiro tsa letsatsi le letsatsi ntle le software e e turang kgotsa dikgato tse di raraaneng.",
   "WHY IT EXISTS": "GORENG E LE TENG",
@@ -55,6 +63,11 @@ export const setswana = {
     "Baakanya e kopanya ditokomane tsa tiro, tsa kgwebo le didirisiwa tsa difaele mo lefelong le le lengwe. E go kaela mo dintlheng, e dira tiro e e boelediwang mme e go naya se se siametseng go romelwa.",
   "The platform was started in Botswana with local needs in mind: straightforward pricing, Botswana-ready documents, mobile-friendly tools and payment options people can actually use.":
     "Lefelo leno le simolotswe mo Botswana go lebeletswe ditlhoko tsa mono: ditlhwatlhwa tse di bonolo, ditokomane tsa Botswana, didirisiwa tsa mogala le ditsela tsa tuelo tse batho ba ka di dirisang.",
+  "It was started in Botswana with local realities in mind: clear pricing, mobile-friendly tools and payment options people can actually use.":
+    "Le simolotswe mo Botswana go lebeletswe maemo a mono: ditlhwatlhwa tse di tlhaloganyesegang, didirisiwa tsa mogala le ditsela tsa tuelo tse batho ba ka di dirisang.",
+  "HOW WE BUILD": "KA FA RE AGANG KA TENG",
+  "Three principles.": "Melaometheo e meraro.",
+  "No unnecessary complexity.": "Ga go na go raraana mo go sa tlhokegeng.",
   "Useful before impressive": "Mosola pele ga bontle",
   "Every tool starts with a real task somebody needs to finish.":
     "Sedirisiwa sengwe le sengwe se simolola ka tiro ya nnete e motho a tshwanetseng go e fetsa.",
@@ -65,6 +78,30 @@ export const setswana = {
   "Future automations will be shaped by the requests people send.":
     "Di-automation tse di tlang di tla agiwa ka dikopo tsa batho.",
   "Bring one unfinished job.": "Tlisa tiro e le nngwe e e sa fediwang.",
+  "YOUR NEXT DOCUMENT": "TOKOMANE YA GAGO E E LATELANG",
+  "Leave with something ready.": "Tsamaya ka sengwe se se siametseng go dirisiwa.",
+  "DETAILS IN": "DINTLHA DI TSENA",
+  "READY TO SEND": "E SIAMETSE GO ROMELWA",
+  "PREPARE · SORT · SUCCEED": "BAAKANYA · RULAGANYA · ATLEGA",
+  "A finished document": "Tokomane e e feditsweng",
+  "A protected local file": "Faele e e sireletsegileng mo sedirisiweng",
+  "A workflow growing with its users":
+    "Thulaganyo ya tiro e e golang le badirisi",
+  "Baakanya turns details into finished documents":
+    "Baakanya e fetola dintlha go nna ditokomane tse di feditsweng",
+  "Invoice and quotation documents": "Ditokomane tsa invoice le quotation",
+  "File conversion and merging": "Go fetola le go kopanya difaele",
+  "Build an application-ready CV and cover letter.":
+    "Dira CV le lekwalo la kopo tse di siametseng go romelwa.",
+  "Invoice & Quotation": "Invoice le Quotation",
+  "Create a professional, VAT-ready business document.":
+    "Dira tokomane ya kgwebo ya maemo e e nang le VAT.",
+  "Convert & Merge": "Fetola le go Kopanya",
+  "Turn Word and images into PDF or combine PDF files.":
+    "Fetola Word le ditshwantsho go nna PDF kgotsa kopanya difaele tsa PDF.",
+  "Open tool": "Bula sedirisiwa",
+  "Conversion files stay in your browser and are not uploaded. Payment receipts and account details are stored securely and used only to provide the service.":
+    "Difaele tse di fetolwang di nna mo browser ya gago mme ga di romelwe. Ditlankana tsa tuelo le dintlha tsa akhaonto di bolokiwa ka pabalesego mme di dirisiwa fela go go direla.",
   "Start free": "Simolola mahala",
   "BAAKANYA TOOLS": "DIDIRISIWA TSA BAAKANYA",
   "Three ways to get unstuck.": "Ditsela tse tharo tsa go tswelela.",

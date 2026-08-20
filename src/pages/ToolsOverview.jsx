@@ -1,6 +1,11 @@
-import { ArrowRight, BriefcaseBusiness, FileOutput, Files } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  BusinessMark,
+  CareerMark,
+  FilesMark,
+} from "../components/BrandIllustrations";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
@@ -8,7 +13,7 @@ import { useAuth } from "../lib/auth";
 const tools = [
   {
     number: "01",
-    icon: BriefcaseBusiness,
+    icon: CareerMark,
     title: "CV + Cover Letter",
     lead: "Build the application, not the formatting.",
     copy: "Create a clear ATS-friendly CV, research the company and shape a cover letter around the role.",
@@ -18,7 +23,7 @@ const tools = [
   },
   {
     number: "02",
-    icon: FileOutput,
+    icon: BusinessMark,
     title: "Invoice + Quotation",
     lead: "Professional paperwork for work already done.",
     copy: "Add line items, calculate Botswana VAT and download a client-ready business document.",
@@ -28,7 +33,7 @@ const tools = [
   },
   {
     number: "03",
-    icon: Files,
+    icon: FilesMark,
     title: "Convert + Merge",
     lead: "Every file, in the shape it needs to be.",
     copy: "Turn images or Word documents into PDF, arrange several PDFs and merge them privately in your browser.",

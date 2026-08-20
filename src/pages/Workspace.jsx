@@ -1,28 +1,30 @@
 import {
   ArrowRight,
-  BriefcaseBusiness,
-  FileOutput,
-  Files,
   ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  BusinessMark,
+  CareerMark,
+  FilesMark,
+} from "../components/BrandIllustrations";
 import Layout from "../components/Layout";
 import { useAuth } from "../lib/auth";
 const tools = [
   {
-    icon: BriefcaseBusiness,
+    icon: CareerMark,
     title: "CV + Cover Letter",
     copy: "Build an application-ready CV and cover letter.",
     href: "/tools/career",
   },
   {
-    icon: FileOutput,
+    icon: BusinessMark,
     title: "Invoice & Quotation",
     copy: "Create a professional, VAT-ready business document.",
     href: "/tools/invoice",
   },
   {
-    icon: Files,
+    icon: FilesMark,
     title: "Convert & Merge",
     copy: "Turn Word and images into PDF or combine PDF files.",
     href: "/tools/convert",
