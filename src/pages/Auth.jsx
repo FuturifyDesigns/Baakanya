@@ -71,7 +71,7 @@ export default function Auth() {
           data?.signup_intent === "subscription")
       ) {
         navigate(
-          `/payment?plan=${data.signup_intent === "credits" ? "credits" : "subscription"}`,
+          `/access?step=pay&plan=${data.signup_intent === "credits" ? "credits" : "subscription"}`,
           { replace: true },
         );
         return;

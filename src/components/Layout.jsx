@@ -1,6 +1,8 @@
 import { Globe2, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useAccess } from "../lib/access";
+import { getAccessDestination } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 export function Logo() {
@@ -16,9 +18,13 @@ export function Logo() {
 export default function Layout({ children }) {
   const [open, setOpen] = useState(false);
   const { user, isAdmin, signOut } = useAuth();
+  const access = useAccess();
   const { language, toggle, t } = useLanguage();
   const navigate = useNavigate();
   const close = () => setOpen(false);
+  const workspaceHref = isAdmin
+    ? "/admin"
+    : getAccessDestination(access) || "/workspace";
   const handleSignOut = async () => {
     close();
     await signOut();
@@ -55,8 +61,17 @@ export default function Layout({ children }) {
             </button>
             {user ? (
               <>
-                <NavLink to={isAdmin ? "/admin" : "/workspace"} onClick={close}>
-                  {isAdmin ? "Admin" : t.dashboard}
+                <NavLink to={workspaceHref} onClick={close}>
+                  {isAdmin
+                    ? "Admin"
+                    : access.allowed
+                      ? t.dashboard
+                      : access.status === "awaiting_payment" ||
+                          access.status === "trial_expired"
+                        ? "Finish setup"
+                        : access.status === "awaiting_mode"
+                          ? "Choose access"
+                          : t.dashboard}
                 </NavLink>
                 <button className="btn btn-small btn-ink" onClick={handleSignOut}>
                   Sign out

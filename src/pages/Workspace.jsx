@@ -8,6 +8,7 @@ import {
 import Layout from "../components/Layout";
 import RequireAuth from "../components/RequireAuth";
 import { useAccess } from "../lib/access";
+import { getAccessDestination } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 
 const tools = [
@@ -36,10 +37,8 @@ function WorkspaceBody() {
   const access = useAccess();
 
   if (!access.loading && !access.allowed) {
-    if (access.status === "awaiting_mode") {
-      return <Navigate to="/access" replace />;
-    }
-    return <Navigate to="/payment?reason=trial_ended" replace />;
+    const destination = getAccessDestination(access);
+    return <Navigate to={destination || "/access"} replace />;
   }
 
   return (
@@ -87,7 +86,7 @@ function WorkspaceBody() {
               When this timer hits zero you will leave the workspace until you
               choose credits or monthly access.
             </p>
-            <Link className="btn btn-outline" to="/payment">
+            <Link className="btn btn-outline" to="/access?step=pay&reason=trial_ended">
               Pay to continue <ArrowRight />
             </Link>
           </div>

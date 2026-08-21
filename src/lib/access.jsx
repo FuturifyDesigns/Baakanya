@@ -19,6 +19,7 @@ export function useAccess() {
     allowed: !configured,
     reason: configured ? "Checking access…" : "Ready to use",
     planType: "none",
+    signupIntent: null,
     trialEndDate: null,
     trialRemainingMs: 0,
     trialCountdown: "",
@@ -48,7 +49,7 @@ export function useAccess() {
       );
       const remaining = trialActive ? trialEnd.getTime() - now : 0;
       let status = "no_access";
-      let reason = "Your free trial has ended";
+      let reason = "Choose free trial or paid access to continue";
       if (trialActive) {
         status = "trial_active";
         reason = "Free trial active";
@@ -63,7 +64,10 @@ export function useAccess() {
         reason = "Your free trial has ended";
       } else if (signupIntent === "credits" || signupIntent === "subscription") {
         status = "awaiting_payment";
-        reason = "Choose a paid plan to unlock the tools";
+        reason =
+          signupIntent === "credits"
+            ? "Complete payment for credits to unlock the tools"
+            : "Complete payment for monthly access to unlock the tools";
       } else if (!signupIntent) {
         status = "awaiting_mode";
         reason = "Choose free trial or paid access to continue";
@@ -73,6 +77,7 @@ export function useAccess() {
         allowed,
         reason,
         planType,
+        signupIntent,
         trialEndDate: trialEnd ? trialEnd.toISOString() : null,
         trialRemainingMs: remaining,
         trialCountdown: trialActive ? formatRemaining(remaining) : "",
@@ -88,6 +93,7 @@ export function useAccess() {
           allowed: true,
           reason: "Ready to use",
           planType: "none",
+          signupIntent: null,
           trialEndDate: null,
           trialRemainingMs: 0,
           trialCountdown: "",
@@ -103,6 +109,7 @@ export function useAccess() {
           allowed: false,
           reason: "Sign in to use this tool",
           planType: "none",
+          signupIntent: null,
           trialEndDate: null,
           trialRemainingMs: 0,
           trialCountdown: "",

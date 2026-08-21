@@ -1,204 +1,49 @@
-import { Landmark, Smartphone, UploadCloud } from "lucide-react";
-import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import Layout from "../components/Layout";
+import PaymentPanel from "../components/PaymentPanel";
+import { useAccess } from "../lib/access";
+import { getAccessDestination } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
-import { supabase } from "../lib/supabase";
+
 export default function Payment() {
   const [params] = useSearchParams();
-  const [plan, setPlan] = useState(
-    params.get("plan") === "credits" ? "credits" : "subscription",
-  );
-  const [receipt, setReceipt] = useState(null);
-  const [method, setMethod] = useState("bank");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  const { user } = useAuth();
-  const trialEnded = params.get("reason") === "trial_ended";
-  const bank = {
-    name: import.meta.env.VITE_BANK_NAME || "FNB Botswana",
-    account: import.meta.env.VITE_BANK_ACCOUNT_NAME || "Leon Maunge",
-    number: import.meta.env.VITE_BANK_ACCOUNT_NUMBER || "62870770297",
-    branch: import.meta.env.VITE_BANK_BRANCH_CODE || "283567",
-    branchName: import.meta.env.VITE_BANK_BRANCH_NAME || "Airport Junction",
-    ewallet: import.meta.env.VITE_EWALLET_NUMBER || "+267 77 783 823",
-  };
-  const chooseReceipt = (file) => {
-    setMessage("");
-    if (!file) return setReceipt(null);
-    const allowed = /^(image\/(jpeg|png|webp)|application\/pdf)$/i.test(
-      file.type,
+  const { user, loading } = useAuth();
+  const access = useAccess();
+  const plan = params.get("plan") === "credits" ? "credits" : "subscription";
+  const reason = params.get("reason");
+
+  // Keep payment inside the access setup flow for users who are not unlocked yet.
+  if (!loading && user && !access.loading && !access.allowed) {
+    const destination = getAccessDestination(access);
+    if (destination && !destination.startsWith("/payment")) {
+      return <Navigate to={destination} replace />;
+    }
+    if (access.status === "awaiting_mode") {
+      return <Navigate to="/access" replace />;
+    }
+    return (
+      <Navigate
+        to={`/access?step=pay&plan=${plan}${reason === "trial_ended" ? "&reason=trial_ended" : ""}`}
+        replace
+      />
     );
-    if (!allowed) {
-      setReceipt(null);
-      setMessage("Upload a JPG, PNG, WebP or PDF receipt.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setReceipt(null);
-      setMessage("The receipt must be smaller than 10 MB.");
-      return;
-    }
-    setReceipt(file);
-  };
-  const submit = async () => {
-    if (!user || !supabase) {
-      setMessage("Sign in to submit a receipt once Supabase is connected.");
-      return;
-    }
-    if (!receipt) {
-      setMessage("Choose a receipt image first.");
-      return;
-    }
-    setBusy(true);
-    setMessage("");
-    const safeName = receipt.name.replace(/[^a-z0-9._-]/gi, "-");
-    const path = `${user.id}/${crypto.randomUUID()}-${safeName}`;
-    const upload = await supabase.storage
-      .from("payment-receipts")
-      .upload(path, receipt);
-    if (upload.error) {
-      setMessage(upload.error.message);
-      setBusy(false);
-      return;
-    }
-    const amount = plan === "credits" ? 25 : 40;
-    const result = await supabase.from("payment_submissions").insert({
-      user_id: user.id,
-      amount,
-      plan_type: plan,
-      payment_method: method,
-      receipt_image_path: path,
-    });
-    setMessage(
-      result.error
-        ? result.error.message
-        : "Receipt submitted. We will review it and update your access.",
-    );
-    setBusy(false);
-  };
+  }
+
   return (
     <Layout>
       <section className="payment-page container">
         <span className="kicker">MANUAL PAYMENT</span>
-        <h1>{trialEnded ? "Your trial has ended." : "Choose access that fits."}</h1>
-        {trialEnded && (
+        <h1>
+          {reason === "trial_ended"
+            ? "Your free trial has ended"
+            : "Choose access that fits."}
+        </h1>
+        {reason === "trial_ended" && (
           <div className="form-message" role="status">
-            You have been signed out of the workspace tools. Pay for credits or
-            monthly access to continue.{" "}
-            <Link to="/pricing">Review pricing</Link>
+            Pay for credits or monthly access to continue using the tools.
           </div>
         )}
-        <div className="payment-grid">
-          <div className="form-card">
-            <div className="plan-select">
-              <button
-                className={plan === "credits" ? "active" : ""}
-                onClick={() => setPlan("credits")}
-              >
-                <b>P25 once-off</b>
-                <span>5 credits · no expiry</span>
-              </button>
-              <button
-                className={plan === "subscription" ? "active" : ""}
-                onClick={() => setPlan("subscription")}
-              >
-                <b>P40 monthly</b>
-                <span>Unlimited documents</span>
-              </button>
-            </div>
-            <h3>1. Choose a payment method</h3>
-            <div className="payment-methods">
-              <button
-                className={method === "bank" ? "active" : ""}
-                onClick={() => setMethod("bank")}
-              >
-                <Landmark size={18} /> Bank transfer
-              </button>
-              <button
-                className={method === "ewallet" ? "active" : ""}
-                onClick={() => setMethod("ewallet")}
-              >
-                <Smartphone size={18} /> E-Wallet
-              </button>
-            </div>
-            {method === "bank" ? (
-              <dl className="bank-details">
-                <div>
-                  <dt>Bank</dt>
-                  <dd>{bank.name}</dd>
-                </div>
-                <div>
-                  <dt>Account name</dt>
-                  <dd>{bank.account}</dd>
-                </div>
-                <div>
-                  <dt>Account number</dt>
-                  <dd>{bank.number}</dd>
-                </div>
-                <div>
-                  <dt>Branch code</dt>
-                  <dd>{bank.branch}</dd>
-                </div>
-                <div>
-                  <dt>Branch</dt>
-                  <dd>{bank.branchName}</dd>
-                </div>
-                <div>
-                  <dt>Amount</dt>
-                  <dd>P{plan === "credits" ? "25" : "40"}</dd>
-                </div>
-              </dl>
-            ) : (
-              <dl className="bank-details">
-                <div>
-                  <dt>Pay to cell</dt>
-                  <dd>{bank.ewallet}</dd>
-                </div>
-                <div>
-                  <dt>Recipient</dt>
-                  <dd>{bank.account}</dd>
-                </div>
-                <div>
-                  <dt>Amount</dt>
-                  <dd>P{plan === "credits" ? "25" : "40"}</dd>
-                </div>
-              </dl>
-            )}
-            <h3>2. Upload proof of payment</h3>
-            <label className="receipt-upload">
-              <input
-                type="file"
-                required
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                onChange={(e) => chooseReceipt(e.target.files[0])}
-              />
-              <UploadCloud />
-              <span>
-                {receipt ? receipt.name : "Choose receipt image or PDF"}
-              </span>
-            </label>
-            <button className="btn btn-blue" onClick={submit} disabled={busy}>
-              {busy ? "Submitting…" : "Submit for review"}
-            </button>
-            {message && <div className="form-message">{message}</div>}
-          </div>
-          <aside className="payment-aside">
-            <h2>What happens next?</h2>
-            <ol>
-              <li>
-                <span>1</span>We receive your proof of payment.
-              </li>
-              <li>
-                <span>2</span>A Baakanya admin verifies the payment.
-              </li>
-              <li>
-                <span>3</span>Your credits or monthly access are activated.
-              </li>
-            </ol>
-            <p>Most payments are reviewed during Botswana business hours.</p>
-          </aside>
-        </div>
+        <PaymentPanel initialPlan={plan} />
       </section>
     </Layout>
   );

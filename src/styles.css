@@ -4374,3 +4374,5 @@ footer {
 .access-mode-page-grid button { position: relative; padding-right: 120px; }
 .access-mode-page-grid em { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--blue-deep); font-size: 12px; font-style: normal; font-weight: 800; }
 .access-mode-footnote { display: flex; align-items: center; gap: 8px; margin-top: 22px; color: var(--muted); font-size: 14px; }
+.access-pay-step { margin-top: 10px; }
+.access-pay-actions { margin-bottom: 18px; }

@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import Layout from "../components/Layout";
+import PaymentPanel from "../components/PaymentPanel";
 import RequireAuth from "../components/RequireAuth";
 import { useAccess } from "../lib/access";
 import { useAuth } from "../lib/auth";
@@ -12,9 +13,39 @@ function AccessModeBody() {
   const { user } = useAuth();
   const access = useAccess();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [honeypot, setHoneypot] = useState("");
+
+  const step = params.get("step");
+  const planParam = params.get("plan");
+  const reason = params.get("reason");
+  const showPay = useMemo(() => {
+    if (step === "pay") return true;
+    if (access.status === "awaiting_payment") return true;
+    if (access.status === "trial_expired" && step === "pay") return true;
+    return false;
+  }, [step, access.status]);
+
+  const payPlan =
+    planParam === "credits" || access.signupIntent === "credits"
+      ? "credits"
+      : "subscription";
+
+  useEffect(() => {
+    if (access.loading) return;
+    if (access.status === "awaiting_payment" && step !== "pay") {
+      setParams(
+        {
+          step: "pay",
+          plan:
+            access.signupIntent === "credits" ? "credits" : "subscription",
+        },
+        { replace: true },
+      );
+    }
+  }, [access.loading, access.status, access.signupIntent, step, setParams]);
 
   if (!access.loading && access.allowed) {
     return <Navigate to="/workspace" replace />;
@@ -55,8 +86,11 @@ function AccessModeBody() {
         navigate("/workspace", { replace: true });
         return;
       }
-      navigate(
-        `/payment?plan=${mode === "credits" ? "credits" : "subscription"}`,
+      setParams(
+        {
+          step: "pay",
+          plan: mode === "credits" ? "credits" : "subscription",
+        },
         { replace: true },
       );
     } catch (error) {
@@ -66,66 +100,122 @@ function AccessModeBody() {
     }
   };
 
+  const backToModes = async () => {
+    setMessage("");
+    if (supabase && access.status === "awaiting_payment") {
+      const { error } = await supabase.rpc("clear_access_mode_selection");
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+    }
+    setParams({}, { replace: true });
+  };
+
   return (
     <Layout>
       <section className="access-mode-page container">
-        <span className="kicker">CHOOSE ACCESS</span>
-        <h1>How do you want to use Baakanya?</h1>
+        <span className="kicker">
+          {showPay ? "STEP 2 · PAYMENT" : "STEP 1 · ACCESS MODE"}
+        </span>
+        <h1>
+          {reason === "trial_ended"
+            ? "Your free trial has ended"
+            : showPay
+              ? "Complete payment to unlock tools"
+              : "How do you want to use Baakanya?"}
+        </h1>
         <p>
-          Your email is verified. Pick a free trial or a paid option before
-          entering the workspace.
+          {reason === "trial_ended"
+            ? "Choose credits or monthly access, then submit proof of payment."
+            : showPay
+              ? "You selected a paid option. Payment stays in this setup flow — the workspace opens only after access is approved."
+              : "Your email is verified. Pick a free trial or a paid option before entering the workspace."}
         </p>
-        <div className="bot-field" aria-hidden="true">
-          <label>
-            Website
-            <input
-              tabIndex="-1"
-              autoComplete="off"
-              value={honeypot}
-              onChange={(event) => setHoneypot(event.target.value)}
+
+        {!showPay && (
+          <>
+            <div className="bot-field" aria-hidden="true">
+              <label>
+                Website
+                <input
+                  tabIndex="-1"
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(event) => setHoneypot(event.target.value)}
+                />
+              </label>
+            </div>
+            <div
+              className="access-mode-select access-mode-page-grid"
+              role="list"
+            >
+              {access.status !== "trial_expired" && (
+                <button
+                  type="button"
+                  disabled={Boolean(busy)}
+                  onClick={() => choose("trial")}
+                >
+                  <b>Start free 7-day trial</b>
+                  <span>Full tools · no payment yet</span>
+                  <em>{busy === "trial" ? "Starting…" : "Select trial"}</em>
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={Boolean(busy)}
+                onClick={() => choose("credits")}
+              >
+                <b>Pay with credits · P25</b>
+                <span>5 documents · no expiry</span>
+                <em>{busy === "credits" ? "Continuing…" : "Select credits"}</em>
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(busy)}
+                onClick={() => choose("subscription")}
+              >
+                <b>Pay monthly · P40</b>
+                <span>Unlimited for 30 days</span>
+                <em>
+                  {busy === "subscription" ? "Continuing…" : "Select monthly"}
+                </em>
+              </button>
+            </div>
+          </>
+        )}
+
+        {showPay && (
+          <div className="access-pay-step">
+            <div className="access-pay-actions">
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={backToModes}
+              >
+                ← Change access mode
+              </button>
+            </div>
+            <PaymentPanel
+              initialPlan={payPlan}
+              onPlanChange={(next) =>
+                setParams(
+                  { step: "pay", plan: next },
+                  { replace: true },
+                )
+              }
             />
-          </label>
-        </div>
-        <div className="access-mode-select access-mode-page-grid" role="list">
-          <button
-            type="button"
-            disabled={Boolean(busy)}
-            onClick={() => choose("trial")}
-          >
-            <b>Start free 7-day trial</b>
-            <span>Full tools · no payment yet</span>
-            <em>{busy === "trial" ? "Starting…" : "Select trial"}</em>
-          </button>
-          <button
-            type="button"
-            disabled={Boolean(busy)}
-            onClick={() => choose("credits")}
-          >
-            <b>Pay with credits · P25</b>
-            <span>5 documents · no expiry</span>
-            <em>{busy === "credits" ? "Continuing…" : "Select credits"}</em>
-          </button>
-          <button
-            type="button"
-            disabled={Boolean(busy)}
-            onClick={() => choose("subscription")}
-          >
-            <b>Pay monthly · P40</b>
-            <span>Unlimited for 30 days</span>
-            <em>
-              {busy === "subscription" ? "Continuing…" : "Select monthly"}
-            </em>
-          </button>
-        </div>
+          </div>
+        )}
+
         {message && (
           <div className="form-message validation-error" role="alert">
             {message}
           </div>
         )}
         <p className="access-mode-footnote">
-          <CheckCircle2 size={16} /> You can change paid plans later from
-          payment.{" "}
-          <Link to="/pricing">Review pricing</Link>
+          <CheckCircle2 size={16} /> Workspace stays locked until trial starts
+          or payment is approved. <Link to="/pricing">Review pricing</Link>
         </p>
       </section>
     </Layout>

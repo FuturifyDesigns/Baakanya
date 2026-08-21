@@ -58,6 +58,27 @@ export default function ToolShell({ eyebrow, title, description, children }) {
               </Link>
             </div>
           </div>
+        ) : access.status === "awaiting_payment" ? (
+          <div className="locked-card">
+            <ShieldCheck />
+            <span className="kicker">PAYMENT REQUIRED</span>
+            <h2>Complete your selected plan</h2>
+            <p>
+              You have not started a trial. Finish payment for the option you
+              chose to unlock the workspace.
+            </p>
+            <div>
+              <Link
+                className="btn btn-blue"
+                to={`/access?step=pay&plan=${access.signupIntent === "credits" ? "credits" : "subscription"}`}
+              >
+                Continue payment
+              </Link>
+              <Link className="btn btn-outline" to="/access">
+                Change mode
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="locked-card">
             <ShieldCheck />
