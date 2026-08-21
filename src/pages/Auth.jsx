@@ -51,15 +51,28 @@ export default function Auth() {
         navigate("/admin", { replace: true });
         return;
       }
-      const { data } = await supabase
-        ?.from("profiles")
-        .select("plan_type,trial_end_date,signup_intent")
-        .eq("id", user.id)
-        .maybeSingle();
+      const [{ data }, pendingResult] = await Promise.all([
+        supabase
+          ?.from("profiles")
+          .select("plan_type,trial_end_date,signup_intent")
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase
+          ?.from("payment_submissions")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("status", "pending")
+          .limit(1)
+          .maybeSingle(),
+      ]);
       const now = Date.now();
       const trialActive =
         data?.trial_end_date && new Date(data.trial_end_date).getTime() > now;
       const hasIntent = Boolean(data?.signup_intent);
+      if (!trialActive && pendingResult?.data?.id) {
+        navigate("/access?step=review", { replace: true });
+        return;
+      }
       if (!trialActive && data?.plan_type === "none" && !hasIntent) {
         navigate("/access", { replace: true });
         return;
