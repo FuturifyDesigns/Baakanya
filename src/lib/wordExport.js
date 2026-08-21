@@ -49,7 +49,16 @@ export const exportCvWord = ({ form, skills, template, customization }) => {
     .filter(Boolean)
     .map(escapeHtml)
     .join(" &nbsp; • &nbsp; ");
-  const body = `<h1>${escapeHtml(form.name)}</h1><h3>${escapeHtml(headline)}</h3><div class="meta">${meta}</div><div class="accent"></div><h2>PROFESSIONAL PROFILE</h2>${paragraphs(form.summary)}<h2>EXPERIENCE AND ACHIEVEMENTS</h2>${paragraphs(form.experience)}<h2>EDUCATION</h2>${paragraphs(form.education)}<h2>CORE SKILLS</h2><p>${skills.map(escapeHtml).join(" &nbsp; • &nbsp; ")}</p>${form.certifications ? `<h2>CERTIFICATIONS</h2>${paragraphs(form.certifications)}` : ""}`;
+  const titles = {
+    profile: "Professional profile",
+    experience: "Experience and achievements",
+    education: "Education",
+    skills: "Core skills",
+    certifications: "Certifications",
+    ...(customization?.titles || {}),
+    ...(template?.titles || {}),
+  };
+  const body = `<h1>${escapeHtml(form.name)}</h1><h3>${escapeHtml(headline)}</h3><div class="meta">${meta}</div><div class="accent"></div><h2>${escapeHtml(titles.profile).toUpperCase()}</h2>${paragraphs(form.summary)}<h2>${escapeHtml(titles.experience).toUpperCase()}</h2>${paragraphs(form.experience)}<h2>${escapeHtml(titles.education).toUpperCase()}</h2>${paragraphs(form.education)}<h2>${escapeHtml(titles.skills).toUpperCase()}</h2><p>${skills.map(escapeHtml).join(" &nbsp; • &nbsp; ")}</p>${form.certifications ? `<h2>${escapeHtml(titles.certifications).toUpperCase()}</h2>${paragraphs(form.certifications)}` : ""}`;
   saveWord(`${filename(form.name, "baakanya")}-cv`, "Curriculum Vitae", body, {
     ...customization,
     accent: customization.accent || template.accent,

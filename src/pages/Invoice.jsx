@@ -1,26 +1,16 @@
-import { Download, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
-import DocumentStudio from "../components/DocumentStudio";
 import GenerateDocIcon from "../components/GenerateDocIcon";
 import { BusinessDocumentPreview } from "../components/DocumentPreview";
 import { defaultCustomization } from "../lib/customization";
+import { saveEditorDocument } from "../lib/documentEditorStore";
 import { authorizeGeneration } from "../lib/generation";
 import { invoiceTemplates, quotationTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
-import { renderBusinessPdf } from "../lib/pdfTemplates";
-import { exportBusinessWord } from "../lib/wordExport";
-
-const openFinalStudio = () => {
-  window.requestAnimationFrame(() => {
-    const studio = document.getElementById("document-studio");
-    if (!studio) return;
-    studio.scrollIntoView({ behavior: "smooth", block: "start" });
-    studio.focus({ preventScroll: true });
-  });
-};
 
 const money = (n) =>
   Number(n || 0).toLocaleString("en-BW", {
@@ -61,6 +51,7 @@ const emptyQuotation = {
 };
 
 export default function Invoice() {
+  const navigate = useNavigate();
   const [kind, setKind] = useState("Invoice");
   const [vat, setVat] = useState(false);
   const [invoiceForm, setInvoiceForm] = useState(emptyInvoice);
@@ -104,6 +95,8 @@ export default function Invoice() {
   const styledTemplate = {
     ...template,
     accent: customization.accent || template.accent,
+    primary: customization.primary || template.primary,
+    background: customization.background || "#ffffff",
     font: customization.font,
     density: customization.density,
   };
@@ -143,6 +136,27 @@ export default function Invoice() {
     return "";
   };
 
+  const openEditor = async () => {
+    const logoData = logo ? await cropImage(logo, logoCrop, "square") : null;
+    saveEditorDocument({
+      kind: kind === "Quotation" ? "quotation" : "invoice",
+      templateId,
+      form,
+      items,
+      vat,
+      logoData,
+      customization: {
+        ...defaultCustomization,
+        ...customization,
+        accent: customization.accent || "",
+        primary: customization.primary || "",
+        background: customization.background || "#ffffff",
+      },
+      returnPath: "/tools/invoice",
+    });
+    navigate("/tools/editor");
+  };
+
   const generate = async () => {
     const invalid = validateDocument();
     if (invalid) return setValidation(invalid);
@@ -151,30 +165,16 @@ export default function Invoice() {
       await authorizeGeneration(kind.toLowerCase());
       if (kind === "Invoice") setInvoiceGenerated(true);
       else setQuotationGenerated(true);
-      openFinalStudio();
-      setStudioMessage(
-        `${kind} generated. You are in the final edit studio — polish the wording, then download.`,
-      );
+      await openEditor();
     } catch (error) {
       window.alert(error.message);
     }
   };
 
-  const download = async () => {
-    if (!generated)
-      return setValidation(`Generate the ${kind.toLowerCase()} before downloading.`);
+  const continueInEditor = async () => {
     const invalid = validateDocument();
     if (invalid) return setValidation(invalid);
-    setValidation("");
-    const logoData = logo ? await cropImage(logo, logoCrop, "square") : null;
-    renderBusinessPdf({
-      kind,
-      form,
-      items,
-      vat,
-      template: styledTemplate,
-      logoData,
-    });
+    await openEditor();
   };
 
   const saveDraft = () => {
@@ -242,31 +242,11 @@ export default function Invoice() {
     }
   };
 
-  const downloadWord = async () => {
-    if (!generated)
-      return setValidation(`Generate the ${kind.toLowerCase()} before downloading.`);
-    const invalid = validateDocument();
-    if (invalid) return setValidation(invalid);
-    try {
-      await authorizeGeneration(`${kind.toLowerCase()}_word`);
-      exportBusinessWord({
-        kind,
-        form,
-        items,
-        vat,
-        template: styledTemplate,
-        customization,
-      });
-    } catch (error) {
-      setValidation(error.message);
-    }
-  };
-
   return (
     <ToolShell
       eyebrow="BUSINESS DOCUMENTS"
       title="Invoice without the admin."
-      description="Invoice and quotation keep separate fields. Generate, refine, then download."
+      description="Fill the form, generate, then finish layout and wording in the document editor before you download."
     >
       <nav
         className="document-workflow"
@@ -548,18 +528,30 @@ export default function Invoice() {
             <button
               className="btn btn-ink"
               disabled={!generated}
-              onClick={download}
+              onClick={continueInEditor}
             >
-              <Download />
-              Download PDF
+              <Eye />
+              Open document editor
             </button>
           </div>
-          {!generated && (
-            <p className="generate-hint">
-              Generate first to unlock PDF and Word downloads after your final
-              edits.
-            </p>
+          <p className="generate-hint">
+            Generate opens a separate editor page where you adjust text, colours
+            and layout for your template, preview, confirm, then download PDF or
+            Word.
+          </p>
+          {studioMessage && (
+            <div className="form-message" role="status">
+              {studioMessage}
+            </div>
           )}
+          <div className="draft-actions form-draft-actions">
+            <button type="button" className="btn btn-outline" onClick={saveDraft}>
+              Save form draft
+            </button>
+            <button type="button" className="btn btn-outline" onClick={loadDraft}>
+              Load form draft
+            </button>
+          </div>
         </div>
         <aside className="summary-card live-document-preview business">
           <div className="preview-chrome">
@@ -586,98 +578,6 @@ export default function Invoice() {
           </div>
         </aside>
       </div>
-      <DocumentStudio
-        customization={customization}
-        onChange={setCustomization}
-        onSave={saveDraft}
-        onLoad={loadDraft}
-        message={studioMessage}
-        downloadEnabled={generated}
-        documentLabel={kind.toLowerCase()}
-        pdfAction={{
-          label: `Download ${kind.toLowerCase()} PDF`,
-          onClick: download,
-        }}
-        wordActions={[
-          {
-            label: `Download editable ${kind} for Word`,
-            onClick: downloadWord,
-          },
-        ]}
-      >
-        {generated ? (
-          <div className="studio-copy-grid">
-            <span className="studio-subtitle">Final {kind.toLowerCase()} details</span>
-            <label>
-              Business name
-              <input
-                value={form.business}
-                onChange={(e) => set("business", e.target.value)}
-              />
-            </label>
-            <label>
-              Client
-              <input
-                value={form.client}
-                onChange={(e) => set("client", e.target.value)}
-              />
-            </label>
-            <label>
-              Payment / footer note
-              <textarea
-                rows="3"
-                value={form.notes}
-                onChange={(e) => set("notes", e.target.value)}
-              />
-            </label>
-            <div className="studio-items-edit">
-              <span className="studio-subtitle">Line items</span>
-              {items.map((item, index) => (
-                <div className="studio-item-row" key={index}>
-                  <input
-                    value={item.description}
-                    onChange={(e) => {
-                      setItemsState((current) => {
-                        const next = [...current];
-                        next[index] = {
-                          ...next[index],
-                          description: e.target.value,
-                        };
-                        return next;
-                      });
-                    }}
-                    placeholder="Description"
-                  />
-                  <input
-                    type="number"
-                    value={item.qty}
-                    onChange={(e) => {
-                      setItemsState((current) => {
-                        const next = [...current];
-                        next[index] = { ...next[index], qty: e.target.value };
-                        return next;
-                      });
-                    }}
-                    placeholder="Qty"
-                  />
-                  <input
-                    type="number"
-                    value={item.price}
-                    onChange={(e) => {
-                      setItemsState((current) => {
-                        const next = [...current];
-                        next[index] = { ...next[index], price: e.target.value };
-                        return next;
-                      });
-                    }}
-                    placeholder="Price"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </DocumentStudio>
     </ToolShell>
   );
 }

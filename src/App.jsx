@@ -17,6 +17,7 @@ const Account = lazyWithRefresh(() => import("./pages/Account"));
 const AccessMode = lazyWithRefresh(() => import("./pages/AccessMode"));
 const NotFound = lazyWithRefresh(() => import("./pages/NotFound"));
 const About = lazyWithRefresh(() => import("./pages/About"));
+const DocumentEditor = lazyWithRefresh(() => import("./pages/DocumentEditor"));
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/tools/convert" element={<Converter />} />
         <Route path="/tools/invoice" element={<Invoice />} />
         <Route path="/tools/career" element={<Career />} />
+        <Route path="/tools/editor" element={<DocumentEditor />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/payment" element={<Payment />} />
         <Route path="/admin" element={<Admin />} />

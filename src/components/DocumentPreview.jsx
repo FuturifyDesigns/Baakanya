@@ -252,7 +252,9 @@ export function CvDocumentPreview({
   const style = {
     "--doc-primary": template?.primary || "#17252d",
     "--doc-accent": template?.accent || "#58bcec",
+    "--doc-bg": template?.background || "#ffffff",
     fontFamily: fontFamily(template?.font),
+    background: template?.background || "#ffffff",
   };
 
   return (
@@ -332,7 +334,9 @@ export function CoverDocumentPreview({
   const style = {
     "--doc-primary": template?.primary || "#17252d",
     "--doc-accent": template?.accent || "#58bcec",
+    "--doc-bg": template?.background || "#ffffff",
     fontFamily: fontFamily(template?.font),
+    background: template?.background || "#ffffff",
   };
   const lightHeader = layout === "band";
   const today = new Date().toLocaleDateString("en-GB", {
@@ -411,7 +415,9 @@ export function BusinessDocumentPreview({
   const style = {
     "--doc-primary": template?.primary || "#17313d",
     "--doc-accent": template?.accent || "#58bcec",
+    "--doc-bg": template?.background || "#ffffff",
     fontFamily: fontFamily(template?.font),
+    background: template?.background || "#ffffff",
   };
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item.qty || 0) * Number(item.price || 0),

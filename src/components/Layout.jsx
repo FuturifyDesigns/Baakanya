@@ -110,7 +110,6 @@ export default function Layout({ children }) {
               Professional documents and practical file tools, built for the
               work you need to finish.
             </p>
-            <span>7 days free · No card required</span>
           </div>
           <div>
             <b>Explore</b>

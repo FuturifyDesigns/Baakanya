@@ -100,9 +100,15 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
   const accent = template.accent;
   const font = template.font || "helvetica";
   const density = template.density || "comfortable";
+  const background = template.background || "#ffffff";
   let contentX = sidebar ? 68 : 18;
   let contentWidth = sidebar ? 124 : 174;
   let y = band ? 58 : 48;
+
+  if (background.toLowerCase() !== "#ffffff") {
+    setColour(pdf, background, true);
+    pdf.rect(0, 0, 210, 297, "F");
+  }
 
   if (sidebar) {
     setColour(pdf, primary, true);
@@ -278,12 +284,17 @@ export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
   const pdf = new jsPDF();
   const { primary, accent } = template;
   const font = template.font || "helvetica";
+  const background = template.background || "#ffffff";
   const lineHeight =
     template.density === "compact"
       ? 5
       : template.density === "spacious"
         ? 6.6
         : 5.6;
+  if (background.toLowerCase() !== "#ffffff") {
+    setColour(pdf, background, true);
+    pdf.rect(0, 0, 210, 297, "F");
+  }
   if (template.layout === "band" || template.layout === "sidebar") {
     setColour(pdf, primary, true);
     pdf.rect(
@@ -389,12 +400,17 @@ export const renderBusinessPdf = ({
   const pdf = new jsPDF();
   const { primary, accent } = template;
   const font = template.font || "helvetica";
+  const background = template.background || "#ffffff";
   const rowHeight =
     template.density === "compact"
       ? 9.5
       : template.density === "spacious"
         ? 15
         : 12;
+  if (background.toLowerCase() !== "#ffffff") {
+    setColour(pdf, background, true);
+    pdf.rect(0, 0, 210, 297, "F");
+  }
   const amount = (value) =>
     Number(value || 0).toLocaleString("en-BW", {
       minimumFractionDigits: 2,
