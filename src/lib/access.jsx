@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./auth";
 import { supabase } from "./supabase";
 
@@ -14,6 +14,7 @@ const formatRemaining = (ms) => {
 
 export function useAccess() {
   const { configured, user, loading: authLoading } = useAuth();
+  const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState({
     loading: configured,
     allowed: !configured,
@@ -26,6 +27,10 @@ export function useAccess() {
     credits: 0,
     status: "unknown",
   });
+
+  const refresh = useCallback(() => {
+    setRefreshKey((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -176,7 +181,7 @@ export function useAccess() {
       clearInterval(tickId);
       clearInterval(pollId);
     };
-  }, [configured, user, authLoading]);
+  }, [configured, user, authLoading, refreshKey]);
 
-  return state;
+  return { ...state, refresh };
 }

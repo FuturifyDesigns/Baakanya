@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Infinity,
+  Sparkles,
+} from "lucide-react";
 import Layout from "../components/Layout";
 import PaymentPanel from "../components/PaymentPanel";
 import RequireAuth from "../components/RequireAuth";
@@ -8,6 +15,57 @@ import { useAccess } from "../lib/access";
 import { useAuth } from "../lib/auth";
 import { getDeviceFingerprint } from "../lib/fingerprint";
 import { supabase } from "../lib/supabase";
+
+const modes = [
+  {
+    id: "trial",
+    icon: Sparkles,
+    title: "Free 7-day trial",
+    price: "P0",
+    priceNote: "then choose a paid plan",
+    summary: "Try every tool with no payment upfront.",
+    points: [
+      "CV, cover letter, invoices and conversions",
+      "Live countdown in your workspace",
+      "No card required to start",
+      "One trial per person / device",
+    ],
+    cta: "Start free trial",
+    tone: "trial",
+  },
+  {
+    id: "credits",
+    icon: CreditCard,
+    title: "Document credits",
+    price: "P25",
+    priceNote: "once-off · 5 credits",
+    summary: "Best for a few documents when you need them.",
+    points: [
+      "5 document actions across any tool",
+      "Credits do not expire",
+      "No monthly commitment",
+      "Pay once, use when ready",
+    ],
+    cta: "Choose credits",
+    tone: "credits",
+  },
+  {
+    id: "subscription",
+    icon: Infinity,
+    title: "Monthly unlimited",
+    price: "P40",
+    priceNote: "per 30 days",
+    summary: "Best when you create documents often.",
+    points: [
+      "Unlimited documents for 30 days",
+      "Manual renewal — no auto debit",
+      "Ideal for regular client or job work",
+      "Usually better value from 6+ documents",
+    ],
+    cta: "Choose monthly",
+    tone: "monthly",
+  },
+];
 
 function AccessModeBody() {
   const { user } = useAuth();
@@ -17,16 +75,17 @@ function AccessModeBody() {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [honeypot, setHoneypot] = useState("");
+  const [forceModes, setForceModes] = useState(false);
+  const [hovered, setHovered] = useState("");
 
   const step = params.get("step");
   const planParam = params.get("plan");
   const reason = params.get("reason");
-  const showPay = useMemo(() => {
-    if (step === "pay") return true;
-    if (access.status === "awaiting_payment") return true;
-    if (access.status === "trial_expired" && step === "pay") return true;
-    return false;
-  }, [step, access.status]);
+  const showPay =
+    !forceModes &&
+    (step === "pay" ||
+      access.status === "awaiting_payment" ||
+      (access.status === "trial_expired" && step === "pay"));
 
   const payPlan =
     planParam === "credits" || access.signupIntent === "credits"
@@ -34,18 +93,30 @@ function AccessModeBody() {
       : "subscription";
 
   useEffect(() => {
-    if (access.loading) return;
+    if (access.loading || forceModes) return;
     if (access.status === "awaiting_payment" && step !== "pay") {
       setParams(
         {
           step: "pay",
-          plan:
-            access.signupIntent === "credits" ? "credits" : "subscription",
+          plan: access.signupIntent === "credits" ? "credits" : "subscription",
         },
         { replace: true },
       );
     }
-  }, [access.loading, access.status, access.signupIntent, step, setParams]);
+  }, [
+    access.loading,
+    access.status,
+    access.signupIntent,
+    step,
+    setParams,
+    forceModes,
+  ]);
+
+  useEffect(() => {
+    if (forceModes && access.status === "awaiting_mode") {
+      setForceModes(false);
+    }
+  }, [forceModes, access.status]);
 
   if (!access.loading && access.allowed) {
     return <Navigate to="/workspace" replace />;
@@ -82,6 +153,9 @@ function AccessModeBody() {
       });
       if (error) throw error;
 
+      setForceModes(false);
+      access.refresh();
+
       if (mode === "trial" || data?.status === "trial_active") {
         navigate("/workspace", { replace: true });
         return;
@@ -102,36 +176,56 @@ function AccessModeBody() {
 
   const backToModes = async () => {
     setMessage("");
-    if (supabase && access.status === "awaiting_payment") {
-      const { error } = await supabase.rpc("clear_access_mode_selection");
-      if (error) {
-        setMessage(error.message);
-        return;
+    setBusy("reset");
+    try {
+      if (supabase && (access.status === "awaiting_payment" || step === "pay")) {
+        const { error } = await supabase.rpc("clear_access_mode_selection");
+        if (error) throw error;
       }
+      setForceModes(true);
+      setParams({}, { replace: true });
+      access.refresh();
+    } catch (error) {
+      setMessage(error.message || "Could not return to mode selection.");
+    } finally {
+      setBusy("");
     }
-    setParams({}, { replace: true });
   };
+
+  const visibleModes =
+    access.status === "trial_expired" && !forceModes && showPay
+      ? modes.filter((mode) => mode.id !== "trial")
+      : access.status === "trial_expired"
+        ? modes.filter((mode) => mode.id !== "trial")
+        : modes;
 
   return (
     <Layout>
       <section className="access-mode-page container">
-        <span className="kicker">
-          {showPay ? "STEP 2 · PAYMENT" : "STEP 1 · ACCESS MODE"}
-        </span>
-        <h1>
-          {reason === "trial_ended"
-            ? "Your free trial has ended"
-            : showPay
-              ? "Complete payment to unlock tools"
-              : "How do you want to use Baakanya?"}
-        </h1>
-        <p>
-          {reason === "trial_ended"
-            ? "Choose credits or monthly access, then submit proof of payment."
-            : showPay
-              ? "You selected a paid option. Payment stays in this setup flow — the workspace opens only after access is approved."
-              : "Your email is verified. Pick a free trial or a paid option before entering the workspace."}
-        </p>
+        <div className="access-mode-head">
+          <div>
+            <span className="kicker">
+              {showPay ? "STEP 2 · PAYMENT" : "STEP 1 · ACCESS MODE"}
+            </span>
+            <h1>
+              {reason === "trial_ended"
+                ? "Your free trial has ended"
+                : showPay
+                  ? "Complete payment to unlock tools"
+                  : "How do you want to use Baakanya?"}
+            </h1>
+            <p>
+              {reason === "trial_ended"
+                ? "Choose credits or monthly access, then submit proof of payment."
+                : showPay
+                  ? "You selected a paid option. Finish payment here — workspace opens only after approval."
+                  : "Your email is verified. Compare the options, pick one, then continue."}
+            </p>
+          </div>
+          <Link className="btn btn-ink access-pricing-btn" to="/pricing">
+            Review pricing <ArrowRight size={16} />
+          </Link>
+        </div>
 
         {!showPay && (
           <>
@@ -146,41 +240,48 @@ function AccessModeBody() {
                 />
               </label>
             </div>
-            <div
-              className="access-mode-select access-mode-page-grid"
-              role="list"
-            >
-              {access.status !== "trial_expired" && (
-                <button
-                  type="button"
-                  disabled={Boolean(busy)}
-                  onClick={() => choose("trial")}
-                >
-                  <b>Start free 7-day trial</b>
-                  <span>Full tools · no payment yet</span>
-                  <em>{busy === "trial" ? "Starting…" : "Select trial"}</em>
-                </button>
-              )}
-              <button
-                type="button"
-                disabled={Boolean(busy)}
-                onClick={() => choose("credits")}
-              >
-                <b>Pay with credits · P25</b>
-                <span>5 documents · no expiry</span>
-                <em>{busy === "credits" ? "Continuing…" : "Select credits"}</em>
-              </button>
-              <button
-                type="button"
-                disabled={Boolean(busy)}
-                onClick={() => choose("subscription")}
-              >
-                <b>Pay monthly · P40</b>
-                <span>Unlimited for 30 days</span>
-                <em>
-                  {busy === "subscription" ? "Continuing…" : "Select monthly"}
-                </em>
-              </button>
+            <div className="access-mode-cards" role="list">
+              {visibleModes.map((mode) => {
+                const Icon = mode.icon;
+                const active = hovered === mode.id || busy === mode.id;
+                return (
+                  <button
+                    type="button"
+                    className={`access-mode-card tone-${mode.tone} ${active ? "is-active" : ""}`}
+                    key={mode.id}
+                    disabled={Boolean(busy)}
+                    onMouseEnter={() => setHovered(mode.id)}
+                    onMouseLeave={() => setHovered("")}
+                    onFocus={() => setHovered(mode.id)}
+                    onBlur={() => setHovered("")}
+                    onClick={() => choose(mode.id)}
+                  >
+                    <div className="access-mode-card-top">
+                      <span className="access-mode-icon">
+                        <Icon size={20} />
+                      </span>
+                      <div className="access-mode-price">
+                        <strong>{mode.price}</strong>
+                        <small>{mode.priceNote}</small>
+                      </div>
+                    </div>
+                    <h2>{mode.title}</h2>
+                    <p>{mode.summary}</p>
+                    <ul>
+                      {mode.points.map((point) => (
+                        <li key={point}>
+                          <CheckCircle2 size={15} />
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
+                    <span className="access-mode-cta">
+                      {busy === mode.id ? "Please wait…" : mode.cta}
+                      <ArrowRight size={16} />
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -191,18 +292,19 @@ function AccessModeBody() {
               <button
                 type="button"
                 className="btn btn-outline"
+                disabled={busy === "reset"}
                 onClick={backToModes}
               >
-                ← Change access mode
+                {busy === "reset" ? "Returning…" : "← Change access mode"}
               </button>
+              <Link className="btn btn-ink access-pricing-btn" to="/pricing">
+                Review pricing <ArrowRight size={16} />
+              </Link>
             </div>
             <PaymentPanel
               initialPlan={payPlan}
               onPlanChange={(next) =>
-                setParams(
-                  { step: "pay", plan: next },
-                  { replace: true },
-                )
+                setParams({ step: "pay", plan: next }, { replace: true })
               }
             />
           </div>
@@ -214,8 +316,8 @@ function AccessModeBody() {
           </div>
         )}
         <p className="access-mode-footnote">
-          <CheckCircle2 size={16} /> Workspace stays locked until trial starts
-          or payment is approved. <Link to="/pricing">Review pricing</Link>
+          <Clock3 size={16} /> Workspace stays locked until a trial starts or
+          payment is approved.
         </p>
       </section>
     </Layout>
