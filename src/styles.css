@@ -4422,15 +4422,27 @@ footer {
 }
 .access-mode-icon {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border-radius: 12px;
-  background: #e7f4fa;
-  color: var(--blue-deep);
+  border: 1px solid #cfe0e7;
+  background: #fff;
+  color: #1f4554;
 }
-.access-mode-card.tone-credits .access-mode-icon { background: #eef6ef; color: #2f6b45; }
-.access-mode-card.tone-monthly .access-mode-icon { background: #eef0fb; color: #3d4ea3; }
+.access-mode-card.tone-credits .access-mode-icon {
+  border-color: #c9dbcf;
+  color: #2f5d42;
+}
+.access-mode-card.tone-monthly .access-mode-icon {
+  border-color: #d2d6e8;
+  color: #3a4578;
+}
+.access-mode-card li svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #1f4554;
+}
 .access-mode-price { text-align: right; }
 .access-mode-price strong {
   display: block;

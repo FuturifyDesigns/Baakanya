@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowRight, Check, Clock3 } from "lucide-react";
 import {
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  CreditCard,
-  Infinity,
-  Sparkles,
-} from "lucide-react";
+  CreditsIcon,
+  MonthlyIcon,
+  TrialIcon,
+} from "../components/AccessModeIcons";
 import Layout from "../components/Layout";
 import PaymentPanel from "../components/PaymentPanel";
 import RequireAuth from "../components/RequireAuth";
@@ -19,7 +17,7 @@ import { supabase } from "../lib/supabase";
 const modes = [
   {
     id: "trial",
-    icon: Sparkles,
+    icon: TrialIcon,
     title: "Free 7-day trial",
     price: "P0",
     priceNote: "then choose a paid plan",
@@ -35,7 +33,7 @@ const modes = [
   },
   {
     id: "credits",
-    icon: CreditCard,
+    icon: CreditsIcon,
     title: "Document credits",
     price: "P25",
     priceNote: "once-off · 5 credits",
@@ -51,7 +49,7 @@ const modes = [
   },
   {
     id: "subscription",
-    icon: Infinity,
+    icon: MonthlyIcon,
     title: "Monthly unlimited",
     price: "P40",
     priceNote: "per 30 days",
@@ -270,7 +268,7 @@ function AccessModeBody() {
                     <ul>
                       {mode.points.map((point) => (
                         <li key={point}>
-                          <CheckCircle2 size={15} />
+                          <Check size={14} strokeWidth={2.4} />
                           {point}
                         </li>
                       ))}
