@@ -2,6 +2,7 @@
 export function getAccessDestination(access, signupIntent) {
   if (!access || access.loading) return null;
   if (access.allowed) return "/workspace";
+  if (access.status === "under_review") return "/access?step=review";
   if (access.status === "awaiting_mode") return "/access";
   if (access.status === "awaiting_payment") {
     const plan =

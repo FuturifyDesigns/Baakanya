@@ -7,7 +7,7 @@ import {
   TrialIcon,
 } from "../components/AccessModeIcons";
 import Layout from "../components/Layout";
-import PaymentPanel from "../components/PaymentPanel";
+import PaymentPanel, { PaymentReviewStatus } from "../components/PaymentPanel";
 import RequireAuth from "../components/RequireAuth";
 import { useAccess } from "../lib/access";
 import { useAuth } from "../lib/auth";
@@ -79,19 +79,31 @@ function AccessModeBody() {
   const step = params.get("step");
   const planParam = params.get("plan");
   const reason = params.get("reason");
+  const underReview = access.status === "under_review";
   const showPay =
+    !underReview &&
     !forceModes &&
     (step === "pay" ||
       access.status === "awaiting_payment" ||
       (access.status === "trial_expired" && step === "pay"));
 
   const payPlan =
-    planParam === "credits" || access.signupIntent === "credits"
+    planParam === "credits" ||
+    access.signupIntent === "credits" ||
+    access.pendingPlan === "credits"
       ? "credits"
       : "subscription";
 
   useEffect(() => {
-    if (access.loading || forceModes) return;
+    if (access.loading) return;
+    if (underReview && step !== "review") {
+      setParams({ step: "review" }, { replace: true });
+      setForceModes(false);
+    }
+  }, [access.loading, underReview, step, setParams]);
+
+  useEffect(() => {
+    if (access.loading || forceModes || underReview) return;
     if (access.status === "awaiting_payment" && step !== "pay") {
       setParams(
         {
@@ -108,6 +120,7 @@ function AccessModeBody() {
     step,
     setParams,
     forceModes,
+    underReview,
   ]);
 
   useEffect(() => {
@@ -121,7 +134,7 @@ function AccessModeBody() {
   }
 
   const choose = async (mode) => {
-    if (!supabase || !user?.email) return;
+    if (!supabase || !user?.email || underReview) return;
     setBusy(mode);
     setMessage("");
     try {
@@ -173,6 +186,12 @@ function AccessModeBody() {
   };
 
   const backToModes = async () => {
+    if (underReview) {
+      setMessage(
+        "Your receipt is under review. You cannot change access mode until an admin verifies it.",
+      );
+      return;
+    }
     setMessage("");
     setBusy("reset");
     try {
@@ -191,11 +210,9 @@ function AccessModeBody() {
   };
 
   const visibleModes =
-    access.status === "trial_expired" && !forceModes && showPay
+    access.status === "trial_expired"
       ? modes.filter((mode) => mode.id !== "trial")
-      : access.status === "trial_expired"
-        ? modes.filter((mode) => mode.id !== "trial")
-        : modes;
+      : modes;
 
   return (
     <Layout>
@@ -203,29 +220,46 @@ function AccessModeBody() {
         <div className="access-mode-head">
           <div>
             <span className="kicker">
-              {showPay ? "STEP 2 · PAYMENT" : "STEP 1 · ACCESS MODE"}
+              {underReview
+                ? "PAYMENT REVIEW"
+                : showPay
+                  ? "STEP 2 · PAYMENT"
+                  : "STEP 1 · ACCESS MODE"}
             </span>
             <h1>
-              {reason === "trial_ended"
-                ? "Your free trial has ended"
-                : showPay
-                  ? "Complete payment to unlock tools"
-                  : "How do you want to use Baakanya?"}
+              {underReview
+                ? "Your account is in review"
+                : reason === "trial_ended"
+                  ? "Your free trial has ended"
+                  : showPay
+                    ? "Complete payment to unlock tools"
+                    : "How do you want to use Baakanya?"}
             </h1>
             <p>
-              {reason === "trial_ended"
-                ? "Choose credits or monthly access, then submit proof of payment."
-                : showPay
-                  ? "You selected a paid option. Finish payment here — workspace opens only after approval."
-                  : "Your email is verified. Compare the options, pick one, then continue."}
+              {underReview
+                ? "A receipt is waiting for admin verification. Plan options stay locked until that review finishes."
+                : reason === "trial_ended"
+                  ? "Choose credits or monthly access, then submit proof of payment."
+                  : showPay
+                    ? "You selected a paid option. Finish payment here — workspace opens only after approval."
+                    : "Your email is verified. Compare the options, pick one, then continue."}
             </p>
           </div>
-          <Link className="btn btn-ink access-pricing-btn" to="/pricing">
-            Review pricing <ArrowRight size={16} />
-          </Link>
+          {!underReview && (
+            <Link className="btn btn-ink access-pricing-btn" to="/pricing">
+              Review pricing <ArrowRight size={16} />
+            </Link>
+          )}
         </div>
 
-        {!showPay && (
+        {underReview && (
+          <PaymentReviewStatus
+            plan={access.pendingPlan || payPlan}
+            submittedAt={access.pendingSubmittedAt}
+          />
+        )}
+
+        {!underReview && !showPay && (
           <>
             <div className="bot-field" aria-hidden="true">
               <label>
@@ -284,7 +318,7 @@ function AccessModeBody() {
           </>
         )}
 
-        {showPay && (
+        {!underReview && showPay && (
           <div className="access-pay-step">
             <div className="access-pay-actions">
               <button
@@ -304,6 +338,7 @@ function AccessModeBody() {
               onPlanChange={(next) =>
                 setParams({ step: "pay", plan: next }, { replace: true })
               }
+              onSubmitted={() => setParams({ step: "review" }, { replace: true })}
             />
           </div>
         )}
@@ -313,16 +348,16 @@ function AccessModeBody() {
             {message}
           </div>
         )}
-        {!showPay && (
+        {!underReview && !showPay && (
           <p className="access-mode-footnote">
             <Clock3 size={16} /> Workspace stays locked until a trial starts or
             payment is approved.
           </p>
         )}
-        {showPay && !message && (
+        {!underReview && showPay && !message && (
           <p className="access-mode-footnote">
-            <Clock3 size={16} /> After you submit, an admin must verify your
-            receipt before tools unlock.
+            <Clock3 size={16} /> After you submit, plan options lock until an
+            admin verifies your receipt.
           </p>
         )}
       </section>

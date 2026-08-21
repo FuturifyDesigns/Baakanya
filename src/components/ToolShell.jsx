@@ -58,6 +58,21 @@ export default function ToolShell({ eyebrow, title, description, children }) {
               </Link>
             </div>
           </div>
+        ) : access.status === "under_review" ? (
+          <div className="locked-card">
+            <ShieldCheck />
+            <span className="kicker">UNDER REVIEW</span>
+            <h2>Your payment receipt is being reviewed</h2>
+            <p>
+              Tools stay locked until an admin verifies your receipt. You cannot
+              change plans while review is pending.
+            </p>
+            <div>
+              <Link className="btn btn-blue" to="/access?step=review">
+                View review status
+              </Link>
+            </div>
+          </div>
         ) : access.status === "awaiting_payment" ? (
           <div className="locked-card">
             <ShieldCheck />

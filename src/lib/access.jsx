@@ -21,6 +21,8 @@ export function useAccess() {
     reason: configured ? "Checking access…" : "Ready to use",
     planType: "none",
     signupIntent: null,
+    pendingPlan: null,
+    pendingSubmittedAt: null,
     trialEndDate: null,
     trialRemainingMs: 0,
     trialCountdown: "",
@@ -41,6 +43,8 @@ export function useAccess() {
     let creditBalance = 0;
     let planType = "none";
     let signupIntent = null;
+    let pendingPlan = null;
+    let pendingSubmittedAt = null;
 
     const publish = () => {
       if (!active) return;
@@ -64,6 +68,9 @@ export function useAccess() {
       } else if (creditActive) {
         status = "credits_available";
         reason = `${creditBalance} credits available`;
+      } else if (pendingPlan) {
+        status = "under_review";
+        reason = "Your payment receipt is under admin review";
       } else if (trialEnd) {
         status = "trial_expired";
         reason = "Your free trial has ended";
@@ -83,6 +90,8 @@ export function useAccess() {
         reason,
         planType,
         signupIntent,
+        pendingPlan,
+        pendingSubmittedAt,
         trialEndDate: trialEnd ? trialEnd.toISOString() : null,
         trialRemainingMs: remaining,
         trialCountdown: trialActive ? formatRemaining(remaining) : "",
@@ -99,6 +108,8 @@ export function useAccess() {
           reason: "Ready to use",
           planType: "none",
           signupIntent: null,
+          pendingPlan: null,
+          pendingSubmittedAt: null,
           trialEndDate: null,
           trialRemainingMs: 0,
           trialCountdown: "",
@@ -115,6 +126,8 @@ export function useAccess() {
           reason: "Sign in to use this tool",
           planType: "none",
           signupIntent: null,
+          pendingPlan: null,
+          pendingSubmittedAt: null,
           trialEndDate: null,
           trialRemainingMs: 0,
           trialCountdown: "",
@@ -124,7 +137,7 @@ export function useAccess() {
         return;
       }
 
-      const [profileResult, subscriptionResult, creditResult] =
+      const [profileResult, subscriptionResult, creditResult, pendingResult] =
         await Promise.all([
           supabase
             .from("profiles")
@@ -144,6 +157,14 @@ export function useAccess() {
             .select("balance")
             .eq("user_id", user.id)
             .maybeSingle(),
+          supabase
+            .from("payment_submissions")
+            .select("plan_type,submitted_at,status")
+            .eq("user_id", user.id)
+            .eq("status", "pending")
+            .order("submitted_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
         ]);
 
       if (!active) return;
@@ -156,6 +177,8 @@ export function useAccess() {
       creditBalance = creditResult.data?.balance || 0;
       planType = profileResult.data?.plan_type || "none";
       signupIntent = profileResult.data?.signup_intent || null;
+      pendingPlan = pendingResult.data?.plan_type || null;
+      pendingSubmittedAt = pendingResult.data?.submitted_at || null;
       publish();
     };
 
@@ -174,7 +197,7 @@ export function useAccess() {
     tickId = setInterval(publish, 1000);
     pollId = setInterval(() => {
       load().catch(() => {});
-    }, 30000);
+    }, 15000);
 
     return () => {
       active = false;

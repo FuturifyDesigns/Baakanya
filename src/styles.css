@@ -4348,6 +4348,7 @@ footer {
 .status.trial_active, .status.subscription_active, .status.credits_available { background: #e1f6e9; color: #237248; }
 .status.trial_expired, .status.no_access { background: #fde8e8; color: #a23b3b; }
 .status.awaiting_payment { background: #fff2cd; color: #80631c; }
+.status.under_review { background: #e7f1fb; color: #245a86; }
 @media (max-width: 900px) {
   .trial-countdown-banner { grid-template-columns: 1fr; }
   .doc-sheet.layout-sidebar { grid-template-columns: 1fr; }

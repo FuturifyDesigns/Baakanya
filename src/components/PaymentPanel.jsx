@@ -1,5 +1,6 @@
+import { CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CheckCircle2, Landmark, Smartphone, UploadCloud } from "lucide-react";
+import { Landmark, Smartphone, UploadCloud } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useAccess } from "../lib/access";
 import { supabase } from "../lib/supabase";
@@ -13,10 +14,41 @@ const bank = {
   ewallet: import.meta.env.VITE_EWALLET_NUMBER || "+267 77 783 823",
 };
 
+export function PaymentReviewStatus({ plan, submittedAt }) {
+  const label =
+    plan === "credits"
+      ? "P25 document credits"
+      : plan === "subscription"
+        ? "P40 monthly unlimited"
+        : "Paid access";
+  return (
+    <div className="payment-review-card" role="status" aria-live="polite">
+      <div className="payment-review-icon">
+        <CheckCircle2 size={34} />
+      </div>
+      <span className="kicker">UNDER REVIEW</span>
+      <h2>Your account is in review</h2>
+      <p>
+        We received your proof of payment. Please wait for a Baakanya admin to
+        verify your receipt. Your workspace stays locked until approval.
+      </p>
+      <ul>
+        <li>Selected plan: {label}</li>
+        {submittedAt && (
+          <li>Submitted: {new Date(submittedAt).toLocaleString()}</li>
+        )}
+        <li>Reviews usually happen during Botswana business hours</li>
+        <li>You can sign out and return later — your submission is saved</li>
+      </ul>
+    </div>
+  );
+}
+
 export default function PaymentPanel({
   initialPlan = "subscription",
   onPlanChange,
   onSubmitted,
+  locked = false,
 }) {
   const [plan, setPlan] = useState(
     initialPlan === "credits" ? "credits" : "subscription",
@@ -25,13 +57,21 @@ export default function PaymentPanel({
   const [method, setMethod] = useState("bank");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const { user } = useAuth();
   const access = useAccess();
 
   useEffect(() => {
     setPlan(initialPlan === "credits" ? "credits" : "subscription");
   }, [initialPlan]);
+
+  if (locked || access.status === "under_review") {
+    return (
+      <PaymentReviewStatus
+        plan={access.pendingPlan || plan}
+        submittedAt={access.pendingSubmittedAt}
+      />
+    );
+  }
 
   const updatePlan = (next) => {
     setPlan(next);
@@ -97,40 +137,11 @@ export default function PaymentPanel({
       return;
     }
 
-    setSubmitted(true);
     setReceipt(null);
     access.refresh?.();
     onSubmitted?.(data);
     setBusy(false);
   };
-
-  if (submitted) {
-    return (
-      <div className="payment-review-card" role="status" aria-live="polite">
-        <div className="payment-review-icon">
-          <CheckCircle2 size={34} />
-        </div>
-        <span className="kicker">UNDER REVIEW</span>
-        <h2>Your account is in review</h2>
-        <p>
-          We received your proof of payment. Please wait for a Baakanya admin to
-          verify your receipt. Your workspace stays locked until approval.
-        </p>
-        <ul>
-          <li>Selected plan: {plan === "credits" ? "P25 credits" : "P40 monthly"}</li>
-          <li>Reviews usually happen during Botswana business hours</li>
-          <li>You can sign out and return later — your submission is saved</li>
-        </ul>
-        <button
-          type="button"
-          className="btn btn-outline"
-          onClick={() => setSubmitted(false)}
-        >
-          Submit another receipt
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="payment-grid">
