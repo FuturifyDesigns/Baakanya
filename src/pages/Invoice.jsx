@@ -340,7 +340,7 @@ export default function Invoice() {
         onCrop={setLogoCrop}
         shape="square"
       />
-      <div className="builder-grid preview-left-grid">
+      <div className="tool-dual-pane">
         <aside className="summary-card live-document-preview business">
           <div className="preview-chrome">
             <div className="preview-label">
@@ -365,7 +365,8 @@ export default function Invoice() {
             </small>
           </div>
         </aside>
-        <div className="form-card">
+        <div className="form-card tool-dual-form">
+          <div className="tool-dual-form-scroll">
           <div className="field-grid">
             <label>
               Business name
@@ -596,6 +597,7 @@ export default function Invoice() {
               {autosaveStatus}
             </p>
           )}
+          </div>
         </div>
       </div>
     </ToolShell>

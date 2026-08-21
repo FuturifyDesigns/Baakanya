@@ -1148,9 +1148,44 @@ footer {
   gap: 28px;
   align-items: start;
 }
-.builder-grid.preview-left-grid,
-.career-grid.preview-left-grid {
-  grid-template-columns: minmax(400px, 460px) minmax(0, 1fr);
+/* Split pane like the document editor: preview fixed, fields scroll. */
+.tool-dual-pane {
+  display: grid;
+  grid-template-columns: minmax(380px, 0.95fr) minmax(0, 1.05fr);
+  gap: 22px;
+  align-items: stretch;
+  position: sticky;
+  top: 88px;
+  height: calc(100vh - 104px);
+  min-height: 520px;
+  margin: 8px 0 48px;
+  z-index: 5;
+}
+.tool-dual-pane .live-document-preview {
+  position: relative;
+  top: auto;
+  max-height: none;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  align-self: stretch;
+  z-index: 1;
+}
+.tool-dual-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+.tool-dual-form-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  -webkit-overflow-scrolling: touch;
 }
 .form-card label,
 .auth-form label {
@@ -3792,24 +3827,35 @@ footer {
   .payment-grid {
     grid-template-columns: 1fr;
   }
-  .builder-grid.preview-left-grid,
-  .career-grid.preview-left-grid {
+  .tool-dual-pane {
     grid-template-columns: 1fr;
+    position: relative;
+    top: auto;
+    height: auto;
+    min-height: 0;
+    gap: 16px;
+    z-index: 1;
+  }
+  .tool-dual-pane .live-document-preview {
+    order: -1;
+    position: sticky;
+    top: 72px;
+    z-index: 12;
+    height: auto;
+    max-height: min(40vh, 380px);
+    box-shadow: 0 12px 28px rgba(18, 45, 57, 0.22);
+  }
+  .tool-dual-form {
+    height: auto;
+    overflow: visible;
+  }
+  .tool-dual-form-scroll {
+    overflow: visible;
   }
   .summary-card:not(.live-document-preview),
   .letter-preview:not(.live-document-preview),
   .payment-aside {
     position: static;
-  }
-  .career-grid .live-document-preview,
-  .builder-grid .live-document-preview {
-    order: -1;
-    position: sticky;
-    top: 72px;
-    z-index: 12;
-    max-height: min(42vh, 420px);
-    margin-bottom: 4px;
-    box-shadow: 0 12px 28px rgba(18, 45, 57, 0.22);
   }
   .auth-page {
     grid-template-columns: 1fr;

@@ -479,7 +479,7 @@ export default function Career() {
           shape={photoShape}
         />
       )}
-      <div className="career-grid preview-left-grid">
+      <div className="tool-dual-pane">
         <aside
           className={`letter-preview live-document-preview ${activeDocument}`}
         >
@@ -514,7 +514,8 @@ export default function Career() {
             </small>
           </div>
         </aside>
-        <div className="form-card">
+        <div className="form-card tool-dual-form">
+          <div className="tool-dual-form-scroll">
           {activeDocument === "cv" ? (
             <>
               <div className="field-grid">
@@ -886,6 +887,7 @@ export default function Career() {
               {autosaveStatus}
             </p>
           )}
+          </div>
         </div>
       </div>
     </ToolShell>
