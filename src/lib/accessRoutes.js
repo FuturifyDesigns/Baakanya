@@ -12,8 +12,22 @@ export function getAccessDestination(access, signupIntent) {
     return `/access?step=pay&plan=${plan}`;
   }
   if (access.status === "trial_expired") {
-    return "/access?step=pay&reason=trial_ended";
+    return "/access?reason=trial_ended";
   }
-  // Unknown / no_access: force mode selection, never claim a trial ended.
+  if (access.status === "subscription_expired") {
+    return "/access?reason=subscription_ended";
+  }
+  if (access.status === "credits_exhausted") {
+    return "/access?reason=credits_ended";
+  }
+  // Unknown / no_access: force mode selection.
   return "/access";
+}
+
+export function isRenewalStatus(status) {
+  return (
+    status === "trial_expired" ||
+    status === "subscription_expired" ||
+    status === "credits_exhausted"
+  );
 }

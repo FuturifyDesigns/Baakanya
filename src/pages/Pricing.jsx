@@ -171,8 +171,10 @@ export default function Pricing() {
             <article>
               <h3>What uses a credit?</h3>
               <p>
-                Each document-generation or file-conversion action uses one
-                credit. Your remaining balance stays on your account.
+                Confirming a finished document (CV, cover letter, invoice or
+                quotation) or running a file conversion uses one credit. Opening
+                the editor to edit does not. PDF and Word from the same confirmed
+                draft do not charge again.
               </p>
             </article>
             <article>

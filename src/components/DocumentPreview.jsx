@@ -1,19 +1,25 @@
+import { fontCss, lineSpacingValue } from "../lib/customization";
+
 const split = (text) =>
   String(text || "")
     .split(/\n|,/)
     .map((x) => x.trim())
     .filter(Boolean);
 
-const fontFamily = (font) => {
-  if (font === "times") return '"Times New Roman", Times, Georgia, serif';
-  if (font === "courier") return '"Courier New", Courier, monospace';
-  return 'Helvetica, "Arial", "Segoe UI", sans-serif';
-};
+const fontFamily = (font) => fontCss(font);
 
 const densityGap = (density) => {
   if (density === "compact") return "compact";
   if (density === "spacious") return "spacious";
   return "comfortable";
+};
+
+const spacingClass = (lineSpacing) => {
+  const value = lineSpacingValue(lineSpacing);
+  if (value <= 1.05) return "spacing-1";
+  if (value <= 1.25) return "spacing-115";
+  if (value <= 1.75) return "spacing-15";
+  return "spacing-2";
 };
 
 /** Split free text into role/education blocks for a traditional CV look. */
@@ -255,11 +261,12 @@ export function CvDocumentPreview({
     "--doc-bg": template?.background || "#ffffff",
     fontFamily: fontFamily(template?.font),
     background: template?.background || "#ffffff",
+    "--doc-line-height": String(lineSpacingValue(template?.lineSpacing)),
   };
 
   return (
     <div
-      className={`doc-sheet cv-sheet layout-${layout} density-${densityGap(template?.density)} ${compact ? "is-thumb" : ""}`}
+      className={`doc-sheet cv-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""}`}
       style={style}
     >
       {sidebar && (
@@ -337,6 +344,7 @@ export function CoverDocumentPreview({
     "--doc-bg": template?.background || "#ffffff",
     fontFamily: fontFamily(template?.font),
     background: template?.background || "#ffffff",
+    "--doc-line-height": String(lineSpacingValue(template?.lineSpacing)),
   };
   const lightHeader = layout === "band";
   const today = new Date().toLocaleDateString("en-GB", {
@@ -354,7 +362,7 @@ export function CoverDocumentPreview({
 
   return (
     <div
-      className={`doc-sheet cover-sheet layout-${layout} density-${densityGap(template?.density)} ${compact ? "is-thumb" : ""}`}
+      className={`doc-sheet cover-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""}`}
       style={style}
     >
       {layout === "sidebar" && (
@@ -418,6 +426,7 @@ export function BusinessDocumentPreview({
     "--doc-bg": template?.background || "#ffffff",
     fontFamily: fontFamily(template?.font),
     background: template?.background || "#ffffff",
+    "--doc-line-height": String(lineSpacingValue(template?.lineSpacing)),
   };
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item.qty || 0) * Number(item.price || 0),
@@ -442,7 +451,7 @@ export function BusinessDocumentPreview({
 
   return (
     <div
-      className={`doc-sheet business-sheet layout-${layout} density-${densityGap(template?.density)} ${compact ? "is-thumb" : ""}`}
+      className={`doc-sheet business-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""}`}
       style={style}
     >
       {(layout === "band" || layout === "side") && (

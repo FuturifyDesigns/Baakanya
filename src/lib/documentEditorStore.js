@@ -1,19 +1,42 @@
 import { defaultCustomization } from "./customization";
+import { EDITOR_DRAFT_KEY } from "./draftStore";
 
-export const EDITOR_STORAGE_KEY = "baakanya-document-editor";
+export const EDITOR_STORAGE_KEY = EDITOR_DRAFT_KEY;
+
+function readRaw() {
+  try {
+    return (
+      localStorage.getItem(EDITOR_STORAGE_KEY) ||
+      sessionStorage.getItem(EDITOR_STORAGE_KEY)
+    );
+  } catch {
+    return null;
+  }
+}
 
 export function saveEditorDocument(payload) {
   const bundle = {
     ...payload,
     savedAt: new Date().toISOString(),
+    autosaved: true,
   };
-  sessionStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify(bundle));
+  const raw = JSON.stringify(bundle);
+  try {
+    localStorage.setItem(EDITOR_STORAGE_KEY, raw);
+  } catch {
+    /* quota */
+  }
+  try {
+    sessionStorage.setItem(EDITOR_STORAGE_KEY, raw);
+  } catch {
+    /* ignore */
+  }
   return bundle;
 }
 
 export function loadEditorDocument() {
   try {
-    const raw = sessionStorage.getItem(EDITOR_STORAGE_KEY);
+    const raw = readRaw();
     if (!raw) return null;
     const data = JSON.parse(raw);
     return {
@@ -33,7 +56,16 @@ export function loadEditorDocument() {
 }
 
 export function clearEditorDocument() {
-  sessionStorage.removeItem(EDITOR_STORAGE_KEY);
+  try {
+    localStorage.removeItem(EDITOR_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.removeItem(EDITOR_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function buildStyledTemplate(template, customization = {}) {
@@ -42,8 +74,10 @@ export function buildStyledTemplate(template, customization = {}) {
     ...template,
     primary: customization.primary || template.primary,
     accent: customization.accent || template.accent,
-    font: customization.font || template.font || "helvetica",
+    font: customization.font || template.font || "calibri",
     density: customization.density || template.density || "comfortable",
+    lineSpacing:
+      customization.lineSpacing || template.lineSpacing || "1.15",
     titles: {
       ...defaultCustomization.titles,
       ...(customization.titles || {}),

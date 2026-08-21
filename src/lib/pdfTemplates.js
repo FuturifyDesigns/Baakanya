@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { fontPdf, lineSpacingValue } from "./customization";
 
 const rgb = (hex) => {
   const value = hex.replace("#", "");
@@ -17,15 +18,20 @@ const safeName = (value, fallback) =>
     .replace(/^-|-$/g, "")
     .toLowerCase();
 
+const pdfFont = (font) => fontPdf(font);
+
+const bodyLineHeight = (templateOrOptions) => {
+  const density = templateOrOptions.density || "comfortable";
+  const spacing = lineSpacingValue(templateOrOptions.lineSpacing);
+  const base =
+    density === "compact" ? 3.9 : density === "spacious" ? 5.1 : 4.4;
+  return Math.max(3.6, base * spacing);
+};
+
 const writeSection = (pdf, title, body, options) => {
   let { x, y, width, accent } = options;
-  const font = options.font || "helvetica";
-  const lineHeight =
-    options.density === "compact"
-      ? 4.4
-      : options.density === "spacious"
-        ? 5.8
-        : 4.9;
+  const font = pdfFont(options.font);
+  const lineHeight = options.lineHeight || bodyLineHeight(options);
   if (!body) return y;
   if (y > 270) {
     pdf.addPage();
@@ -98,8 +104,9 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
   const band = template.layout === "band";
   const primary = template.primary;
   const accent = template.accent;
-  const font = template.font || "helvetica";
+  const font = pdfFont(template.font);
   const density = template.density || "comfortable";
+  const lineHeight = bodyLineHeight(template);
   const background = template.background || "#ffffff";
   let contentX = sidebar ? 68 : 18;
   let contentWidth = sidebar ? 124 : 174;
@@ -225,6 +232,8 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     accent,
     font,
     density,
+    lineSpacing: template.lineSpacing,
+    lineHeight,
   });
   y = writeSection(
     pdf,
@@ -237,6 +246,8 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
       accent,
       font,
       density,
+      lineSpacing: template.lineSpacing,
+      lineHeight,
     },
   );
   y = writeSection(pdf, template.titles?.education || "Education", form.education, {
@@ -246,6 +257,8 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     accent,
     font,
     density,
+    lineSpacing: template.lineSpacing,
+    lineHeight,
   });
   if (!sidebar) {
     y = writeSection(
@@ -259,6 +272,8 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
         accent,
         font,
         density,
+        lineSpacing: template.lineSpacing,
+        lineHeight,
       },
     );
   }
@@ -273,6 +288,8 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
       accent,
       font,
       density,
+      lineSpacing: template.lineSpacing,
+      lineHeight,
     },
   );
   pdf.save(
@@ -283,14 +300,9 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
 export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
   const pdf = new jsPDF();
   const { primary, accent } = template;
-  const font = template.font || "helvetica";
+  const font = pdfFont(template.font);
   const background = template.background || "#ffffff";
-  const lineHeight =
-    template.density === "compact"
-      ? 5
-      : template.density === "spacious"
-        ? 6.6
-        : 5.6;
+  const lineHeight = bodyLineHeight(template);
   if (background.toLowerCase() !== "#ffffff") {
     setColour(pdf, background, true);
     pdf.rect(0, 0, 210, 297, "F");
@@ -399,14 +411,16 @@ export const renderBusinessPdf = ({
 }) => {
   const pdf = new jsPDF();
   const { primary, accent } = template;
-  const font = template.font || "helvetica";
+  const font = pdfFont(template.font);
   const background = template.background || "#ffffff";
-  const rowHeight =
-    template.density === "compact"
-      ? 9.5
+  const rowHeight = Math.max(
+    8.5,
+    (template.density === "compact"
+      ? 9
       : template.density === "spacious"
-        ? 15
-        : 12;
+        ? 13.5
+        : 11) * (lineSpacingValue(template.lineSpacing) > 1.25 ? 1.12 : 1),
+  );
   if (background.toLowerCase() !== "#ffffff") {
     setColour(pdf, background, true);
     pdf.rect(0, 0, 210, 297, "F");

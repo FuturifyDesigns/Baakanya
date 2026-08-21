@@ -10,6 +10,7 @@ import Layout from "../components/Layout";
 import PaymentPanel, { PaymentReviewStatus } from "../components/PaymentPanel";
 import RequireAuth from "../components/RequireAuth";
 import { useAccess } from "../lib/access";
+import { isRenewalStatus } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 import { getDeviceFingerprint } from "../lib/fingerprint";
 import { supabase } from "../lib/supabase";
@@ -80,12 +81,13 @@ function AccessModeBody() {
   const planParam = params.get("plan");
   const reason = params.get("reason");
   const underReview = access.status === "under_review";
+  const renewing = isRenewalStatus(access.status) || Boolean(reason);
   const showPay =
     !underReview &&
     !forceModes &&
     (step === "pay" ||
       access.status === "awaiting_payment" ||
-      (access.status === "trial_expired" && step === "pay"));
+      (renewing && step === "pay"));
 
   const payPlan =
     planParam === "credits" ||
@@ -101,6 +103,23 @@ function AccessModeBody() {
       setForceModes(false);
     }
   }, [access.loading, underReview, step, setParams]);
+
+  useEffect(() => {
+    if (access.loading || forceModes || underReview) return;
+    if (isRenewalStatus(access.status) && step === "pay" && !planParam) {
+      // Stay on mode pick for renewals unless they already opened payment.
+      setParams({ reason: reason || access.status }, { replace: true });
+    }
+  }, [
+    access.loading,
+    access.status,
+    forceModes,
+    underReview,
+    step,
+    planParam,
+    reason,
+    setParams,
+  ]);
 
   useEffect(() => {
     if (access.loading || forceModes || underReview) return;
@@ -129,7 +148,7 @@ function AccessModeBody() {
     }
   }, [forceModes, access.status]);
 
-  if (!access.loading && access.allowed) {
+  if (!access.loading && access.allowed && step !== "pay" && reason !== "renew") {
     return <Navigate to="/workspace" replace />;
   }
 
@@ -210,9 +229,32 @@ function AccessModeBody() {
   };
 
   const visibleModes =
-    access.status === "trial_expired"
+    renewing || isRenewalStatus(access.status)
       ? modes.filter((mode) => mode.id !== "trial")
       : modes;
+
+  const renewTitle =
+    reason === "trial_ended" || access.status === "trial_expired"
+      ? "Your free trial has ended"
+      : reason === "subscription_ended" ||
+          access.status === "subscription_expired"
+        ? "Your monthly access has ended"
+        : reason === "credits_ended" || access.status === "credits_exhausted"
+          ? "You are out of credits"
+          : reason === "renew"
+            ? "Renew your Baakanya access"
+            : null;
+
+  const renewCopy =
+    reason === "trial_ended" || access.status === "trial_expired"
+      ? "Your workspace is locked. Choose credits or monthly access, then submit proof of payment."
+      : reason === "subscription_ended" ||
+          access.status === "subscription_expired"
+        ? "Your 30-day access has ended. Renew monthly or switch to credits to reopen the tools."
+        : reason === "credits_ended" || access.status === "credits_exhausted"
+          ? "Buy another credit pack or switch to monthly unlimited to keep working."
+          : "Choose credits or monthly access to unlock the workspace again.";
+
 
   return (
     <Layout>
@@ -229,8 +271,8 @@ function AccessModeBody() {
             <h1>
               {underReview
                 ? "Your account is in review"
-                : reason === "trial_ended"
-                  ? "Your free trial has ended"
+                : renewTitle
+                  ? renewTitle
                   : showPay
                     ? "Complete payment to unlock tools"
                     : "How do you want to use Baakanya?"}
@@ -238,8 +280,8 @@ function AccessModeBody() {
             <p>
               {underReview
                 ? "A receipt is waiting for admin verification. Plan options stay locked until that review finishes."
-                : reason === "trial_ended"
-                  ? "Choose credits or monthly access, then submit proof of payment."
+                : renewTitle
+                  ? renewCopy
                   : showPay
                     ? "You selected a paid option. Finish payment here — workspace opens only after approval."
                     : "Your email is verified. Compare the options, pick one, then continue."}

@@ -68,12 +68,15 @@ export default function Layout({ children }) {
                       ? t.dashboard
                       : access.status === "under_review"
                         ? "Under review"
-                        : access.status === "awaiting_payment" ||
-                            access.status === "trial_expired"
+                        : access.status === "awaiting_payment"
                           ? "Finish setup"
-                          : access.status === "awaiting_mode"
-                            ? "Choose access"
-                            : t.dashboard}
+                          : access.status === "trial_expired" ||
+                              access.status === "subscription_expired" ||
+                              access.status === "credits_exhausted"
+                            ? "Renew access"
+                            : access.status === "awaiting_mode"
+                              ? "Choose access"
+                              : t.dashboard}
                 </NavLink>
                 <button className="btn btn-small btn-ink" onClick={handleSignOut}>
                   Sign out

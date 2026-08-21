@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./auth";
 import { supabase } from "./supabase";
 
@@ -12,22 +12,46 @@ const formatRemaining = (ms) => {
   return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
+const emptyState = (overrides = {}) => ({
+  loading: false,
+  allowed: false,
+  reason: "Choose free trial or paid access to continue",
+  planType: "none",
+  signupIntent: null,
+  pendingPlan: null,
+  pendingSubmittedAt: null,
+  trialEndDate: null,
+  trialRemainingMs: 0,
+  trialCountdown: "",
+  subscriptionEndDate: null,
+  subscriptionRemainingMs: 0,
+  subscriptionCountdown: "",
+  credits: 0,
+  status: "unknown",
+  ...overrides,
+});
+
 export function useAccess() {
   const { configured, user, loading: authLoading } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [state, setState] = useState({
-    loading: configured,
-    allowed: !configured,
-    reason: configured ? "Checking access…" : "Ready to use",
+  const [state, setState] = useState(() =>
+    emptyState({
+      loading: configured,
+      allowed: !configured,
+      reason: configured ? "Checking access…" : "Ready to use",
+      status: configured ? "unknown" : "open",
+    }),
+  );
+  const snapshot = useRef({
+    trialEnd: null,
+    subscriptionEnd: null,
+    creditBalance: 0,
     planType: "none",
     signupIntent: null,
     pendingPlan: null,
     pendingSubmittedAt: null,
-    trialEndDate: null,
-    trialRemainingMs: 0,
-    trialCountdown: "",
-    credits: 0,
-    status: "unknown",
+    hadSubscription: false,
+    hadCredits: false,
   });
 
   const refresh = useCallback(() => {
@@ -38,27 +62,38 @@ export function useAccess() {
     let active = true;
     let tickId;
     let pollId;
-    let trialEnd = null;
-    let subscriptionEnd = null;
-    let creditBalance = 0;
-    let planType = "none";
-    let signupIntent = null;
-    let pendingPlan = null;
-    let pendingSubmittedAt = null;
+    let channel;
 
     const publish = () => {
       if (!active) return;
+      const {
+        trialEnd,
+        subscriptionEnd,
+        creditBalance,
+        planType,
+        signupIntent,
+        pendingPlan,
+        pendingSubmittedAt,
+        hadSubscription,
+        hadCredits,
+      } = snapshot.current;
       const now = Date.now();
-      const trialActive = trialEnd && trialEnd.getTime() > now;
-      const subscriptionActive =
-        subscriptionEnd && subscriptionEnd.getTime() > now;
+      const trialActive = Boolean(trialEnd && trialEnd.getTime() > now);
+      const subscriptionActive = Boolean(
+        subscriptionEnd && subscriptionEnd.getTime() > now,
+      );
       const creditActive = creditBalance > 0;
       const allowed = Boolean(
         trialActive || subscriptionActive || creditActive,
       );
-      const remaining = trialActive ? trialEnd.getTime() - now : 0;
+      const trialRemaining = trialActive ? trialEnd.getTime() - now : 0;
+      const subscriptionRemaining = subscriptionActive
+        ? subscriptionEnd.getTime() - now
+        : 0;
+
       let status = "no_access";
       let reason = "Choose free trial or paid access to continue";
+
       if (trialActive) {
         status = "trial_active";
         reason = "Free trial active";
@@ -67,23 +102,39 @@ export function useAccess() {
         reason = "Monthly access active";
       } else if (creditActive) {
         status = "credits_available";
-        reason = `${creditBalance} credits available`;
+        reason = `${creditBalance} credit${creditBalance === 1 ? "" : "s"} available`;
       } else if (pendingPlan) {
         status = "under_review";
         reason = "Your payment receipt is under admin review";
-      } else if (trialEnd) {
+      } else if (trialEnd && trialEnd.getTime() <= now) {
         status = "trial_expired";
         reason = "Your free trial has ended";
-      } else if (signupIntent === "credits" || signupIntent === "subscription") {
+      } else if (
+        hadSubscription &&
+        subscriptionEnd &&
+        subscriptionEnd.getTime() <= now
+      ) {
+        status = "subscription_expired";
+        reason = "Your monthly access has ended";
+      } else if (
+        (signupIntent === "credits" || signupIntent === "subscription") &&
+        planType === "none" &&
+        !trialEnd &&
+        !hadSubscription
+      ) {
         status = "awaiting_payment";
         reason =
           signupIntent === "credits"
             ? "Complete payment for credits to unlock the tools"
             : "Complete payment for monthly access to unlock the tools";
+      } else if (planType === "credits" || (hadCredits && creditBalance <= 0)) {
+        status = "credits_exhausted";
+        reason = "You have no credits left";
       } else if (!signupIntent) {
         status = "awaiting_mode";
         reason = "Choose free trial or paid access to continue";
       }
+
       setState({
         loading: false,
         allowed,
@@ -93,8 +144,15 @@ export function useAccess() {
         pendingPlan,
         pendingSubmittedAt,
         trialEndDate: trialEnd ? trialEnd.toISOString() : null,
-        trialRemainingMs: remaining,
-        trialCountdown: trialActive ? formatRemaining(remaining) : "",
+        trialRemainingMs: trialRemaining,
+        trialCountdown: trialActive ? formatRemaining(trialRemaining) : "",
+        subscriptionEndDate: subscriptionEnd
+          ? subscriptionEnd.toISOString()
+          : null,
+        subscriptionRemainingMs: subscriptionRemaining,
+        subscriptionCountdown: subscriptionActive
+          ? formatRemaining(subscriptionRemaining)
+          : "",
         credits: creditBalance,
         status,
       });
@@ -102,38 +160,23 @@ export function useAccess() {
 
     const load = async () => {
       if (!configured) {
-        setState({
-          loading: false,
-          allowed: true,
-          reason: "Ready to use",
-          planType: "none",
-          signupIntent: null,
-          pendingPlan: null,
-          pendingSubmittedAt: null,
-          trialEndDate: null,
-          trialRemainingMs: 0,
-          trialCountdown: "",
-          credits: 0,
-          status: "open",
-        });
+        setState(
+          emptyState({
+            allowed: true,
+            reason: "Ready to use",
+            status: "open",
+          }),
+        );
         return;
       }
       if (authLoading) return;
       if (!user) {
-        setState({
-          loading: false,
-          allowed: false,
-          reason: "Sign in to use this tool",
-          planType: "none",
-          signupIntent: null,
-          pendingPlan: null,
-          pendingSubmittedAt: null,
-          trialEndDate: null,
-          trialRemainingMs: 0,
-          trialCountdown: "",
-          credits: 0,
-          status: "signed_out",
-        });
+        setState(
+          emptyState({
+            reason: "Sign in to use this tool",
+            status: "signed_out",
+          }),
+        );
         return;
       }
 
@@ -148,7 +191,6 @@ export function useAccess() {
             .from("subscriptions")
             .select("end_date,status")
             .eq("user_id", user.id)
-            .eq("status", "active")
             .order("end_date", { ascending: false })
             .limit(1)
             .maybeSingle(),
@@ -168,17 +210,29 @@ export function useAccess() {
         ]);
 
       if (!active) return;
-      trialEnd = profileResult.data?.trial_end_date
+
+      const trialEnd = profileResult.data?.trial_end_date
         ? new Date(profileResult.data.trial_end_date)
         : null;
-      subscriptionEnd = subscriptionResult.data?.end_date
-        ? new Date(subscriptionResult.data.end_date)
+      const subscriptionRow = subscriptionResult.data;
+      const subscriptionEnd = subscriptionRow?.end_date
+        ? new Date(subscriptionRow.end_date)
         : null;
-      creditBalance = creditResult.data?.balance || 0;
-      planType = profileResult.data?.plan_type || "none";
-      signupIntent = profileResult.data?.signup_intent || null;
-      pendingPlan = pendingResult.data?.plan_type || null;
-      pendingSubmittedAt = pendingResult.data?.submitted_at || null;
+      const creditBalance = creditResult.data?.balance || 0;
+      const planType = profileResult.data?.plan_type || "none";
+      const subscriptionWasPurchased = Boolean(subscriptionEnd);
+
+      snapshot.current = {
+        trialEnd,
+        subscriptionEnd,
+        creditBalance,
+        planType,
+        signupIntent: profileResult.data?.signup_intent || null,
+        pendingPlan: pendingResult.data?.plan_type || null,
+        pendingSubmittedAt: pendingResult.data?.submitted_at || null,
+        hadSubscription: subscriptionWasPurchased,
+        hadCredits: planType === "credits" || creditBalance > 0,
+      };
       publish();
     };
 
@@ -197,12 +251,59 @@ export function useAccess() {
     tickId = setInterval(publish, 1000);
     pollId = setInterval(() => {
       load().catch(() => {});
-    }, 15000);
+    }, 10000);
+
+    if (configured && user && supabase) {
+      channel = supabase
+        .channel(`access-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "credits",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => load().catch(() => {}),
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "subscriptions",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => load().catch(() => {}),
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${user.id}`,
+          },
+          () => load().catch(() => {}),
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "payment_submissions",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => load().catch(() => {}),
+        )
+        .subscribe();
+    }
 
     return () => {
       active = false;
       clearInterval(tickId);
       clearInterval(pollId);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [configured, user, authLoading, refreshKey]);
 

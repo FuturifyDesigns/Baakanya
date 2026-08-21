@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabase";
 const DRAFT_KEYS = [
   "baakanya-career-draft",
   "baakanya-business-draft",
+  "baakanya-document-editor",
 ];
 
 function AccountBody() {

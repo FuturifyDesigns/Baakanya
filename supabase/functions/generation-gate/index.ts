@@ -42,6 +42,11 @@ Deno.serve(async (request) => {
 
     const body = await request.json();
     const toolName = typeof body.toolName === "string" ? body.toolName : "";
+    const mode = body.mode === "check" ? "check" : "consume";
+    const draftKey =
+      typeof body.draftKey === "string" && body.draftKey.length > 0
+        ? body.draftKey
+        : null;
     const deviceFingerprint =
       typeof body.deviceFingerprint === "string" ? body.deviceFingerprint : "";
     const installationId =
@@ -52,6 +57,12 @@ Deno.serve(async (request) => {
     ) {
       return Response.json(
         { error: "Invalid generation request" },
+        { status: 400, headers: corsHeaders },
+      );
+    }
+    if (draftKey && !/^[a-f0-9-]{8,64}$/.test(draftKey)) {
+      return Response.json(
+        { error: "Invalid document draft" },
         { status: 400, headers: corsHeaders },
       );
     }
@@ -90,10 +101,18 @@ Deno.serve(async (request) => {
         { status: 403, headers: corsHeaders },
       );
     }
-    const { data, error } = await admin.rpc("authorize_generation", {
-      target_user: userId,
-      tool_name: toolName,
-    });
+
+    const { data, error } =
+      mode === "check"
+        ? await admin.rpc("check_generation_access", {
+            target_user: userId,
+            tool_name: toolName,
+          })
+        : await admin.rpc("authorize_generation", {
+            target_user: userId,
+            tool_name: toolName,
+            p_draft_key: draftKey,
+          });
     if (error) throw error;
     if (trialActive && trial.ip_fingerprint_hash !== ipHash) {
       await admin.from("abuse_events").insert({

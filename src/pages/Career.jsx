@@ -10,10 +10,15 @@ import {
   CvDocumentPreview,
   split,
 } from "../components/DocumentPreview";
-import { defaultCustomization } from "../lib/customization";
+import { defaultCustomization, defaultsForKind } from "../lib/customization";
+import {
+  CAREER_DRAFT_KEY,
+  readLocalDraft,
+  useAutoSave,
+} from "../lib/draftStore";
 import { saveEditorDocument } from "../lib/documentEditorStore";
 import { supabase } from "../lib/supabase";
-import { authorizeGeneration } from "../lib/generation";
+import { checkGenerationAccess } from "../lib/generation";
 import { coverLetterTemplates, cvTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 import { isValidWebsite, normalizeWebsite } from "../lib/urls";
@@ -71,6 +76,7 @@ export default function Career() {
   const [cvGenerated, setCvGenerated] = useState(false);
   const [coverGenerated, setCoverGenerated] = useState(false);
   const [letterFinal, setLetterFinal] = useState("");
+  const [draftReady, setDraftReady] = useState(false);
   const cvTemplate = cvTemplates.find(({ id }) => id === cvTemplateId);
   const coverTemplate = coverLetterTemplates.find(
     ({ id }) => id === coverTemplateId,
@@ -82,8 +88,9 @@ export default function Career() {
     accent: customization.accent || cvTemplate.accent,
     primary: customization.primary || cvTemplate.primary,
     background: customization.background || "#ffffff",
-    font: customization.font,
-    density: customization.density,
+    font: customization.font || "calibri",
+    density: customization.density || "comfortable",
+    lineSpacing: customization.lineSpacing || "1.15",
     titles: customization.titles,
   };
   const styledCoverTemplate = {
@@ -91,8 +98,9 @@ export default function Career() {
     accent: customization.accent || coverTemplate.accent,
     primary: customization.primary || coverTemplate.primary,
     background: customization.background || "#ffffff",
-    font: customization.font,
-    density: customization.density,
+    font: customization.font || "times",
+    density: customization.density || "comfortable",
+    lineSpacing: customization.lineSpacing || "1.5",
   };
   const photoPreview = useMemo(
     () => (photo ? URL.createObjectURL(photo) : ""),
@@ -104,6 +112,109 @@ export default function Career() {
     },
     [photoPreview],
   );
+
+  useEffect(() => {
+    const saved = readLocalDraft(CAREER_DRAFT_KEY);
+    if (!saved) {
+      setDraftReady(true);
+      return;
+    }
+    try {
+      if (saved.cvForm) setCvForm((current) => ({ ...current, ...saved.cvForm }));
+      else if (saved.form) {
+        setCvForm((current) => ({
+          ...current,
+          name: saved.form.name || "",
+          email: saved.form.email || "",
+          phone: saved.form.phone || "",
+          location: saved.form.location || current.location,
+          expertise: saved.form.expertise || saved.form.role || "",
+          website: saved.form.website || "",
+          summary: saved.form.summary || "",
+          experience: saved.form.experience || "",
+          skills: saved.form.skills || "",
+        }));
+        setCoverForm((current) => ({
+          ...current,
+          name: saved.form.name || "",
+          email: saved.form.email || "",
+          phone: saved.form.phone || "",
+          location: saved.form.location || current.location,
+          role: saved.form.role || "",
+          company: saved.form.company || "",
+          companyWebsite: saved.form.website || "",
+          summary: saved.form.summary || "",
+          experience: saved.form.experience || "",
+          skills: saved.form.skills || "",
+        }));
+      }
+      if (saved.coverForm)
+        setCoverForm((current) => ({ ...current, ...saved.coverForm }));
+      if (saved.researchText)
+        setResearch({ loading: false, error: "", text: saved.researchText });
+      if (cvTemplates.some(({ id }) => id === saved.cvTemplateId))
+        setCvTemplateId(saved.cvTemplateId);
+      if (coverLetterTemplates.some(({ id }) => id === saved.coverTemplateId))
+        setCoverTemplateId(saved.coverTemplateId);
+      if (saved.photoCrop) setPhotoCrop(saved.photoCrop);
+      if (saved.customization)
+        setCustomization({
+          ...defaultCustomization,
+          ...saved.customization,
+          titles: {
+            ...defaultCustomization.titles,
+            ...(saved.customization.titles || {}),
+          },
+        });
+      setCvGenerated(Boolean(saved.cvGenerated));
+      setCoverGenerated(Boolean(saved.coverGenerated));
+      if (saved.letterFinal) setLetterFinal(saved.letterFinal);
+      if (saved.activeDocument === "cover" || saved.activeDocument === "cv") {
+        setActiveDocument(saved.activeDocument);
+      }
+      setStudioMessage(
+        "Your previous draft was restored. Photos are not stored — select again if needed.",
+      );
+    } catch {
+      setStudioMessage("A previous draft was found but could not be restored.");
+    } finally {
+      setDraftReady(true);
+    }
+  }, []);
+
+  const careerDraftPayload = useMemo(
+    () => ({
+      activeDocument,
+      cvForm,
+      coverForm,
+      researchText: research.text,
+      cvTemplateId,
+      coverTemplateId,
+      photoCrop,
+      customization,
+      cvGenerated,
+      coverGenerated,
+      letterFinal,
+    }),
+    [
+      activeDocument,
+      cvForm,
+      coverForm,
+      research.text,
+      cvTemplateId,
+      coverTemplateId,
+      photoCrop,
+      customization,
+      cvGenerated,
+      coverGenerated,
+      letterFinal,
+    ],
+  );
+
+  const autosaveStatus = useAutoSave(CAREER_DRAFT_KEY, careerDraftPayload, {
+    enabled: draftReady,
+    delay: 700,
+  });
 
   const setCv = (k, v) => {
     setValidation("");
@@ -226,6 +337,9 @@ export default function Career() {
         : null;
     saveEditorDocument({
       kind,
+      draftKey: crypto.randomUUID(),
+      toolName: kind === "cv" ? "cv" : "cover_letter",
+      billed: false,
       templateId: isCv ? cvTemplateId : coverTemplateId,
       form: isCv
         ? {
@@ -241,6 +355,7 @@ export default function Career() {
       photoData,
       customization: {
         ...defaultCustomization,
+        ...defaultsForKind(kind),
         ...customization,
         titles: {
           ...defaultCustomization.titles,
@@ -249,6 +364,10 @@ export default function Career() {
         accent: customization.accent || "",
         primary: customization.primary || "",
         background: customization.background || "#ffffff",
+        font: customization.font || defaultsForKind(kind).font,
+        lineSpacing:
+          customization.lineSpacing || defaultsForKind(kind).lineSpacing,
+        density: customization.density || defaultsForKind(kind).density,
       },
       returnPath: "/tools/career",
     });
@@ -262,7 +381,7 @@ export default function Career() {
       return;
     }
     try {
-      await authorizeGeneration("cv");
+      await checkGenerationAccess("cv");
       setCvGenerated(true);
       await openEditor("cv");
     } catch (error) {
@@ -277,7 +396,7 @@ export default function Career() {
       return;
     }
     try {
-      await authorizeGeneration("cover_letter");
+      await checkGenerationAccess("cover_letter");
       setLetterFinal(letterDraft);
       setCoverGenerated(true);
       await openEditor("cover");
@@ -285,98 +404,6 @@ export default function Career() {
       window.alert(error.message);
     }
   };
-
-  const continueInEditor = async () => {
-    const invalid =
-      activeDocument === "cv" ? validateCv() : validateCover();
-    if (invalid) return setValidation(invalid);
-    await openEditor(activeDocument === "cv" ? "cv" : "cover");
-  };
-
-  const saveDraft = () => {
-    localStorage.setItem(
-      "baakanya-career-draft",
-      JSON.stringify({
-        cvForm,
-        coverForm,
-        researchText: research.text,
-        cvTemplateId,
-        coverTemplateId,
-        photoCrop,
-        customization,
-        cvGenerated,
-        coverGenerated,
-        letterFinal,
-      }),
-    );
-    setStudioMessage(
-      `Draft saved on this device.${photo ? " For privacy, select your photo again when you return." : ""}`,
-    );
-  };
-
-  const loadDraft = () => {
-    try {
-      const saved = JSON.parse(
-        localStorage.getItem("baakanya-career-draft") || "null",
-      );
-      if (!saved) return setStudioMessage("No saved career draft was found.");
-      if (saved.cvForm) setCvForm((current) => ({ ...current, ...saved.cvForm }));
-      else if (saved.form) {
-        setCvForm((current) => ({
-          ...current,
-          name: saved.form.name || "",
-          email: saved.form.email || "",
-          phone: saved.form.phone || "",
-          location: saved.form.location || current.location,
-          expertise: saved.form.expertise || saved.form.role || "",
-          website: saved.form.website || "",
-          summary: saved.form.summary || "",
-          experience: saved.form.experience || "",
-          skills: saved.form.skills || "",
-        }));
-        setCoverForm((current) => ({
-          ...current,
-          name: saved.form.name || "",
-          email: saved.form.email || "",
-          phone: saved.form.phone || "",
-          location: saved.form.location || current.location,
-          role: saved.form.role || "",
-          company: saved.form.company || "",
-          companyWebsite: saved.form.website || "",
-          summary: saved.form.summary || "",
-          experience: saved.form.experience || "",
-          skills: saved.form.skills || "",
-        }));
-      }
-      if (saved.coverForm)
-        setCoverForm((current) => ({ ...current, ...saved.coverForm }));
-      if (saved.researchText)
-        setResearch({ loading: false, error: "", text: saved.researchText });
-      if (cvTemplates.some(({ id }) => id === saved.cvTemplateId))
-        setCvTemplateId(saved.cvTemplateId);
-      if (coverLetterTemplates.some(({ id }) => id === saved.coverTemplateId))
-        setCoverTemplateId(saved.coverTemplateId);
-      if (saved.photoCrop) setPhotoCrop(saved.photoCrop);
-      if (saved.customization)
-        setCustomization({
-          ...defaultCustomization,
-          ...saved.customization,
-          titles: {
-            ...defaultCustomization.titles,
-            ...(saved.customization.titles || {}),
-          },
-        });
-      setCvGenerated(Boolean(saved.cvGenerated));
-      setCoverGenerated(Boolean(saved.coverGenerated));
-      if (saved.letterFinal) setLetterFinal(saved.letterFinal);
-      setStudioMessage("Saved career draft loaded. You can continue editing.");
-    } catch {
-      setStudioMessage("The saved draft could not be opened.");
-    }
-  };
-
-  const canOpenEditor =
-    activeDocument === "cv" ? cvGenerated : coverGenerated;
 
   return (
     <ToolShell
@@ -802,33 +829,22 @@ export default function Career() {
               <GenerateDocIcon />
               Generate {activeDocument === "cv" ? "CV" : "cover letter"}
             </button>
-            <button
-              className="btn btn-ink"
-              disabled={!canOpenEditor}
-              onClick={continueInEditor}
-            >
-              <Eye />
-              Open document editor
-            </button>
           </div>
           <p className="generate-hint">
-            Generate opens a separate editor page where you adjust text, titles,
-            colours and layout for your template, preview, confirm, then
-            download PDF or Word.
+            Generate opens the editor without using a credit. You only pay when
+            you confirm the final document before download. Your form autosaves
+            on this device.
           </p>
           {studioMessage && (
             <div className="form-message" role="status">
               {studioMessage}
             </div>
           )}
-          <div className="draft-actions form-draft-actions">
-            <button type="button" className="btn btn-outline" onClick={saveDraft}>
-              Save form draft
-            </button>
-            <button type="button" className="btn btn-outline" onClick={loadDraft}>
-              Load form draft
-            </button>
-          </div>
+          {autosaveStatus && (
+            <p className="autosave-status" role="status">
+              {autosaveStatus}
+            </p>
+          )}
         </div>
         <aside
           className={`letter-preview live-document-preview ${activeDocument}`}

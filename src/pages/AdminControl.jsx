@@ -62,6 +62,16 @@ export default function AdminControl() {
         { event: "*", schema: "public", table: "profiles" },
         load,
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "credits" },
+        load,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "subscriptions" },
+        load,
+      )
       .subscribe((status) => setLive(status === "SUBSCRIBED"));
     return () => {
       setLive(false);
@@ -78,8 +88,26 @@ export default function AdminControl() {
         .length,
       expired: users.filter((row) => row.access_status === "trial_expired")
         .length,
+      monthlyActive: users.filter(
+        (row) => row.access_status === "subscription_active",
+      ).length,
+      monthlyExpired: users.filter(
+        (row) => row.access_status === "subscription_expired",
+      ).length,
+      creditsActive: users.filter(
+        (row) => row.access_status === "credits_available",
+      ).length,
+      creditsEmpty: users.filter(
+        (row) => row.access_status === "credits_exhausted",
+      ).length,
       awaiting: users.filter((row) => row.access_status === "awaiting_payment")
         .length,
+      underReview: users.filter((row) => row.access_status === "under_review")
+        .length,
+      creditPool: users.reduce(
+        (sum, row) => sum + (Number(row.credit_balance) || 0),
+        0,
+      ),
     }),
     [payments, requests, users],
   );
@@ -166,8 +194,32 @@ export default function AdminControl() {
                 <b>{metrics.expired}</b>
               </article>
               <article>
+                <span>Monthly active</span>
+                <b>{metrics.monthlyActive}</b>
+              </article>
+              <article>
+                <span>Monthly ended</span>
+                <b>{metrics.monthlyExpired}</b>
+              </article>
+              <article>
+                <span>Users with credits</span>
+                <b>{metrics.creditsActive}</b>
+              </article>
+              <article>
+                <span>Credits exhausted</span>
+                <b>{metrics.creditsEmpty}</b>
+              </article>
+              <article>
+                <span>Credits in pool</span>
+                <b>{metrics.creditPool}</b>
+              </article>
+              <article>
                 <span>Awaiting payment</span>
                 <b>{metrics.awaiting}</b>
+              </article>
+              <article>
+                <span>Under review</span>
+                <b>{metrics.underReview}</b>
               </article>
             </div>
             <div className="admin-toolbar">
@@ -203,15 +255,43 @@ export default function AdminControl() {
                     </div>
                     <code>{row.user_id}</code>
                     <div>
-                      <small>
-                        {row.trial_end_date
-                          ? `Trial ends ${new Date(row.trial_end_date).toLocaleString()}`
-                          : "No trial"}
-                        {" · "}
-                        {row.credit_balance || 0} credits
-                        {row.subscription_end
-                          ? ` · Sub until ${new Date(row.subscription_end).toLocaleDateString()}`
-                          : ""}
+                      <small className="admin-access-meta">
+                        {row.access_status === "trial_active" &&
+                          `Trial · ${row.trial_days_left ?? "—"} days left · ends ${
+                            row.trial_end_date
+                              ? new Date(row.trial_end_date).toLocaleString()
+                              : "—"
+                          }`}
+                        {row.access_status === "subscription_active" &&
+                          `Monthly · ${row.subscription_days_left ?? "—"} days left · ends ${
+                            row.subscription_end
+                              ? new Date(row.subscription_end).toLocaleString()
+                              : "—"
+                          }`}
+                        {row.access_status === "credits_available" &&
+                          `${row.credit_balance || 0} credits remaining`}
+                        {row.access_status === "credits_exhausted" &&
+                          "0 credits · needs renew"}
+                        {row.access_status === "trial_expired" &&
+                          `Trial ended ${
+                            row.trial_end_date
+                              ? new Date(row.trial_end_date).toLocaleString()
+                              : ""
+                          }`}
+                        {row.access_status === "subscription_expired" &&
+                          `Monthly ended ${
+                            row.subscription_end
+                              ? new Date(row.subscription_end).toLocaleString()
+                              : ""
+                          }`}
+                        {row.access_status === "awaiting_payment" &&
+                          `Awaiting ${row.signup_intent || "payment"}`}
+                        {row.access_status === "under_review" &&
+                          "Payment receipt pending review"}
+                        {row.access_status === "no_access" && "No active access"}
+                        {(row.access_status === "trial_active" ||
+                          row.access_status === "subscription_active") &&
+                          ` · ${row.credit_balance || 0} credits on account`}
                       </small>
                       {row.user_id !== user.id && (
                         <button

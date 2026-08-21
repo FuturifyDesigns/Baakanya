@@ -1,4 +1,4 @@
-import { Plus, Trash2, Eye } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ToolShell from "../components/ToolShell";
@@ -6,9 +6,14 @@ import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
 import GenerateDocIcon from "../components/GenerateDocIcon";
 import { BusinessDocumentPreview } from "../components/DocumentPreview";
-import { defaultCustomization } from "../lib/customization";
+import { defaultCustomization, defaultsForKind } from "../lib/customization";
+import {
+  BUSINESS_DRAFT_KEY,
+  readLocalDraft,
+  useAutoSave,
+} from "../lib/draftStore";
 import { saveEditorDocument } from "../lib/documentEditorStore";
-import { authorizeGeneration } from "../lib/generation";
+import { checkGenerationAccess } from "../lib/generation";
 import { invoiceTemplates, quotationTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 
@@ -75,9 +80,9 @@ export default function Invoice() {
   const [studioMessage, setStudioMessage] = useState("");
   const [invoiceGenerated, setInvoiceGenerated] = useState(false);
   const [quotationGenerated, setQuotationGenerated] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
   const form = kind === "Invoice" ? invoiceForm : quotationForm;
   const items = kind === "Invoice" ? invoiceItems : quotationItems;
-  const generated = kind === "Invoice" ? invoiceGenerated : quotationGenerated;
   const logoPreview = useMemo(
     () => (logo ? URL.createObjectURL(logo) : ""),
     [logo],
@@ -88,6 +93,87 @@ export default function Invoice() {
     },
     [logoPreview],
   );
+
+  useEffect(() => {
+    const saved = readLocalDraft(BUSINESS_DRAFT_KEY);
+    if (!saved) {
+      setDraftReady(true);
+      return;
+    }
+    try {
+      if (["Invoice", "Quotation"].includes(saved.kind)) setKind(saved.kind);
+      setVat(Boolean(saved.vat));
+      if (saved.invoiceForm)
+        setInvoiceForm((current) => ({ ...current, ...saved.invoiceForm }));
+      if (saved.quotationForm)
+        setQuotationForm((current) => ({ ...current, ...saved.quotationForm }));
+      if (saved.form) {
+        if (saved.kind === "Quotation")
+          setQuotationForm((current) => ({ ...current, ...saved.form }));
+        else setInvoiceForm((current) => ({ ...current, ...saved.form }));
+      }
+      if (Array.isArray(saved.invoiceItems) && saved.invoiceItems.length)
+        setInvoiceItems(saved.invoiceItems);
+      if (Array.isArray(saved.quotationItems) && saved.quotationItems.length)
+        setQuotationItems(saved.quotationItems);
+      if (Array.isArray(saved.items) && saved.items.length) {
+        if (saved.kind === "Quotation") setQuotationItems(saved.items);
+        else setInvoiceItems(saved.items);
+      }
+      if (invoiceTemplates.some(({ id }) => id === saved.invoiceTemplateId))
+        setInvoiceTemplateId(saved.invoiceTemplateId);
+      if (quotationTemplates.some(({ id }) => id === saved.quotationTemplateId))
+        setQuotationTemplateId(saved.quotationTemplateId);
+      if (saved.logoCrop) setLogoCrop(saved.logoCrop);
+      if (saved.customization)
+        setCustomization({ ...defaultCustomization, ...saved.customization });
+      setInvoiceGenerated(Boolean(saved.invoiceGenerated));
+      setQuotationGenerated(Boolean(saved.quotationGenerated));
+      setStudioMessage(
+        "Your previous draft was restored. Logos are not stored — select again if needed.",
+      );
+    } catch {
+      setStudioMessage("A previous draft was found but could not be restored.");
+    } finally {
+      setDraftReady(true);
+    }
+  }, []);
+
+  const businessDraftPayload = useMemo(
+    () => ({
+      kind,
+      vat,
+      invoiceForm,
+      quotationForm,
+      invoiceItems,
+      quotationItems,
+      invoiceTemplateId,
+      quotationTemplateId,
+      logoCrop,
+      customization,
+      invoiceGenerated,
+      quotationGenerated,
+    }),
+    [
+      kind,
+      vat,
+      invoiceForm,
+      quotationForm,
+      invoiceItems,
+      quotationItems,
+      invoiceTemplateId,
+      quotationTemplateId,
+      logoCrop,
+      customization,
+      invoiceGenerated,
+      quotationGenerated,
+    ],
+  );
+
+  const autosaveStatus = useAutoSave(BUSINESS_DRAFT_KEY, businessDraftPayload, {
+    enabled: draftReady,
+    delay: 700,
+  });
   const templates = kind === "Invoice" ? invoiceTemplates : quotationTemplates;
   const templateId =
     kind === "Invoice" ? invoiceTemplateId : quotationTemplateId;
@@ -97,8 +183,9 @@ export default function Invoice() {
     accent: customization.accent || template.accent,
     primary: customization.primary || template.primary,
     background: customization.background || "#ffffff",
-    font: customization.font,
-    density: customization.density,
+    font: customization.font || "arial",
+    density: customization.density || "compact",
+    lineSpacing: customization.lineSpacing || "1",
   };
   const setTemplate =
     kind === "Invoice" ? setInvoiceTemplateId : setQuotationTemplateId;
@@ -140,6 +227,9 @@ export default function Invoice() {
     const logoData = logo ? await cropImage(logo, logoCrop, "square") : null;
     saveEditorDocument({
       kind: kind === "Quotation" ? "quotation" : "invoice",
+      draftKey: crypto.randomUUID(),
+      toolName: kind.toLowerCase(),
+      billed: false,
       templateId,
       form,
       items,
@@ -147,10 +237,22 @@ export default function Invoice() {
       logoData,
       customization: {
         ...defaultCustomization,
+        ...defaultsForKind(kind === "Quotation" ? "quotation" : "invoice"),
         ...customization,
         accent: customization.accent || "",
         primary: customization.primary || "",
         background: customization.background || "#ffffff",
+        font:
+          customization.font ||
+          defaultsForKind(kind === "Quotation" ? "quotation" : "invoice").font,
+        lineSpacing:
+          customization.lineSpacing ||
+          defaultsForKind(kind === "Quotation" ? "quotation" : "invoice")
+            .lineSpacing,
+        density:
+          customization.density ||
+          defaultsForKind(kind === "Quotation" ? "quotation" : "invoice")
+            .density,
       },
       returnPath: "/tools/invoice",
     });
@@ -162,83 +264,12 @@ export default function Invoice() {
     if (invalid) return setValidation(invalid);
     setValidation("");
     try {
-      await authorizeGeneration(kind.toLowerCase());
+      await checkGenerationAccess(kind.toLowerCase());
       if (kind === "Invoice") setInvoiceGenerated(true);
       else setQuotationGenerated(true);
       await openEditor();
     } catch (error) {
       window.alert(error.message);
-    }
-  };
-
-  const continueInEditor = async () => {
-    const invalid = validateDocument();
-    if (invalid) return setValidation(invalid);
-    await openEditor();
-  };
-
-  const saveDraft = () => {
-    localStorage.setItem(
-      "baakanya-business-draft",
-      JSON.stringify({
-        kind,
-        vat,
-        invoiceForm,
-        quotationForm,
-        invoiceItems,
-        quotationItems,
-        invoiceTemplateId,
-        quotationTemplateId,
-        logoCrop,
-        customization,
-        invoiceGenerated,
-        quotationGenerated,
-      }),
-    );
-    setStudioMessage(
-      `Draft saved on this device.${logo ? " For privacy, select your logo again when you return." : ""}`,
-    );
-  };
-
-  const loadDraft = () => {
-    try {
-      const saved = JSON.parse(
-        localStorage.getItem("baakanya-business-draft") || "null",
-      );
-      if (!saved) return setStudioMessage("No saved business draft was found.");
-      if (["Invoice", "Quotation"].includes(saved.kind)) setKind(saved.kind);
-      setVat(Boolean(saved.vat));
-      if (saved.invoiceForm)
-        setInvoiceForm((current) => ({ ...current, ...saved.invoiceForm }));
-      if (saved.quotationForm)
-        setQuotationForm((current) => ({ ...current, ...saved.quotationForm }));
-      if (saved.form) {
-        if (saved.kind === "Quotation")
-          setQuotationForm((current) => ({ ...current, ...saved.form }));
-        else setInvoiceForm((current) => ({ ...current, ...saved.form }));
-      }
-      if (Array.isArray(saved.invoiceItems) && saved.invoiceItems.length)
-        setInvoiceItems(saved.invoiceItems);
-      if (Array.isArray(saved.quotationItems) && saved.quotationItems.length)
-        setQuotationItems(saved.quotationItems);
-      if (Array.isArray(saved.items) && saved.items.length) {
-        if (saved.kind === "Quotation") setQuotationItems(saved.items);
-        else setInvoiceItems(saved.items);
-      }
-      if (invoiceTemplates.some(({ id }) => id === saved.invoiceTemplateId))
-        setInvoiceTemplateId(saved.invoiceTemplateId);
-      if (quotationTemplates.some(({ id }) => id === saved.quotationTemplateId))
-        setQuotationTemplateId(saved.quotationTemplateId);
-      if (saved.logoCrop) setLogoCrop(saved.logoCrop);
-      if (saved.customization)
-        setCustomization({ ...defaultCustomization, ...saved.customization });
-      setInvoiceGenerated(Boolean(saved.invoiceGenerated));
-      setQuotationGenerated(Boolean(saved.quotationGenerated));
-      setStudioMessage(
-        "Saved business draft loaded. You can continue editing.",
-      );
-    } catch {
-      setStudioMessage("The saved draft could not be opened.");
     }
   };
 
@@ -525,33 +556,22 @@ export default function Invoice() {
               <GenerateDocIcon />
               Generate {kind.toLowerCase()}
             </button>
-            <button
-              className="btn btn-ink"
-              disabled={!generated}
-              onClick={continueInEditor}
-            >
-              <Eye />
-              Open document editor
-            </button>
           </div>
           <p className="generate-hint">
-            Generate opens a separate editor page where you adjust text, colours
-            and layout for your template, preview, confirm, then download PDF or
-            Word.
+            Generate opens the editor without using a credit. You only pay when
+            you confirm the final document before download. Your form autosaves
+            on this device.
           </p>
           {studioMessage && (
             <div className="form-message" role="status">
               {studioMessage}
             </div>
           )}
-          <div className="draft-actions form-draft-actions">
-            <button type="button" className="btn btn-outline" onClick={saveDraft}>
-              Save form draft
-            </button>
-            <button type="button" className="btn btn-outline" onClick={loadDraft}>
-              Load form draft
-            </button>
-          </div>
+          {autosaveStatus && (
+            <p className="autosave-status" role="status">
+              {autosaveStatus}
+            </p>
+          )}
         </div>
         <aside className="summary-card live-document-preview business">
           <div className="preview-chrome">

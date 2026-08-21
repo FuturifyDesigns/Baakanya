@@ -1,11 +1,18 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAccess } from "../lib/access";
+import { getAccessDestination, isRenewalStatus } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 import Layout from "./Layout";
+
 export default function ToolShell({ eyebrow, title, description, children }) {
   const { user, loading: authLoading } = useAuth();
   const access = useAccess();
+
+  if (!authLoading && !access.loading && user && !access.allowed) {
+    return <Navigate to={getAccessDestination(access) || "/access"} replace />;
+  }
+
   return (
     <Layout>
       <section className="tool-page container">
@@ -27,6 +34,28 @@ export default function ToolShell({ eyebrow, title, description, children }) {
             </span>
           </div>
         </div>
+        {(access.status === "trial_active" ||
+          access.status === "subscription_active" ||
+          access.status === "credits_available") && (
+          <div className="tool-access-meter" role="status">
+            {access.status === "trial_active" && (
+              <span>
+                Trial · <b>{access.trialCountdown}</b> left
+              </span>
+            )}
+            {access.status === "subscription_active" && (
+              <span>
+                Monthly · <b>{access.subscriptionCountdown}</b> left
+              </span>
+            )}
+            {access.status === "credits_available" && (
+              <span>
+                <b>{access.credits}</b> credit
+                {access.credits === 1 ? "" : "s"} left
+              </span>
+            )}
+          </div>
+        )}
         {authLoading || access.loading ? (
           <div className="empty-state">Checking your access…</div>
         ) : !user ? (
@@ -97,15 +126,20 @@ export default function ToolShell({ eyebrow, title, description, children }) {
         ) : (
           <div className="locked-card">
             <ShieldCheck />
-            <span className="kicker">ACCESS PAUSED</span>
+            <span className="kicker">
+              {isRenewalStatus(access.status) ? "RENEW ACCESS" : "ACCESS PAUSED"}
+            </span>
             <h2>{access.reason}</h2>
             <p>
-              Choose a once-off credit pack or monthly access to keep using
-              Baakanya.
+              Workspace tools are locked. Choose credits or monthly access to
+              continue.
             </p>
             <div>
-              <Link className="btn btn-blue" to="/payment">
-                View payment options
+              <Link
+                className="btn btn-blue"
+                to={getAccessDestination(access) || "/access"}
+              >
+                Renew access
               </Link>
             </div>
           </div>
