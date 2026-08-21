@@ -153,6 +153,20 @@ function AccessModeBody() {
     (reason === "renew" || step === "pay");
   const trialPayingEarly =
     access.status === "trial_active" && step === "pay";
+  const creditsOnlyPay =
+    showPay &&
+    payPlan === "credits" &&
+    (access.status === "credits_available" ||
+      reason === "renew" ||
+      reason === "credits_ended" ||
+      access.status === "credits_exhausted");
+  const monthlyOnlyPay =
+    showPay &&
+    payPlan === "subscription" &&
+    (access.status === "subscription_expired" ||
+      reason === "subscription_ended");
+  const showChangeAccessMode =
+    showPay && !underReview && !creditsOnlyPay && !access.allowed;
 
   // Monthly renew only after expiry — active subscribers stay in workspace.
   if (!access.loading && access.status === "subscription_active") {
@@ -378,7 +392,7 @@ function AccessModeBody() {
         {!underReview && showPay && (
           <div className="access-pay-step">
             <div className="access-pay-actions">
-              {!access.allowed && (
+              {showChangeAccessMode && (
                 <button
                   type="button"
                   className="btn btn-outline"
@@ -394,8 +408,13 @@ function AccessModeBody() {
             </div>
             <PaymentPanel
               initialPlan={payPlan}
-              allowSubscription={access.status !== "subscription_active"}
+              allowCredits={!monthlyOnlyPay}
+              allowSubscription={
+                !creditsOnlyPay && access.status !== "subscription_active"
+              }
               onPlanChange={(next) => {
+                if (creditsOnlyPay && next !== "credits") return;
+                if (monthlyOnlyPay && next !== "subscription") return;
                 if (
                   next === "subscription" &&
                   access.status === "subscription_active"

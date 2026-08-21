@@ -436,30 +436,61 @@ export const renderBusinessPdf = ({
   );
   const vatAmount = vat ? subtotal * 0.14 : 0;
   const total = subtotal + vatAmount;
-  if (template.layout === "band") {
+  if (template.layout === "band" || template.layout === "proposal") {
     setColour(pdf, primary, true);
-    pdf.rect(0, 0, 210, 48, "F");
+    pdf.rect(0, 0, 210, template.layout === "proposal" ? 52 : 48, "F");
   } else if (template.layout === "side") {
     setColour(pdf, primary, true);
     pdf.rect(0, 0, 45, 297, "F");
+  } else if (
+    template.layout === "estimate" ||
+    template.layout === "scope"
+  ) {
+    setColour(pdf, accent, true);
+    pdf.rect(0, 0, 210, 6, "F");
   }
   const left = template.layout === "side" ? 56 : 16;
   const right = 194;
+  const isQuote = kind === "Quotation";
   if (logoData) pdf.addImage(logoData, "PNG", left, 10, 28, 20);
   pdf.setFont(font, "bold");
   pdf.setFontSize(logoData ? 15 : 22);
   pdf.setTextColor(
-    ...(template.layout === "band" ? [255, 255, 255] : rgb(primary)),
+    ...(template.layout === "band" || template.layout === "proposal"
+      ? [255, 255, 255]
+      : rgb(primary)),
   );
   pdf.text(form.business, left + (logoData ? 34 : 0), 21);
-  pdf.setFontSize(20);
-  pdf.text(kind.toUpperCase(), right, 21, { align: "right" });
+  pdf.setFontSize(isQuote ? 16 : 20);
+  pdf.text(isQuote ? "QUOTATION" : "INVOICE", right, 21, { align: "right" });
+  if (isQuote) {
+    pdf.setFontSize(8);
+    pdf.text(
+      template.layout === "estimate"
+        ? "ESTIMATE"
+        : template.layout === "scope"
+          ? "SCOPE OF WORK"
+          : "PROPOSAL",
+      right,
+      28,
+      { align: "right" },
+    );
+  }
   pdf.setTextColor(48, 60, 67);
   pdf.setFont(font, "normal");
   pdf.setFontSize(9);
-  pdf.text(`Prepared for: ${form.client}`, left, 58);
+  pdf.text(
+    `${isQuote ? "Prepared for" : "Bill to"}: ${form.client}`,
+    left,
+    58,
+  );
   if (form.clientAddress) pdf.text(form.clientAddress, left, 63);
-  pdf.text(`${kind} no: ${form.number}`, right, 52, { align: "right" });
+  pdf.text(
+    `${isQuote ? "Quote" : "Invoice"} no: ${form.number}`,
+    right,
+    52,
+    { align: "right" },
+  );
   pdf.text(`Issue date: ${form.date}`, right, 58, { align: "right" });
   if (kind === "Invoice" && form.dueDate)
     pdf.text(`Due date: ${form.dueDate}`, right, 64, { align: "right" });
@@ -470,7 +501,7 @@ export const renderBusinessPdf = ({
     pdf.rect(left, top, right - left, 10, "F");
     pdf.setTextColor(20, 31, 37);
     pdf.setFont(font, "bold");
-    pdf.text("DESCRIPTION", left + 4, top + 6.5);
+    pdf.text(isQuote ? "DELIVERABLE" : "DESCRIPTION", left + 4, top + 6.5);
     pdf.text("QTY", 137, top + 6.5);
     pdf.text("PRICE", 158, top + 6.5);
     pdf.text("AMOUNT", right, top + 6.5, { align: "right" });
@@ -509,19 +540,21 @@ export const renderBusinessPdf = ({
   pdf.setFont(font, "bold");
   pdf.setFontSize(13);
   setColour(pdf, primary);
-  pdf.text("TOTAL", 145, y + 23);
+  pdf.text(isQuote ? "QUOTE TOTAL" : "TOTAL DUE", 145, y + 23);
   pdf.text(`P ${amount(total)}`, right, y + 23, { align: "right" });
   pdf.setFont(font, "bold");
   pdf.setFontSize(8.5);
   pdf.setTextColor(40, 55, 62);
-  pdf.text("PAYMENT DETAILS", left, 268);
+  pdf.text(isQuote ? "QUOTE NOTES" : "PAYMENT DETAILS", left, 268);
   pdf.setFont(font, "normal");
   pdf.setFontSize(8.2);
   pdf.setTextColor(75, 87, 94);
   pdf.text(
     pdf.splitTextToSize(
       form.notes ||
-        "Bank transfer · Include document number as reference · Payment due within stated terms.",
+        (isQuote
+          ? "This quotation is valid until the date shown. Acceptance confirms the scope and pricing above."
+          : "Bank transfer · Include document number as reference · Payment due within stated terms."),
       Math.min(110, right - left - 60),
     ),
     left,

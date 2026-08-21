@@ -107,7 +107,8 @@ export const exportBusinessWord = ({
         `<tr><td>${escapeHtml(item.description)}</td><td class="number">${escapeHtml(item.qty)}</td><td class="number">${money(item.price)}</td><td class="number">${money(Number(item.qty) * Number(item.price))}</td></tr>`,
     )
     .join("");
-  const body = `<h1>${escapeHtml(form.business)}</h1><div class="meta">${escapeHtml(kind)} ${escapeHtml(form.number)} · ${escapeHtml(form.date)}</div><div class="accent"></div><p><b>Bill to</b><br>${escapeHtml(form.client)}<br>${escapeHtml(form.clientAddress || "")}</p><table><thead><tr><th>Description</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table><p class="total">Subtotal P${money(subtotal)}${vat ? `<br>VAT (14%) P${money(tax)}` : ""}<br>Total P${money(total)}</p>${form.notes ? paragraphs(form.notes) : ""}`;
+  const isQuote = kind === "Quotation";
+  const body = `<h1>${escapeHtml(form.business)}</h1><div class="meta">${escapeHtml(kind)} ${escapeHtml(form.number)} · ${escapeHtml(form.date)}${isQuote && form.validUntil ? ` · Valid until ${escapeHtml(form.validUntil)}` : ""}</div><div class="accent"></div><p><b>${isQuote ? "Prepared for" : "Bill to"}</b><br>${escapeHtml(form.client)}<br>${escapeHtml(form.clientAddress || "")}</p><table><thead><tr><th>${isQuote ? "Deliverable" : "Description"}</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table><p class="total">Subtotal P${money(subtotal)}${vat ? `<br>VAT (14%) P${money(tax)}` : ""}<br>${isQuote ? "Quote total" : "Total due"} P${money(total)}</p>${form.notes ? paragraphs(form.notes) : isQuote ? "<p><i>This quotation is valid until the date shown.</i></p>" : ""}`;
   saveWord(
     `${filename(form.business || form.client, "baakanya")}-${kind.toLowerCase()}`,
     kind,

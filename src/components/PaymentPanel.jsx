@@ -50,12 +50,15 @@ export default function PaymentPanel({
   onSubmitted,
   locked = false,
   allowSubscription = true,
+  allowCredits = true,
 }) {
-  const [plan, setPlan] = useState(
-    initialPlan === "credits" || !allowSubscription
-      ? "credits"
-      : "subscription",
-  );
+  const resolvePlan = (value) => {
+    if (value === "credits" && allowCredits) return "credits";
+    if (value === "subscription" && allowSubscription) return "subscription";
+    if (allowCredits) return "credits";
+    return "subscription";
+  };
+  const [plan, setPlan] = useState(() => resolvePlan(initialPlan));
   const [receipt, setReceipt] = useState(null);
   const [method, setMethod] = useState("bank");
   const [message, setMessage] = useState("");
@@ -64,12 +67,10 @@ export default function PaymentPanel({
   const access = useAccess();
 
   useEffect(() => {
-    if (!allowSubscription) {
-      setPlan("credits");
-      return;
-    }
-    setPlan(initialPlan === "credits" ? "credits" : "subscription");
-  }, [initialPlan, allowSubscription]);
+    setPlan(resolvePlan(initialPlan));
+  }, [initialPlan, allowCredits, allowSubscription]);
+
+  const showPlanSelect = allowCredits && allowSubscription;
 
   if (locked || access.status === "under_review") {
     return (
@@ -81,6 +82,7 @@ export default function PaymentPanel({
   }
 
   const updatePlan = (next) => {
+    if (next === "credits" && !allowCredits) return;
     if (next === "subscription" && !allowSubscription) {
       setMessage(
         "Your monthly access is still active. You can renew after it expires.",
@@ -159,34 +161,37 @@ export default function PaymentPanel({
   return (
     <div className="payment-grid">
       <div className="form-card">
-        <div className="plan-select">
-          <button
-            type="button"
-            className={plan === "credits" ? "active" : ""}
-            onClick={() => updatePlan("credits")}
-          >
-            <b>P25 once-off</b>
-            <span>5 credits · no expiry</span>
-          </button>
-          <button
-            type="button"
-            className={plan === "subscription" ? "active" : ""}
-            disabled={!allowSubscription}
-            onClick={() => updatePlan("subscription")}
-            title={
-              allowSubscription
-                ? undefined
-                : "Renew monthly only after your current month ends"
-            }
-          >
-            <b>P40 monthly</b>
-            <span>
-              {allowSubscription
-                ? "Unlimited documents"
-                : "Available after current month ends"}
-            </span>
-          </button>
-        </div>
+        {showPlanSelect ? (
+          <div className="plan-select">
+            <button
+              type="button"
+              className={plan === "credits" ? "active" : ""}
+              onClick={() => updatePlan("credits")}
+            >
+              <b>P25 once-off</b>
+              <span>5 credits · no expiry</span>
+            </button>
+            <button
+              type="button"
+              className={plan === "subscription" ? "active" : ""}
+              onClick={() => updatePlan("subscription")}
+            >
+              <b>P40 monthly</b>
+              <span>Unlimited documents</span>
+            </button>
+          </div>
+        ) : (
+          <div className="plan-select plan-select-locked">
+            <div className="active">
+              <b>{plan === "credits" ? "P25 once-off" : "P40 monthly"}</b>
+              <span>
+                {plan === "credits"
+                  ? "5 credits · no expiry"
+                  : "Unlimited documents for 30 days"}
+              </span>
+            </div>
+          </div>
+        )}
         <h3>1. Choose a payment method</h3>
         <div className="payment-methods">
           <button

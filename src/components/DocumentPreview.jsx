@@ -338,6 +338,9 @@ export function CoverDocumentPreview({
   compact = false,
 }) {
   const layout = template?.layout || "minimal";
+  // Cover letters never use the CV two-column sidebar grid — rail chrome only.
+  const sheetLayout =
+    layout === "sidebar" ? "rail" : layout === "band" ? "band" : "minimal";
   const style = {
     "--doc-primary": template?.primary || "#17252d",
     "--doc-accent": template?.accent || "#58bcec",
@@ -346,7 +349,8 @@ export function CoverDocumentPreview({
     background: template?.background || "#ffffff",
     "--doc-line-height": String(lineSpacingValue(template?.lineSpacing)),
   };
-  const lightHeader = layout === "band";
+  const lightHeader = sheetLayout === "band";
+  const showRail = layout === "sidebar";
   const today = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -362,12 +366,10 @@ export function CoverDocumentPreview({
 
   return (
     <div
-      className={`doc-sheet cover-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""}`}
+      className={`doc-sheet cover-sheet layout-${sheetLayout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""} ${showRail ? "has-rail" : ""}`}
       style={style}
     >
-      {layout === "sidebar" && (
-        <div className="doc-cover-chrome sidebar-chrome" />
-      )}
+      {showRail && <div className="doc-cover-chrome sidebar-chrome" aria-hidden="true" />}
       <div className="doc-main">
         <header className={lightHeader ? "cover-head-light" : "cover-head"}>
           <div className="cover-identity">
@@ -419,7 +421,8 @@ export function BusinessDocumentPreview({
   money,
   compact = false,
 }) {
-  const layout = template?.layout || "classic";
+  const isQuote = kind === "Quotation";
+  const layout = template?.layout || (isQuote ? "proposal" : "classic");
   const style = {
     "--doc-primary": template?.primary || "#17313d",
     "--doc-accent": template?.accent || "#58bcec",
@@ -448,19 +451,22 @@ export function BusinessDocumentPreview({
         { description: "Print-ready artwork sets", qty: 2, price: 450 },
         { description: "Revision round", qty: 1, price: 350 },
       ];
+  const showBand = layout === "band" || layout === "proposal";
+  const showSide = layout === "side";
+  const showEstimateBar = layout === "estimate" || layout === "scope";
 
   return (
     <div
-      className={`doc-sheet business-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""}`}
+      className={`doc-sheet business-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""} ${isQuote ? "is-quotation" : "is-invoice"}`}
       style={style}
     >
-      {(layout === "band" || layout === "side") && (
+      {(showBand || showSide) && (
         <div
-          className={`doc-business-chrome ${layout === "side" ? "side-chrome" : "band-chrome"}`}
+          className={`doc-business-chrome ${showSide ? "side-chrome" : "band-chrome"}`}
         />
       )}
       <div className="doc-main">
-        <header className="business-doc-head">
+        <header className={`business-doc-head ${isQuote ? "quote-head" : ""}`}>
           <div className="business-brand">
             {logoUrl ? (
               <img src={logoUrl} alt="" className="doc-logo" />
@@ -479,14 +485,35 @@ export function BusinessDocumentPreview({
             </div>
           </div>
           <div className="business-doc-title">
-            <h3>{kind.toUpperCase()}</h3>
-            <span>No. {form.number || "001"}</span>
+            <h3>{isQuote ? "QUOTATION" : "INVOICE"}</h3>
+            <span>
+              {isQuote ? "Quote" : "No."} {form.number || "001"}
+            </span>
+            {isQuote && (
+              <em className="quote-badge">
+                {layout === "estimate"
+                  ? "Estimate"
+                  : layout === "scope"
+                    ? "Scope of work"
+                    : "Proposal"}
+              </em>
+            )}
           </div>
         </header>
 
-        <div className="business-preview-meta">
+        {showEstimateBar && (
+          <div className="quote-validity-bar">
+            <span>
+              Valid until{" "}
+              <b>{form.validUntil || "20 Sep 2026"}</b>
+            </span>
+            <span>Not a tax invoice</span>
+          </div>
+        )}
+
+        <div className={`business-preview-meta ${isQuote ? "quote-meta" : ""}`}>
           <span>
-            Bill to
+            {isQuote ? "Prepared for" : "Bill to"}
             <b>{form.client || "Client name"}</b>
             {form.clientEmail && <em>{form.clientEmail}</em>}
           </span>
@@ -494,7 +521,7 @@ export function BusinessDocumentPreview({
             Issue date
             <b>{form.date || "20 Aug 2026"}</b>
           </span>
-          {kind === "Quotation" ? (
+          {isQuote ? (
             <span>
               Valid until
               <b>{form.validUntil || "20 Sep 2026"}</b>
@@ -511,9 +538,11 @@ export function BusinessDocumentPreview({
           </span>
         </div>
 
-        <div className="business-preview-items detailed">
+        <div
+          className={`business-preview-items detailed ${isQuote ? "quote-items" : ""}`}
+        >
           <div>
-            <b>Description</b>
+            <b>{isQuote ? "Deliverable / item" : "Description"}</b>
             <b>Qty</b>
             <b>Unit</b>
             <b>Amount</b>
@@ -532,13 +561,21 @@ export function BusinessDocumentPreview({
 
         <div className="business-footer-grid">
           <div className="business-terms">
-            <strong>Payment details</strong>
+            <strong>{isQuote ? "Quote notes" : "Payment details"}</strong>
             <p>
               {form.notes ||
-                "Bank transfer · Include invoice number as reference · Payment due within stated terms."}
+                (isQuote
+                  ? "This quotation is valid until the date shown. Acceptance confirms the scope and pricing above."
+                  : "Bank transfer · Include invoice number as reference · Payment due within stated terms.")}
             </p>
+            {isQuote && (
+              <p className="quote-accept-hint">
+                To accept: reply confirming this quote number, or request an
+                invoice to proceed.
+              </p>
+            )}
           </div>
-          <dl className="business-totals">
+          <dl className={`business-totals ${isQuote ? "quote-totals" : ""}`}>
             <div>
               <dt>Subtotal</dt>
               <dd>P {format(subtotal || 4050)}</dd>
@@ -550,7 +587,7 @@ export function BusinessDocumentPreview({
               </div>
             )}
             <div className="grand">
-              <dt>Total due</dt>
+              <dt>{isQuote ? "Quote total" : "Total due"}</dt>
               <dd>P {format(total || 4050)}</dd>
             </div>
           </dl>

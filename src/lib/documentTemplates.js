@@ -188,7 +188,7 @@ const businessBase = [
     "clean",
     "#17252d",
     "#58bcec",
-    "We format the information into the clearest document.",
+    "We format the information into the clearest invoice.",
   ],
   [
     "corporate",
@@ -196,7 +196,7 @@ const businessBase = [
     "band",
     "#142b3a",
     "#66b5e5",
-    "Boardroom-ready with clear payment details.",
+    "Boardroom-ready invoice with clear payment details.",
   ],
   [
     "executive",
@@ -204,7 +204,7 @@ const businessBase = [
     "formal",
     "#20262a",
     "#a98b52",
-    "Refined typography for established firms.",
+    "Refined invoice typography for established firms.",
   ],
   [
     "minimal",
@@ -212,7 +212,7 @@ const businessBase = [
     "clean",
     "#262f34",
     "#93a7b0",
-    "Simple, spacious and easy to scan.",
+    "Simple, spacious invoice that is easy to scan.",
   ],
   [
     "blueprint",
@@ -220,7 +220,7 @@ const businessBase = [
     "band",
     "#123b59",
     "#55bce9",
-    "Technical and precise for project work.",
+    "Technical invoice layout for project billing.",
   ],
   [
     "accounting",
@@ -228,7 +228,7 @@ const businessBase = [
     "formal",
     "#18372e",
     "#61a789",
-    "Conservative layout for financial services.",
+    "Conservative invoice for financial services.",
   ],
   [
     "consulting",
@@ -236,7 +236,7 @@ const businessBase = [
     "side",
     "#2d3440",
     "#769dd3",
-    "Strong brand rail and organised totals.",
+    "Strong brand rail and organised invoice totals.",
   ],
   [
     "creative",
@@ -244,7 +244,7 @@ const businessBase = [
     "side",
     "#3c2941",
     "#d78ab5",
-    "Distinctive but client-appropriate.",
+    "Distinctive invoice that stays client-appropriate.",
   ],
   [
     "construction",
@@ -252,7 +252,7 @@ const businessBase = [
     "band",
     "#293238",
     "#e0a348",
-    "Robust structure for services and materials.",
+    "Robust invoice structure for services and materials.",
   ],
   [
     "legal",
@@ -260,7 +260,7 @@ const businessBase = [
     "formal",
     "#242628",
     "#8d775f",
-    "Traditional styling for professional practices.",
+    "Traditional invoice styling for professional practices.",
   ],
   [
     "medical",
@@ -268,7 +268,7 @@ const businessBase = [
     "clean",
     "#17423e",
     "#67b9a7",
-    "Calm, clear and trustworthy.",
+    "Calm, clear invoice for healthcare billing.",
   ],
   [
     "retail",
@@ -276,7 +276,7 @@ const businessBase = [
     "band",
     "#253a48",
     "#64b9df",
-    "Friendly presentation for products and services.",
+    "Friendly invoice for products and services.",
   ],
   [
     "hospitality",
@@ -284,7 +284,7 @@ const businessBase = [
     "side",
     "#3b3027",
     "#d1a36d",
-    "Warm premium treatment for guest services.",
+    "Warm premium invoice for guest services.",
   ],
   [
     "technology",
@@ -292,7 +292,7 @@ const businessBase = [
     "side",
     "#182b38",
     "#54bceb",
-    "Modern modular layout for digital work.",
+    "Modern modular invoice for digital work.",
   ],
   [
     "monochrome",
@@ -300,7 +300,7 @@ const businessBase = [
     "formal",
     "#17191a",
     "#767676",
-    "Ink-efficient and dependable in print.",
+    "Ink-efficient invoice for reliable printing.",
   ],
   [
     "compact",
@@ -308,7 +308,7 @@ const businessBase = [
     "clean",
     "#24343b",
     "#7896a2",
-    "More line items without visual clutter.",
+    "More invoice line items without visual clutter.",
   ],
   [
     "premium",
@@ -316,7 +316,7 @@ const businessBase = [
     "formal",
     "#202737",
     "#b39a5c",
-    "Elegant detail for premium client work.",
+    "Elegant invoice detail for premium client work.",
   ],
   [
     "freelancer",
@@ -324,7 +324,7 @@ const businessBase = [
     "band",
     "#26364b",
     "#6eaee1",
-    "Approachable and professional for independent work.",
+    "Approachable invoice for independent work.",
   ],
   [
     "botswana",
@@ -332,7 +332,7 @@ const businessBase = [
     "band",
     "#17252d",
     "#65b8e7",
-    "Clean local-business presentation.",
+    "Clean local-business invoice presentation.",
   ],
   [
     "statement",
@@ -340,7 +340,171 @@ const businessBase = [
     "side",
     "#25323a",
     "#87a6b5",
-    "Detailed, systematic and built for record keeping.",
+    "Systematic invoice built for record keeping.",
+  ],
+];
+
+/** Quotation templates use different layouts/colours so they do not mirror invoices. */
+const quotationBase = [
+  [
+    "baakanya-auto",
+    "Baakanya Auto",
+    "proposal",
+    "#1a3a2e",
+    "#3db88a",
+    "We format your quote into a clear proposal document.",
+  ],
+  [
+    "proposal",
+    "Proposal",
+    "proposal",
+    "#1e3d52",
+    "#4aa3d4",
+    "Client proposal layout with validity front and centre.",
+  ],
+  [
+    "estimate",
+    "Estimate",
+    "estimate",
+    "#3a2f1f",
+    "#c9a227",
+    "Estimate-style quote with soft gold accents.",
+  ],
+  [
+    "tender",
+    "Tender",
+    "formal",
+    "#2a3038",
+    "#7a8fa3",
+    "Formal tender presentation for structured bids.",
+  ],
+  [
+    "scope",
+    "Scope of Work",
+    "scope",
+    "#243b55",
+    "#5b9fd4",
+    "Scope-led quotation with clear deliverable rows.",
+  ],
+  [
+    "project",
+    "Project Quote",
+    "band",
+    "#0f3d4a",
+    "#2ec4b6",
+    "Project quotation with a teal authority band.",
+  ],
+  [
+    "studio",
+    "Studio Quote",
+    "side",
+    "#4a2342",
+    "#e091c4",
+    "Creative studio quotation with a brand rail.",
+  ],
+  [
+    "contractor",
+    "Contractor",
+    "estimate",
+    "#2f3630",
+    "#d4a017",
+    "Practical quote for trades and contractor work.",
+  ],
+  [
+    "agency",
+    "Agency",
+    "proposal",
+    "#1c2740",
+    "#6c8cff",
+    "Agency-ready proposal quote with cool blue tones.",
+  ],
+  [
+    "services",
+    "Services",
+    "clean",
+    "#234038",
+    "#4caf8f",
+    "Service quotation with calm green hierarchy.",
+  ],
+  [
+    "supply",
+    "Supply Quote",
+    "scope",
+    "#2c333a",
+    "#8aa4b5",
+    "Supply and materials quotation with dense rows.",
+  ],
+  [
+    "event",
+    "Event Quote",
+    "band",
+    "#3d2748",
+    "#c084fc",
+    "Event quotation with a bold header presentation.",
+  ],
+  [
+    "hospitality",
+    "Hospitality Quote",
+    "proposal",
+    "#3b2a1e",
+    "#d4a574",
+    "Warm hospitality quotation for guest packages.",
+  ],
+  [
+    "tech",
+    "Tech Quote",
+    "side",
+    "#132a38",
+    "#38bdf8",
+    "Modern tech quotation with a side accent rail.",
+  ],
+  [
+    "mono",
+    "Mono Quote",
+    "formal",
+    "#1a1c1e",
+    "#6b7280",
+    "Print-safe monochrome quotation.",
+  ],
+  [
+    "brief",
+    "Brief Quote",
+    "clean",
+    "#1f3340",
+    "#6495a8",
+    "Compact quotation for short scopes of work.",
+  ],
+  [
+    "premium",
+    "Premium Quote",
+    "proposal",
+    "#1f2433",
+    "#c9a45c",
+    "Premium proposal quotation with gold accents.",
+  ],
+  [
+    "freelance",
+    "Freelance Quote",
+    "estimate",
+    "#243447",
+    "#7eb6e0",
+    "Friendly quote for independent professionals.",
+  ],
+  [
+    "botswana",
+    "Botswana Quote",
+    "band",
+    "#163028",
+    "#3ecf9a",
+    "Local-business quotation with green accents.",
+  ],
+  [
+    "detailed",
+    "Detailed Quote",
+    "scope",
+    "#25323a",
+    "#6f93a8",
+    "Detailed quotation built for itemised proposals.",
   ],
 ];
 
@@ -354,7 +518,9 @@ const mapTemplates = (items, type) =>
       accent,
       photo: description ? photoOrDescription : "none",
       description: description || photoOrDescription,
-      recommended: ["baakanya-auto", "modern-ats", "corporate"].includes(id),
+      recommended: ["baakanya-auto", "modern-ats", "corporate", "proposal"].includes(
+        id,
+      ),
       type,
     }),
   );
@@ -362,4 +528,4 @@ const mapTemplates = (items, type) =>
 export const cvTemplates = mapTemplates(careerBase, "cv");
 export const coverLetterTemplates = mapTemplates(careerBase, "cover");
 export const invoiceTemplates = mapTemplates(businessBase, "invoice");
-export const quotationTemplates = mapTemplates(businessBase, "quotation");
+export const quotationTemplates = mapTemplates(quotationBase, "quotation");

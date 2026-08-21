@@ -4866,14 +4866,26 @@ footer {
   background: linear-gradient(160deg, #d5e0e4, #9aafb8);
 }
 .cover-sheet .doc-main { padding-top: 16px; }
+/* Cover letters must not use the CV two-column sidebar grid — that
+   squeezed body text into the left rail. Use a full-width sheet + chrome. */
+.doc-sheet.cover-sheet,
+.doc-sheet.cover-sheet.layout-sidebar,
+.doc-sheet.cover-sheet.layout-rail,
+.doc-sheet.cover-sheet.layout-minimal,
+.doc-sheet.cover-sheet.layout-band,
+.doc-sheet.cover-sheet.layout-classic {
+  display: block;
+}
 .cover-sheet .sidebar-chrome,
 .business-sheet .side-chrome {
   position: absolute;
   inset: 0 auto 0 0;
   width: 22px;
   background: var(--doc-primary);
+  z-index: 0;
 }
-.cover-sheet.layout-sidebar .doc-main,
+.cover-sheet.has-rail .doc-main,
+.cover-sheet.layout-rail .doc-main,
 .business-sheet.layout-side .doc-main { padding-left: 34px; }
 .cover-head,
 .cover-head-light {
@@ -4888,6 +4900,10 @@ footer {
   padding: 16px 16px 12px;
   color: #fff;
   background: var(--doc-primary);
+}
+.cover-sheet.has-rail .cover-head-light {
+  margin-left: -34px;
+  padding-left: 34px;
 }
 .cover-head-light h3,
 .cover-head-light .doc-contact { color: #fff; }
@@ -4938,6 +4954,7 @@ footer {
   display: grid;
   gap: 9px;
   min-width: 0;
+  width: 100%;
 }
 .cover-body-stack.is-placeholder .cover-body {
   color: #7a8b93;
@@ -4948,6 +4965,7 @@ footer {
   font-size: 10.5px;
   line-height: 1.55;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 .doc-logo,
 .doc-logo-fallback {
@@ -5008,9 +5026,83 @@ footer {
   letter-spacing: .08em;
   font-size: 15px;
 }
+.business-sheet.is-quotation .business-doc-title h3 {
+  letter-spacing: .14em;
+  font-size: 14px;
+}
+.quote-badge {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--doc-accent) 22%, #fff);
+  color: var(--doc-primary);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.quote-validity-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 7px 10px;
+  border: 1px dashed color-mix(in srgb, var(--doc-accent) 55%, #c5d0d6);
+  background: color-mix(in srgb, var(--doc-accent) 10%, #fff);
+  color: #3a4c54;
+  font-size: 9.5px;
+}
+.quote-validity-bar b { color: var(--doc-primary); }
+.business-preview-meta.quote-meta span {
+  border-bottom-color: color-mix(in srgb, var(--doc-accent) 35%, #d7e0e4);
+}
+.business-preview-items.quote-items > div:first-child {
+  background: color-mix(in srgb, var(--doc-accent) 18%, #eef4f7);
+}
+.business-totals.quote-totals .grand {
+  border-top: 2px solid var(--doc-accent);
+}
+.quote-accept-hint {
+  margin: 8px 0 0;
+  color: #5a707a;
+  font-size: 9px;
+  font-style: italic;
+}
+.business-sheet.layout-proposal .band-chrome {
+  height: 18px;
+  background: linear-gradient(
+    90deg,
+    var(--doc-primary),
+    color-mix(in srgb, var(--doc-accent) 70%, var(--doc-primary))
+  );
+}
+.business-sheet.layout-estimate .doc-main,
+.business-sheet.layout-scope .doc-main {
+  border-top: 4px solid var(--doc-accent);
+}
 .business-sheet .band-chrome {
   height: 12px;
   background: var(--doc-primary);
+}
+.plan-select-locked {
+  grid-template-columns: 1fr;
+}
+.plan-select-locked .active {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--blue, #58bcec) 45%, #c5d2d8);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--blue, #58bcec) 10%, #fff);
+}
+.plan-select-locked .active b {
+  font-size: 15px;
+}
+.plan-select-locked .active span {
+  color: var(--muted, #5d7480);
+  font-size: 13px;
 }
 .doc-notes {
   margin-top: 12px;
