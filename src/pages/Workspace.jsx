@@ -1,4 +1,4 @@
-import { ArrowRight, Clock3, ShieldCheck } from "lucide-react";
+import { ArrowRight, Clock3, Settings, ShieldCheck } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import {
   BusinessMark,
@@ -111,6 +111,9 @@ function WorkspaceBody() {
             receipts and account details are stored securely and used only to
             provide the service.
           </p>
+          <Link className="btn btn-outline" to="/account">
+            <Settings size={16} /> Account settings
+          </Link>
         </div>
       </section>
     </Layout>

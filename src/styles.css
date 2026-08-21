@@ -4354,3 +4354,16 @@ footer {
   .admin-metrics { grid-template-columns: 1fr 1fr; }
   .user-status-list article { grid-template-columns: 1fr; }
 }
+
+.account-page { padding: 48px 0 80px; max-width: 760px; }
+.account-lead { color: var(--muted); margin: 0 0 32px; }
+.account-danger { padding: 24px; border: 1px solid #efc2c2; border-radius: 16px; background: #fff7f7; }
+.account-danger-head { display: flex; gap: 14px; margin-bottom: 18px; }
+.account-danger-head svg { flex: 0 0 auto; color: #b42318; }
+.account-danger h2 { margin: 0 0 6px; }
+.account-danger p { margin: 0; color: var(--muted); font-size: 14px; }
+.account-delete-form { display: grid; gap: 14px; }
+.btn-danger { display: inline-flex; align-items: center; gap: 8px; background: #b42318; color: #fff; border-color: #b42318; }
+.btn-danger:disabled { opacity: .65; }
+.workspace-note .btn { margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; }
+.user-status-list .btn { margin-top: 8px; }

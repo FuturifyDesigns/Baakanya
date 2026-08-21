@@ -13,6 +13,7 @@ const Career = lazyWithRefresh(() => import("./pages/Career"));
 const Auth = lazyWithRefresh(() => import("./pages/Auth"));
 const Payment = lazyWithRefresh(() => import("./pages/Payment"));
 const Admin = lazyWithRefresh(() => import("./pages/AdminControl"));
+const Account = lazyWithRefresh(() => import("./pages/Account"));
 const NotFound = lazyWithRefresh(() => import("./pages/NotFound"));
 const About = lazyWithRefresh(() => import("./pages/About"));
 function ScrollToTop() {
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/about" element={<About />} />
         <Route path="/workspace" element={<Workspace />} />
+        <Route path="/account" element={<Account />} />
         <Route path="/tools/convert" element={<Converter />} />
         <Route path="/tools/invoice" element={<Invoice />} />
         <Route path="/tools/career" element={<Career />} />

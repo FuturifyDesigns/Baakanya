@@ -213,6 +213,29 @@ export default function AdminControl() {
                           ? ` · Sub until ${new Date(row.subscription_end).toLocaleDateString()}`
                           : ""}
                       </small>
+                      {row.user_id !== user.id && (
+                        <button
+                          className="btn btn-small btn-outline"
+                          disabled={busyId === row.user_id}
+                          onClick={async () => {
+                            const ok = window.confirm(
+                              `Permanently delete ${row.email}? This cannot be undone.`,
+                            );
+                            if (!ok) return;
+                            setBusyId(row.user_id);
+                            setMessage("");
+                            const { error } = await supabase.rpc(
+                              "admin_delete_user",
+                              { target_user_id: row.user_id },
+                            );
+                            setBusyId("");
+                            if (error) setMessage(error.message);
+                            else await load();
+                          }}
+                        >
+                          Delete user
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))
