@@ -1,9 +1,10 @@
-import { Download, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Download, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
 import DocumentStudio from "../components/DocumentStudio";
+import GenerateDocIcon from "../components/GenerateDocIcon";
 import { BusinessDocumentPreview } from "../components/DocumentPreview";
 import { defaultCustomization } from "../lib/customization";
 import { authorizeGeneration } from "../lib/generation";
@@ -531,7 +532,7 @@ export default function Invoice() {
           )}
           <div className="form-downloads">
             <button className="btn btn-blue" onClick={generate}>
-              <Sparkles />
+              <GenerateDocIcon />
               Generate {kind.toLowerCase()}
             </button>
             <button

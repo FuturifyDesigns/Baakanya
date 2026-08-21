@@ -1282,6 +1282,17 @@ footer {
   display: flex;
   gap: 10px;
 }
+.form-downloads .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.form-downloads .btn svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
 .optional {
   color: var(--muted);
   font-size: 11px;

@@ -1,9 +1,10 @@
-import { Download, Search, Sparkles } from "lucide-react";
+import { Download, Search, Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
 import DocumentStudio from "../components/DocumentStudio";
+import GenerateDocIcon from "../components/GenerateDocIcon";
 import {
   CoverDocumentPreview,
   CvDocumentPreview,
@@ -823,7 +824,7 @@ export default function Career() {
               className="btn btn-blue"
               onClick={activeDocument === "cv" ? generateCv : generateCover}
             >
-              <Sparkles />
+              <GenerateDocIcon />
               Generate {activeDocument === "cv" ? "CV" : "cover letter"}
             </button>
             <button
@@ -846,7 +847,7 @@ export default function Career() {
           className={`letter-preview live-document-preview ${activeDocument}`}
         >
           <div className="preview-label">
-            <Sparkles />
+            <Eye size={14} />
             Live {activeDocument === "cv" ? "CV" : "letter"} preview ·{" "}
             {activeTemplate.name}
           </div>
