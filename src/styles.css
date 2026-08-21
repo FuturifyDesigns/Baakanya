@@ -5512,14 +5512,198 @@ footer {
   .user-status-list article { grid-template-columns: 1fr; }
 }
 
-.account-page { padding: 48px 0 80px; max-width: 760px; }
-.account-lead { color: var(--muted); margin: 0 0 32px; }
-.account-danger { padding: 24px; border: 1px solid #efc2c2; border-radius: 16px; background: #fff7f7; }
-.account-danger-head { display: flex; gap: 14px; margin-bottom: 18px; }
-.account-danger-head svg { flex: 0 0 auto; color: #b42318; }
-.account-danger h2 { margin: 0 0 6px; }
-.account-danger p { margin: 0; color: var(--muted); font-size: 14px; }
-.account-delete-form { display: grid; gap: 14px; }
+.account-page {
+  padding: 48px 0 90px;
+  max-width: 920px;
+}
+.account-hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 18px 0 34px;
+}
+.account-hero h1 {
+  font-size: clamp(42px, 6vw, 64px);
+  letter-spacing: -2.5px;
+  margin: 10px 0 8px;
+}
+.account-hero p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 48ch;
+}
+.account-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+.account-panel {
+  padding: 24px;
+  border: 1px solid #d7e2e6;
+  border-radius: 18px;
+  background:
+    linear-gradient(165deg, #f7fbfc 0%, #ffffff 45%),
+    #fff;
+}
+.account-panel h2 {
+  margin: 8px 0 16px;
+  font-size: 28px;
+  letter-spacing: -1px;
+}
+.account-profile dl {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+.account-profile dl div {
+  display: grid;
+  gap: 2px;
+}
+.account-profile dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.account-profile dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.account-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.account-access-status {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 10px 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #17313d;
+  color: #fff;
+}
+.account-access-status svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #7ec8ea;
+}
+.account-access-status b {
+  display: block;
+  font-size: 16px;
+}
+.account-access-status small {
+  display: block;
+  margin-top: 3px;
+  color: #b7c8d0;
+  font-size: 13px;
+}
+.account-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.account-access-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-danger-zone {
+  padding: 22px 24px;
+  border: 1px solid #e4e8ea;
+  border-radius: 18px;
+  background: #fafbfb;
+}
+.account-danger-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+.account-danger-intro h2 {
+  margin: 8px 0 8px;
+  font-size: 24px;
+}
+.account-danger-intro p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 52ch;
+}
+.account-danger-toggle {
+  flex: 0 0 auto;
+  color: #9b2f2a;
+  border-color: #e7b4b0;
+}
+.account-danger {
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid #efc2c2;
+  border-radius: 14px;
+  background: #fff7f7;
+}
+.account-danger-head {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.account-danger-head svg {
+  flex: 0 0 auto;
+  color: #b42318;
+}
+.account-danger h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.account-danger p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.account-delete-form {
+  display: grid;
+  gap: 14px;
+}
+.account-delete-form label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.account-delete-form input {
+  border: 1px solid #d7b4b0;
+  border-radius: 9px;
+  padding: 12px 13px;
+  background: #fff;
+  font: inherit;
+}
+.account-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.account-delete-actions .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 800px) {
+  .account-hero,
+  .account-danger-intro {
+    align-items: start;
+    flex-direction: column;
+  }
+  .account-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .btn-danger { display: inline-flex; align-items: center; gap: 8px; background: #b42318; color: #fff; border-color: #b42318; }
 .btn-danger:disabled { opacity: .65; }
 .workspace-note .btn { margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; }
