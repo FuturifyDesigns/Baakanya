@@ -15,6 +15,7 @@ import { authorizeGeneration } from "../lib/generation";
 import { coverLetterTemplates, cvTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 import { renderCoverLetterPdf, renderCvPdf } from "../lib/pdfTemplates";
+import { isValidWebsite, normalizeWebsite } from "../lib/urls";
 import { exportCoverWord, exportCvWord } from "../lib/wordExport";
 
 const emptyCv = {
@@ -114,13 +115,8 @@ export default function Career() {
       return "Enter a valid email address.";
     if (cvForm.phone && !/^\+?[0-9 ()-]{7,20}$/.test(cvForm.phone.trim()))
       return "Enter a valid phone number.";
-    if (cvForm.website) {
-      try {
-        new URL(cvForm.website);
-      } catch {
-        return "Enter a complete personal website URL, including https://.";
-      }
-    }
+    if (cvForm.website && !isValidWebsite(cvForm.website))
+      return "Enter a website domain or URL, for example futurifydesigns.com";
     if (cvForm.linkedin && !/linkedin\.com/i.test(cvForm.linkedin))
       return "Enter a LinkedIn profile URL, or leave it blank.";
     if (cvForm.summary.trim().length < 30)
@@ -143,13 +139,8 @@ export default function Career() {
       return "Enter a valid email address.";
     if (coverForm.phone && !/^\+?[0-9 ()-]{7,20}$/.test(coverForm.phone.trim()))
       return "Enter a valid phone number.";
-    if (coverForm.companyWebsite) {
-      try {
-        new URL(coverForm.companyWebsite);
-      } catch {
-        return "Enter a complete company website URL, including https://.";
-      }
-    }
+    if (coverForm.companyWebsite && !isValidWebsite(coverForm.companyWebsite))
+      return "Enter a company website domain or URL, for example company.co.bw";
     if (coverForm.summary.trim().length < 30)
       return "Add why you are applying (at least 30 characters).";
     if (coverForm.experience.trim().length < 30)
@@ -176,7 +167,7 @@ export default function Career() {
         body: {
           company: coverForm.company,
           role: coverForm.role,
-          website: coverForm.companyWebsite,
+          website: normalizeWebsite(coverForm.companyWebsite),
         },
       },
     );
@@ -260,7 +251,12 @@ export default function Career() {
         ? await cropImage(photo, photoCrop, cvTemplate.photo)
         : null;
     renderCvPdf({
-      form: { ...cvForm, role: cvForm.expertise },
+      form: {
+        ...cvForm,
+        role: cvForm.expertise,
+        website: normalizeWebsite(cvForm.website),
+        linkedin: normalizeWebsite(cvForm.linkedin),
+      },
       template: styledCvTemplate,
       photoData,
       skills: split(cvForm.skills),
@@ -277,7 +273,10 @@ export default function Career() {
         ? await cropImage(photo, photoCrop, coverTemplate.photo)
         : null;
     renderCoverLetterPdf({
-      form: coverForm,
+      form: {
+        ...coverForm,
+        companyWebsite: normalizeWebsite(coverForm.companyWebsite),
+      },
       template: styledCoverTemplate,
       photoData,
       letter,
@@ -364,7 +363,12 @@ export default function Career() {
     try {
       await authorizeGeneration("cv_word");
       exportCvWord({
-        form: { ...cvForm, role: cvForm.expertise },
+        form: {
+          ...cvForm,
+          role: cvForm.expertise,
+          website: normalizeWebsite(cvForm.website),
+          linkedin: normalizeWebsite(cvForm.linkedin),
+        },
         skills: split(cvForm.skills),
         template: styledCvTemplate,
         customization,
@@ -382,7 +386,10 @@ export default function Career() {
     try {
       await authorizeGeneration("cover_letter_word");
       exportCoverWord({
-        form: coverForm,
+        form: {
+          ...coverForm,
+          companyWebsite: normalizeWebsite(coverForm.companyWebsite),
+        },
         letter,
         template: styledCoverTemplate,
         customization,
@@ -528,20 +535,37 @@ export default function Career() {
                 <label>
                   Personal website <span className="optional">Optional</span>
                   <input
-                    type="url"
+                    type="text"
+                    inputMode="url"
+                    autoComplete="url"
                     maxLength="300"
                     value={cvForm.website}
                     onChange={(e) => setCv("website", e.target.value)}
-                    placeholder="https://your-site.com"
+                    onBlur={() => {
+                      if (cvForm.website.trim() && isValidWebsite(cvForm.website)) {
+                        setCv("website", normalizeWebsite(cvForm.website));
+                      }
+                    }}
+                    placeholder="futurifydesigns.com"
                   />
                 </label>
                 <label>
                   LinkedIn <span className="optional">Optional</span>
                   <input
+                    type="text"
+                    inputMode="url"
                     maxLength="300"
                     value={cvForm.linkedin}
                     onChange={(e) => setCv("linkedin", e.target.value)}
-                    placeholder="https://linkedin.com/in/you"
+                    onBlur={() => {
+                      if (
+                        cvForm.linkedin.trim() &&
+                        /linkedin\.com/i.test(cvForm.linkedin)
+                      ) {
+                        setCv("linkedin", normalizeWebsite(cvForm.linkedin));
+                      }
+                    }}
+                    placeholder="linkedin.com/in/you"
                   />
                 </label>
               </div>
@@ -683,11 +707,24 @@ export default function Career() {
                 <label>
                   Company website <span className="optional">Optional</span>
                   <input
-                    type="url"
+                    type="text"
+                    inputMode="url"
+                    autoComplete="url"
                     maxLength="300"
                     value={coverForm.companyWebsite}
                     onChange={(e) => setCover("companyWebsite", e.target.value)}
-                    placeholder="https://company.co.bw"
+                    onBlur={() => {
+                      if (
+                        coverForm.companyWebsite.trim() &&
+                        isValidWebsite(coverForm.companyWebsite)
+                      ) {
+                        setCover(
+                          "companyWebsite",
+                          normalizeWebsite(coverForm.companyWebsite),
+                        );
+                      }
+                    }}
+                    placeholder="company.co.bw"
                   />
                 </label>
               </div>
