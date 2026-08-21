@@ -87,20 +87,27 @@ export default function Career() {
     ...cvTemplate,
     accent: customization.accent || cvTemplate.accent,
     primary: customization.primary || cvTemplate.primary,
-    background: customization.background || "#ffffff",
-    font: customization.font || "calibri",
-    density: customization.density || "comfortable",
-    lineSpacing: customization.lineSpacing || "1.15",
-    titles: customization.titles,
+    background:
+      customization.background || cvTemplate.background || "#ffffff",
+    font: customization.font || cvTemplate.font || "calibri",
+    density: customization.density || cvTemplate.density || "comfortable",
+    lineSpacing:
+      customization.lineSpacing || cvTemplate.lineSpacing || "1.15",
+    titles: {
+      ...(cvTemplate.titles || {}),
+      ...(customization.titles || {}),
+    },
   };
   const styledCoverTemplate = {
     ...coverTemplate,
     accent: customization.accent || coverTemplate.accent,
     primary: customization.primary || coverTemplate.primary,
-    background: customization.background || "#ffffff",
-    font: customization.font || "times",
-    density: customization.density || "comfortable",
-    lineSpacing: customization.lineSpacing || "1.5",
+    background:
+      customization.background || coverTemplate.background || "#ffffff",
+    font: customization.font || coverTemplate.font || "georgia",
+    density: customization.density || coverTemplate.density || "comfortable",
+    lineSpacing:
+      customization.lineSpacing || coverTemplate.lineSpacing || "1.5",
   };
   const photoPreview = useMemo(
     () => (photo ? URL.createObjectURL(photo) : ""),

@@ -182,10 +182,10 @@ export default function Invoice() {
     ...template,
     accent: customization.accent || template.accent,
     primary: customization.primary || template.primary,
-    background: customization.background || "#ffffff",
-    font: customization.font || "arial",
-    density: customization.density || "compact",
-    lineSpacing: customization.lineSpacing || "1",
+    background: customization.background || template.background || "#ffffff",
+    font: customization.font || template.font || "arial",
+    density: customization.density || template.density || "comfortable",
+    lineSpacing: customization.lineSpacing || template.lineSpacing || "1.15",
   };
   const setTemplate =
     kind === "Invoice" ? setInvoiceTemplateId : setQuotationTemplateId;

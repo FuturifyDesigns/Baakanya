@@ -80,8 +80,12 @@ export function buildStyledTemplate(template, customization = {}) {
       customization.lineSpacing || template.lineSpacing || "1.15",
     titles: {
       ...defaultCustomization.titles,
+      ...(template.titles || {}),
       ...(customization.titles || {}),
     },
-    background: customization.background || "#ffffff",
+    background:
+      customization.background || template.background || "#ffffff",
+    headingStyle: template.headingStyle || "underline",
+    ruleStyle: template.ruleStyle || "accent",
   };
 }

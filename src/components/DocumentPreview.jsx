@@ -114,9 +114,9 @@ function PhotoSlot({ photoUrl, shape }) {
   );
 }
 
-function SectionHeading({ children }) {
+function SectionHeading({ children, style = "underline" }) {
   return (
-    <div className="doc-section-head">
+    <div className={`doc-section-head style-${style}`}>
       <strong>{children}</strong>
     </div>
   );
@@ -189,7 +189,7 @@ function SkillsBlock({ skills, stacked = false }) {
   );
 }
 
-function CvSections({ form, skills, sidebarSkills, titles }) {
+function CvSections({ form, skills, sidebarSkills, titles, headingStyle }) {
   const heading = {
     profile: titles?.profile || "Professional profile",
     experience: titles?.experience || "Experience and achievements",
@@ -200,14 +200,16 @@ function CvSections({ form, skills, sidebarSkills, titles }) {
   return (
     <>
       <section>
-        <SectionHeading>{heading.profile}</SectionHeading>
+        <SectionHeading style={headingStyle}>{heading.profile}</SectionHeading>
         <p className={`doc-body ${form.summary ? "" : "is-placeholder"}`}>
           {form.summary ||
             "A concise professional summary appears here — strengths, focus areas, and the roles you are targeting."}
         </p>
       </section>
       <section>
-        <SectionHeading>{heading.experience}</SectionHeading>
+        <SectionHeading style={headingStyle}>
+          {heading.experience}
+        </SectionHeading>
         <EntryList
           text={form.experience}
           emptyTitle="Role title, Employer — Dates"
@@ -219,7 +221,7 @@ function CvSections({ form, skills, sidebarSkills, titles }) {
         />
       </section>
       <section>
-        <SectionHeading>{heading.education}</SectionHeading>
+        <SectionHeading style={headingStyle}>{heading.education}</SectionHeading>
         <EntryList
           text={form.education}
           emptyTitle="Qualification, Institution — Year"
@@ -228,12 +230,14 @@ function CvSections({ form, skills, sidebarSkills, titles }) {
       </section>
       {!sidebarSkills && (
         <section>
-          <SectionHeading>{heading.skills}</SectionHeading>
+          <SectionHeading style={headingStyle}>{heading.skills}</SectionHeading>
           <SkillsBlock skills={skills} />
         </section>
       )}
       <section>
-        <SectionHeading>{heading.certifications}</SectionHeading>
+        <SectionHeading style={headingStyle}>
+          {heading.certifications}
+        </SectionHeading>
         <p
           className={`doc-body ${form.certifications ? "" : "is-placeholder"}`}
         >
@@ -255,6 +259,8 @@ export function CvDocumentPreview({
   const expertise = form.expertise || form.role || "Professional headline";
   const layout = template?.layout || "minimal";
   const sidebar = layout === "sidebar";
+  const headingStyle = template?.headingStyle || "underline";
+  const ruleStyle = template?.ruleStyle || "accent";
   const style = {
     "--doc-primary": template?.primary || "#17252d",
     "--doc-accent": template?.accent || "#58bcec",
@@ -264,9 +270,13 @@ export function CvDocumentPreview({
     "--doc-line-height": String(lineSpacingValue(template?.lineSpacing)),
   };
 
+  const classicLike = ["minimal", "classic", "modern", "flag"].includes(layout);
+  const stackedLike = layout === "stacked" || layout === "centered";
+  const splitLike = layout === "split" || layout === "panel";
+
   return (
     <div
-      className={`doc-sheet cv-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""}`}
+      className={`doc-sheet cv-sheet layout-${layout} heading-${headingStyle} rule-${ruleStyle} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""}`}
       style={style}
     >
       {sidebar && (
@@ -300,8 +310,37 @@ export function CvDocumentPreview({
             <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
           </header>
         )}
-        {layout !== "sidebar" && layout !== "band" && (
-          <header className="doc-classic-head">
+        {stackedLike && (
+          <header className={`doc-stacked-head ${layout === "centered" ? "is-centered" : ""}`}>
+            <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
+            <h3>{form.name || "Your name"}</h3>
+            <p
+              className={`doc-expertise-line ${form.expertise || form.role ? "" : "is-placeholder"}`}
+            >
+              {expertise}
+            </p>
+            <ContactLines form={form} />
+            <span className={`doc-rule full rule-${ruleStyle}`} />
+          </header>
+        )}
+        {splitLike && (
+          <header className={`doc-split-head ${layout === "panel" ? "is-panel" : ""}`}>
+            <div>
+              <h3>{form.name || "Your name"}</h3>
+              <p
+                className={`doc-expertise-line ${form.expertise || form.role ? "" : "is-placeholder"}`}
+              >
+                {expertise}
+              </p>
+            </div>
+            <div className="doc-split-meta">
+              <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
+              <ContactLines form={form} stacked />
+            </div>
+          </header>
+        )}
+        {classicLike && (
+          <header className={`doc-classic-head layout-${layout}`}>
             <div className="doc-classic-copy">
               <h3>{form.name || "Your name"}</h3>
               <p
@@ -324,6 +363,7 @@ export function CvDocumentPreview({
           skills={skills}
           sidebarSkills={sidebar}
           titles={template?.titles}
+          headingStyle={headingStyle}
         />
       </div>
     </div>
@@ -337,10 +377,8 @@ export function CoverDocumentPreview({
   photoUrl,
   compact = false,
 }) {
-  const layout = template?.layout || "minimal";
-  // Cover letters never use the CV two-column sidebar grid — rail chrome only.
-  const sheetLayout =
-    layout === "sidebar" ? "rail" : layout === "band" ? "band" : "minimal";
+  const layout = template?.layout || "letter";
+  const ruleStyle = template?.ruleStyle || "accent";
   const style = {
     "--doc-primary": template?.primary || "#17252d",
     "--doc-accent": template?.accent || "#58bcec",
@@ -349,8 +387,15 @@ export function CoverDocumentPreview({
     background: template?.background || "#ffffff",
     "--doc-line-height": String(lineSpacingValue(template?.lineSpacing)),
   };
-  const lightHeader = sheetLayout === "band";
-  const showRail = layout === "sidebar";
+  const lightHeader = layout === "band";
+  const showRail = layout === "rail";
+  const isCentered = layout === "centered";
+  const isExecutive = layout === "executive";
+  const isFramed = layout === "framed";
+  const isClassicBlock = layout === "classic-block";
+  const isModernBlock = layout === "modern-block";
+  const isAccentTop = layout === "accent-top";
+  const isSignature = layout === "signature";
   const today = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -366,12 +411,19 @@ export function CoverDocumentPreview({
 
   return (
     <div
-      className={`doc-sheet cover-sheet layout-${sheetLayout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""} ${showRail ? "has-rail" : ""}`}
+      className={`doc-sheet cover-sheet layout-${layout} rule-${ruleStyle} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""} ${showRail ? "has-rail" : ""} ${isFramed ? "is-framed" : ""} ${isAccentTop ? "has-accent-top" : ""} ${isSignature ? "is-signature" : ""}`}
       style={style}
     >
-      {showRail && <div className="doc-cover-chrome sidebar-chrome" aria-hidden="true" />}
+      {showRail && (
+        <div className="doc-cover-chrome sidebar-chrome" aria-hidden="true" />
+      )}
+      {isAccentTop && (
+        <div className="doc-cover-chrome accent-top-chrome" aria-hidden="true" />
+      )}
       <div className="doc-main">
-        <header className={lightHeader ? "cover-head-light" : "cover-head"}>
+        <header
+          className={`${lightHeader ? "cover-head-light" : "cover-head"} ${isCentered ? "is-centered" : ""} ${isExecutive ? "is-executive" : ""}`}
+        >
           <div className="cover-identity">
             <h3>{form.name || "Your name"}</h3>
             <p className="doc-contact">
@@ -382,9 +434,13 @@ export function CoverDocumentPreview({
           </div>
           <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
         </header>
-        <span className={`doc-rule full ${lightHeader ? "light-rule" : ""}`} />
+        <span
+          className={`doc-rule full ${lightHeader ? "light-rule" : ""} rule-${ruleStyle}`}
+        />
 
-        <div className="cover-letterhead">
+        <div
+          className={`cover-letterhead ${isClassicBlock ? "is-classic-block" : ""} ${isModernBlock ? "is-modern-block" : ""} ${isCentered ? "is-centered" : ""}`}
+        >
           <p className="cover-date">{today}</p>
           <div className="cover-recipient">
             <strong>{form.hiringManager || "Hiring Manager"}</strong>
@@ -422,7 +478,7 @@ export function BusinessDocumentPreview({
   compact = false,
 }) {
   const isQuote = kind === "Quotation";
-  const layout = template?.layout || (isQuote ? "proposal" : "classic");
+  const layout = template?.layout || (isQuote ? "proposal" : "clean");
   const style = {
     "--doc-primary": template?.primary || "#17313d",
     "--doc-accent": template?.accent || "#58bcec",
@@ -451,19 +507,28 @@ export function BusinessDocumentPreview({
         { description: "Print-ready artwork sets", qty: 2, price: 450 },
         { description: "Revision round", qty: 1, price: 350 },
       ];
-  const showBand = layout === "band" || layout === "proposal";
+  const showBand =
+    layout === "band" || layout === "proposal" || layout === "masthead";
   const showSide = layout === "side";
   const showEstimateBar = layout === "estimate" || layout === "scope";
+  const showCorner = layout === "corner";
+  const showStripe = layout === "stripe";
+  const showLedger = layout === "ledger";
+  const showBoxed = layout === "boxed";
+  const showSplitBill = layout === "split-bill";
 
   return (
     <div
-      className={`doc-sheet business-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""} ${isQuote ? "is-quotation" : "is-invoice"}`}
+      className={`doc-sheet business-sheet layout-${layout} density-${densityGap(template?.density)} ${spacingClass(template?.lineSpacing)} ${compact ? "is-thumb" : ""} ${isQuote ? "is-quotation" : "is-invoice"} ${showStripe ? "has-stripe" : ""} ${showLedger ? "is-ledger" : ""} ${showBoxed ? "is-boxed" : ""} ${showSplitBill ? "is-split-bill" : ""} ${showCorner ? "has-corner" : ""}`}
       style={style}
     >
       {(showBand || showSide) && (
         <div
-          className={`doc-business-chrome ${showSide ? "side-chrome" : "band-chrome"}`}
+          className={`doc-business-chrome ${showSide ? "side-chrome" : layout === "masthead" ? "masthead-chrome" : "band-chrome"}`}
         />
+      )}
+      {showCorner && (
+        <div className="doc-business-chrome corner-chrome" aria-hidden="true" />
       )}
       <div className="doc-main">
         <header className={`business-doc-head ${isQuote ? "quote-head" : ""}`}>
@@ -495,7 +560,9 @@ export function BusinessDocumentPreview({
                   ? "Estimate"
                   : layout === "scope"
                     ? "Scope of work"
-                    : "Proposal"}
+                    : layout === "tender" || layout === "formal"
+                      ? "Tender"
+                      : "Proposal"}
               </em>
             )}
           </div>
@@ -504,14 +571,15 @@ export function BusinessDocumentPreview({
         {showEstimateBar && (
           <div className="quote-validity-bar">
             <span>
-              Valid until{" "}
-              <b>{form.validUntil || "20 Sep 2026"}</b>
+              Valid until <b>{form.validUntil || "20 Sep 2026"}</b>
             </span>
             <span>Not a tax invoice</span>
           </div>
         )}
 
-        <div className={`business-preview-meta ${isQuote ? "quote-meta" : ""}`}>
+        <div
+          className={`business-preview-meta ${isQuote ? "quote-meta" : ""} ${showSplitBill ? "split-bill-meta" : ""}`}
+        >
           <span>
             {isQuote ? "Prepared for" : "Bill to"}
             <b>{form.client || "Client name"}</b>
