@@ -78,7 +78,7 @@ function ContactLines({ form, stacked = false }) {
   ].filter(Boolean);
   if (!parts.length) {
     return (
-      <p className="doc-contact doc-placeholder">
+      <p className="doc-contact doc-placeholder is-placeholder">
         email · phone · location
       </p>
     );
@@ -121,7 +121,11 @@ function EntryList({ text, emptyTitle, emptyPoints }) {
   if (!entries.length) {
     return (
       <div className="doc-entry is-placeholder">
-        {emptyTitle && <div className="doc-entry-head"><span>{emptyTitle}</span></div>}
+        {emptyTitle && (
+          <div className="doc-entry-head">
+            <span>{emptyTitle}</span>
+          </div>
+        )}
         <ul>
           {emptyPoints.map((point) => (
             <li key={point}>{point}</li>
@@ -184,9 +188,7 @@ function CvSections({ form, skills, sidebarSkills }) {
     <>
       <section>
         <SectionHeading>Professional profile</SectionHeading>
-        <p
-          className={`doc-body ${form.summary ? "" : "is-placeholder"}`}
-        >
+        <p className={`doc-body ${form.summary ? "" : "is-placeholder"}`}>
           {form.summary ||
             "A concise professional summary appears here — strengths, focus areas, and the roles you are targeting."}
         </p>
@@ -255,7 +257,9 @@ export function CvDocumentPreview({
         <aside className="doc-sidebar">
           <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
           <h3>{form.name || "Your name"}</h3>
-          <p className={`doc-side-role ${form.expertise || form.role ? "" : "is-placeholder"}`}>
+          <p
+            className={`doc-side-role ${form.expertise || form.role ? "" : "is-placeholder"}`}
+          >
             {expertise}
           </p>
           <div className="doc-side-block">
@@ -299,11 +303,6 @@ export function CvDocumentPreview({
             <ContactLines form={form} />
           </div>
         )}
-        {sidebar && (
-          <p className={`doc-main-role ${form.expertise || form.role ? "" : "is-placeholder"}`}>
-            {expertise}
-          </p>
-        )}
         <CvSections form={form} skills={skills} sidebarSkills={sidebar} />
       </div>
     </div>
@@ -324,6 +323,19 @@ export function CoverDocumentPreview({
     fontFamily: fontFamily(template?.font),
   };
   const lightHeader = layout === "band";
+  const today = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const paragraphs = String(
+    letter ||
+      "Dear Hiring Manager,\n\nYour cover letter will appear here once you generate it. Keep the tone clear, specific and professional.\n\nYours sincerely,\nYour name",
+  )
+    .split(/\n\s*\n/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
   return (
     <div
       className={`doc-sheet cover-sheet layout-${layout} density-${densityGap(template?.density)} ${compact ? "is-thumb" : ""}`}
@@ -334,7 +346,7 @@ export function CoverDocumentPreview({
       )}
       <div className="doc-main">
         <header className={lightHeader ? "cover-head-light" : "cover-head"}>
-          <div>
+          <div className="cover-identity">
             <h3>{form.name || "Your name"}</h3>
             <p className="doc-contact">
               {[form.email, form.phone, form.location]
@@ -345,14 +357,29 @@ export function CoverDocumentPreview({
           <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
         </header>
         <span className={`doc-rule full ${lightHeader ? "light-rule" : ""}`} />
-        <p className="cover-meta">
-          {[form.company, form.role].filter(Boolean).join(" · ") ||
-            "Company · Role"}
-        </p>
-        <p className={`preline cover-body ${letter ? "" : "is-placeholder"}`}>
-          {letter ||
-            "Dear Hiring Manager,\n\nYour cover letter will appear here once you generate it. Keep the tone clear, specific and professional.\n\nYours sincerely,\nYour name"}
-        </p>
+
+        <div className="cover-letterhead">
+          <p className="cover-date">{today}</p>
+          <div className="cover-recipient">
+            <strong>{form.hiringManager || "Hiring Manager"}</strong>
+            <span>{form.company || "Company name"}</span>
+            {form.companyWebsite && <span>{form.companyWebsite}</span>}
+          </div>
+          <p className="cover-subject">
+            <b>Re:</b>{" "}
+            {form.role
+              ? `Application for ${form.role}`
+              : "Application for the advertised role"}
+          </p>
+        </div>
+
+        <div className={`cover-body-stack ${letter ? "" : "is-placeholder"}`}>
+          {paragraphs.map((paragraph, index) => (
+            <p key={index} className="preline cover-body">
+              {paragraph}
+            </p>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -390,8 +417,9 @@ export function BusinessDocumentPreview({
   const rows = items.length
     ? items.slice(0, 8)
     : [
-        { description: "Professional services", qty: 1, price: 2500 },
-        { description: "Materials / disbursements", qty: 1, price: 350 },
+        { description: "Brand identity package", qty: 1, price: 2800 },
+        { description: "Print-ready artwork sets", qty: 2, price: 450 },
+        { description: "Revision round", qty: 1, price: 350 },
       ];
 
   return (
@@ -405,8 +433,8 @@ export function BusinessDocumentPreview({
         />
       )}
       <div className="doc-main">
-        <header>
-          <div>
+        <header className="business-doc-head">
+          <div className="business-brand">
             {logoUrl ? (
               <img src={logoUrl} alt="" className="doc-logo" />
             ) : (
@@ -417,71 +445,89 @@ export function BusinessDocumentPreview({
             <div>
               <b>{form.business || "Your business"}</b>
               <small className="doc-biz-sub">
-                {[form.email, form.phone].filter(Boolean).join(" · ") ||
-                  "Business contact"}
+                {[form.email, form.phone, form.address]
+                  .filter(Boolean)
+                  .join(" · ") || "Business contact details"}
               </small>
             </div>
           </div>
-          <h3>{kind.toUpperCase()}</h3>
+          <div className="business-doc-title">
+            <h3>{kind.toUpperCase()}</h3>
+            <span>No. {form.number || "001"}</span>
+          </div>
         </header>
+
         <div className="business-preview-meta">
           <span>
-            Bill to<b>{form.client || "Client name"}</b>
+            Bill to
+            <b>{form.client || "Client name"}</b>
+            {form.clientEmail && <em>{form.clientEmail}</em>}
           </span>
           <span>
-            No.<b>{form.number || "001"}</b>
+            Issue date
+            <b>{form.date || "20 Aug 2026"}</b>
           </span>
+          {kind === "Quotation" ? (
+            <span>
+              Valid until
+              <b>{form.validUntil || "20 Sep 2026"}</b>
+            </span>
+          ) : (
+            <span>
+              Due date
+              <b>{form.dueDate || "05 Sep 2026"}</b>
+            </span>
+          )}
           <span>
-            Date<b>{form.date || "2026-08-20"}</b>
+            Currency
+            <b>BWP (P)</b>
           </span>
-          {kind === "Quotation" && (
-            <span>
-              Valid until<b>{form.validUntil || "2026-09-20"}</b>
-            </span>
-          )}
-          {kind === "Invoice" && (
-            <span>
-              Due date<b>{form.dueDate || "2026-09-05"}</b>
-            </span>
-          )}
         </div>
-        <div className="business-preview-items">
+
+        <div className="business-preview-items detailed">
           <div>
             <b>Description</b>
             <b>Qty</b>
+            <b>Unit</b>
             <b>Amount</b>
           </div>
           {rows.map((item, index) => (
             <div key={index}>
               <span>{item.description || "Item or service"}</span>
               <span>{item.qty || 0}</span>
+              <span>P {format(item.price || 0)}</span>
               <span>
                 P {format(Number(item.qty || 0) * Number(item.price || 0))}
               </span>
             </div>
           ))}
         </div>
-        <dl className="business-totals">
-          <div>
-            <dt>Subtotal</dt>
-            <dd>P {format(subtotal || 2850)}</dd>
+
+        <div className="business-footer-grid">
+          <div className="business-terms">
+            <strong>Payment details</strong>
+            <p>
+              {form.notes ||
+                "Bank transfer · Include invoice number as reference · Payment due within stated terms."}
+            </p>
           </div>
-          {vat && (
+          <dl className="business-totals">
             <div>
-              <dt>VAT (14%)</dt>
-              <dd>P {format(vatAmount)}</dd>
+              <dt>Subtotal</dt>
+              <dd>P {format(subtotal || 4050)}</dd>
             </div>
-          )}
-          <div className="grand">
-            <dt>Total due</dt>
-            <dd>P {format(total || 2850)}</dd>
-          </div>
-        </dl>
-        {(form.notes || compact) && (
-          <p className="preline doc-notes">
-            {form.notes || "Payment terms and notes appear here."}
-          </p>
-        )}
+            {vat && (
+              <div>
+                <dt>VAT (14%)</dt>
+                <dd>P {format(vatAmount)}</dd>
+              </div>
+            )}
+            <div className="grand">
+              <dt>Total due</dt>
+              <dd>P {format(total || 4050)}</dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </div>
   );

@@ -43,13 +43,17 @@ const sampleCover = {
   location: "Gaborone, Botswana",
   role: "Front Office Supervisor",
   company: "Cresta Hotels",
+  companyWebsite: "www.crestahotels.com",
+  hiringManager: "Ms. Thabo Dube",
 };
 
-const sampleLetter = `Dear Hiring Manager,
+const sampleLetter = `Dear Ms. Dube,
 
 I am writing to apply for the Front Office Supervisor role at Cresta Hotels. Over the past six years I have led guest-facing teams, improved satisfaction scores and kept busy shifts running smoothly.
 
-At Cresta Lodge I supervise eight colleagues, coach new starters and own the evening service recovery process. I would welcome the chance to bring the same discipline and hospitality standards to your property.
+At Cresta Lodge I supervise eight colleagues, coach new starters and own the evening service recovery process. Guests regularly mention clear communication and reliable follow-through.
+
+I would welcome the chance to bring the same hospitality standards to your property and am available for an interview at your convenience.
 
 Yours sincerely,
 Kago Molefe`;
@@ -57,13 +61,16 @@ Kago Molefe`;
 const sampleBusiness = {
   business: "Kgetsi Studio",
   client: "Serowe Retail Co.",
+  clientEmail: "accounts@seroweretail.co.bw",
   number: "INV-204",
   date: "20 Aug 2026",
   dueDate: "05 Sep 2026",
   validUntil: "20 Sep 2026",
   email: "accounts@kgetsi.co.bw",
   phone: "+267 390 0000",
-  notes: "Bank: FNB · Acc 62870770297 · Payment due within 14 days.",
+  address: "Plot 123, Gaborone",
+  notes:
+    "Bank: FNB Botswana · Acc 62870770297 · Branch 283567 · Quote invoice number as payment reference.",
 };
 
 const sampleItems = [

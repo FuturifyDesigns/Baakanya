@@ -554,15 +554,17 @@ export default function Invoice() {
           <div className="preview-label">
             LIVE {kind.toUpperCase()} PREVIEW · {template.name}
           </div>
-          <BusinessDocumentPreview
-            kind={kind}
-            form={form}
-            items={items}
-            vat={vat}
-            template={styledTemplate}
-            logoUrl={logoPreview}
-            money={money}
-          />
+          <div className="preview-fit">
+            <BusinessDocumentPreview
+              kind={kind}
+              form={form}
+              items={items}
+              vat={vat}
+              template={styledTemplate}
+              logoUrl={logoPreview}
+              money={money}
+            />
+          </div>
           <small>
             Same layout as your downloadable PDF — what you see is what you get.
           </small>

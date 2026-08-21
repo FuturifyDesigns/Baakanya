@@ -265,50 +265,98 @@ export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
   const font = template.font || "helvetica";
   const lineHeight =
     template.density === "compact"
-      ? 5.1
+      ? 5
       : template.density === "spacious"
-        ? 7
-        : 6;
+        ? 6.6
+        : 5.6;
   if (template.layout === "band" || template.layout === "sidebar") {
     setColour(pdf, primary, true);
     pdf.rect(
       0,
       0,
-      template.layout === "sidebar" ? 38 : 210,
-      template.layout === "sidebar" ? 297 : 43,
+      template.layout === "sidebar" ? 28 : 210,
+      template.layout === "sidebar" ? 297 : 40,
       "F",
     );
   }
-  const x = template.layout === "sidebar" ? 52 : 20;
-  const width = template.layout === "sidebar" ? 138 : 170;
+  const x = template.layout === "sidebar" ? 42 : 20;
+  const width = template.layout === "sidebar" ? 148 : 170;
   const lightHeader = template.layout === "band";
   pdf.setTextColor(...(lightHeader ? [255, 255, 255] : rgb(primary)));
   pdf.setFont(font, "bold");
-  pdf.setFontSize(21);
-  pdf.text(form.name, x, 20);
+  pdf.setFontSize(18);
+  pdf.text(form.name || "Your name", x, 18);
   pdf.setFont(font, "normal");
   pdf.setFontSize(8.5);
   if (!lightHeader) setColour(pdf, accent);
+  else pdf.setTextColor(235, 242, 246);
   pdf.text(
     [form.email, form.phone, form.location].filter(Boolean).join("  •  "),
     x,
-    30,
+    26,
   );
   if (photoData && template.photo !== "none")
-    pdf.addImage(photoData, "PNG", 166, 8, 27, 27);
+    pdf.addImage(photoData, "PNG", 170, 8, 24, 24);
   setColour(pdf, accent, true);
-  pdf.rect(x, 39, width, 1, "F");
+  pdf.rect(x, 32, width, 0.8, "F");
+
+  let y = 42;
+  pdf.setTextColor(80, 95, 102);
+  pdf.setFont(font, "normal");
+  pdf.setFontSize(9);
+  pdf.text(
+    new Date().toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }),
+    x,
+    y,
+  );
+  y += 8;
+  pdf.setTextColor(30, 42, 48);
+  pdf.setFont(font, "bold");
+  pdf.setFontSize(10);
+  pdf.text(form.hiringManager || "Hiring Manager", x, y);
+  y += 5;
+  pdf.setFont(font, "normal");
+  pdf.setFontSize(9.5);
+  pdf.text(form.company || "Company name", x, y);
+  y += 5;
+  if (form.companyWebsite) {
+    pdf.setTextColor(90, 105, 112);
+    pdf.text(form.companyWebsite, x, y);
+    y += 5;
+  }
+  y += 3;
+  setColour(pdf, accent);
+  pdf.setFont(font, "bold");
+  pdf.setFontSize(10);
+  pdf.text(
+    `Re: ${form.role ? `Application for ${form.role}` : "Application for the advertised role"}`,
+    x,
+    y,
+  );
+  y += 9;
+
   pdf.setTextColor(40, 51, 58);
-  pdf.setFontSize(10.5);
-  const lines = pdf.splitTextToSize(letter, width);
-  let y = 57;
-  for (const line of lines) {
-    if (y > 278) {
-      pdf.addPage();
-      y = 22;
+  pdf.setFont(font, "normal");
+  pdf.setFontSize(10.2);
+  const paragraphs = String(letter || "")
+    .split(/\n\s*\n/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  for (const paragraph of paragraphs) {
+    const lines = pdf.splitTextToSize(paragraph, width);
+    for (const line of lines) {
+      if (y > 278) {
+        pdf.addPage();
+        y = 22;
+      }
+      pdf.text(line, x, y);
+      y += lineHeight;
     }
-    pdf.text(line, x, y);
-    y += lineHeight;
+    y += 3.5;
   }
   pdf.save(
     `${safeName(form.name, "baakanya")}-${safeName(template.name, "cover-letter")}-cover-letter.pdf`,
@@ -418,10 +466,22 @@ export const renderBusinessPdf = ({
   setColour(pdf, primary);
   pdf.text("TOTAL", 145, y + 23);
   pdf.text(`P ${amount(total)}`, right, y + 23, { align: "right" });
-  pdf.setFont(font, "normal");
+  pdf.setFont(font, "bold");
   pdf.setFontSize(8.5);
+  pdf.setTextColor(40, 55, 62);
+  pdf.text("PAYMENT DETAILS", left, 268);
+  pdf.setFont(font, "normal");
+  pdf.setFontSize(8.2);
   pdf.setTextColor(75, 87, 94);
-  pdf.text(pdf.splitTextToSize(form.notes, right - left), left, 272);
+  pdf.text(
+    pdf.splitTextToSize(
+      form.notes ||
+        "Bank transfer · Include document number as reference · Payment due within stated terms.",
+      Math.min(110, right - left - 60),
+    ),
+    left,
+    273,
+  );
   pdf.save(
     `${kind.toLowerCase()}-${safeName(form.number, "document")}-${safeName(template.name, "template")}.pdf`,
   );

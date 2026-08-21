@@ -813,21 +813,23 @@ export default function Career() {
             Live {activeDocument === "cv" ? "CV" : "letter"} preview ·{" "}
             {activeTemplate.name}
           </div>
-          {activeDocument === "cv" ? (
-            <CvDocumentPreview
-              form={cvForm}
-              template={styledCvTemplate}
-              skills={split(cvForm.skills)}
-              photoUrl={photoPreview}
-            />
-          ) : (
-            <CoverDocumentPreview
-              form={coverForm}
-              template={styledCoverTemplate}
-              letter={letter}
-              photoUrl={photoPreview}
-            />
-          )}
+          <div className="preview-fit">
+            {activeDocument === "cv" ? (
+              <CvDocumentPreview
+                form={cvForm}
+                template={styledCvTemplate}
+                skills={split(cvForm.skills)}
+                photoUrl={photoPreview}
+              />
+            ) : (
+              <CoverDocumentPreview
+                form={coverForm}
+                template={styledCoverTemplate}
+                letter={letter}
+                photoUrl={photoPreview}
+              />
+            )}
+          </div>
           <small>
             Same layout as your downloadable PDF — what you see is what you get.
           </small>
