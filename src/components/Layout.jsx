@@ -1,6 +1,6 @@
 import { Globe2, Menu, X } from "lucide-react";
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 export function Logo() {
@@ -17,7 +17,13 @@ export default function Layout({ children }) {
   const [open, setOpen] = useState(false);
   const { user, isAdmin, signOut } = useAuth();
   const { language, toggle, t } = useLanguage();
+  const navigate = useNavigate();
   const close = () => setOpen(false);
+  const handleSignOut = async () => {
+    close();
+    await signOut();
+    navigate("/", { replace: true });
+  };
   return (
     <div className="site">
       <header className="nav-wrap">
@@ -52,7 +58,7 @@ export default function Layout({ children }) {
                 <NavLink to={isAdmin ? "/admin" : "/workspace"} onClick={close}>
                   {isAdmin ? "Admin" : t.dashboard}
                 </NavLink>
-                <button className="btn btn-small btn-ink" onClick={signOut}>
+                <button className="btn btn-small btn-ink" onClick={handleSignOut}>
                   Sign out
                 </button>
               </>

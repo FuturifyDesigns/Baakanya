@@ -1,6 +1,6 @@
 import { Landmark, Smartphone, UploadCloud } from "lucide-react";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Layout from "../components/Layout";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -14,6 +14,7 @@ export default function Payment() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const { user } = useAuth();
+  const trialEnded = params.get("reason") === "trial_ended";
   const bank = {
     name: import.meta.env.VITE_BANK_NAME || "FNB Botswana",
     account: import.meta.env.VITE_BANK_ACCOUNT_NAME || "Leon Maunge",
@@ -80,7 +81,14 @@ export default function Payment() {
     <Layout>
       <section className="payment-page container">
         <span className="kicker">MANUAL PAYMENT</span>
-        <h1>Choose access that fits.</h1>
+        <h1>{trialEnded ? "Your trial has ended." : "Choose access that fits."}</h1>
+        {trialEnded && (
+          <div className="form-message" role="status">
+            You have been signed out of the workspace tools. Pay for credits or
+            monthly access to continue.{" "}
+            <Link to="/pricing">Review pricing</Link>
+          </div>
+        )}
         <div className="payment-grid">
           <div className="form-card">
             <div className="plan-select">

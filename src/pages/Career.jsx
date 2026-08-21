@@ -1,9 +1,14 @@
 import { Download, Search, Sparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
 import DocumentStudio from "../components/DocumentStudio";
+import {
+  CoverDocumentPreview,
+  CvDocumentPreview,
+  split,
+} from "../components/DocumentPreview";
 import { defaultCustomization } from "../lib/customization";
 import { supabase } from "../lib/supabase";
 import { authorizeGeneration } from "../lib/generation";
@@ -11,25 +16,40 @@ import { coverLetterTemplates, cvTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 import { renderCoverLetterPdf, renderCvPdf } from "../lib/pdfTemplates";
 import { exportCoverWord, exportCvWord } from "../lib/wordExport";
-const split = (text) =>
-  text
-    .split(/\n|,/)
-    .map((x) => x.trim())
-    .filter(Boolean);
+
+const emptyCv = {
+  name: "",
+  email: "",
+  phone: "",
+  location: "Gaborone, Botswana",
+  expertise: "",
+  website: "",
+  linkedin: "",
+  summary: "",
+  experience: "",
+  education: "",
+  skills: "",
+  certifications: "",
+};
+
+const emptyCover = {
+  name: "",
+  email: "",
+  phone: "",
+  location: "Gaborone, Botswana",
+  role: "",
+  company: "",
+  companyWebsite: "",
+  hiringManager: "",
+  summary: "",
+  experience: "",
+  skills: "",
+};
+
 export default function Career() {
   const [activeDocument, setActiveDocument] = useState("cv");
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    location: "Gaborone, Botswana",
-    role: "",
-    company: "",
-    website: "",
-    summary: "",
-    experience: "",
-    skills: "",
-  });
+  const [cvForm, setCvForm] = useState(emptyCv);
+  const [coverForm, setCoverForm] = useState(emptyCover);
   const [research, setResearch] = useState({
     loading: false,
     text: "",
@@ -46,6 +66,8 @@ export default function Career() {
   const [validation, setValidation] = useState("");
   const [customization, setCustomization] = useState(defaultCustomization);
   const [studioMessage, setStudioMessage] = useState("");
+  const [cvGenerated, setCvGenerated] = useState(false);
+  const [coverGenerated, setCoverGenerated] = useState(false);
   const cvTemplate = cvTemplates.find(({ id }) => id === cvTemplateId);
   const coverTemplate = coverLetterTemplates.find(
     ({ id }) => id === coverTemplateId,
@@ -64,36 +86,81 @@ export default function Career() {
     font: customization.font,
     density: customization.density,
   };
-  const set = (k, v) => {
+  const photoPreview = useMemo(
+    () => (photo ? URL.createObjectURL(photo) : ""),
+    [photo],
+  );
+  useEffect(
+    () => () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+    },
+    [photoPreview],
+  );
+
+  const setCv = (k, v) => {
     setValidation("");
-    setForm((x) => ({ ...x, [k]: v }));
+    setCvForm((x) => ({ ...x, [k]: v }));
   };
-  const validate = (needsCompany = false) => {
-    if (form.name.trim().length < 2) return "Enter your full name.";
-    if (form.role.trim().length < 2) return "Enter the role you are targeting.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
+  const setCover = (k, v) => {
+    setValidation("");
+    setCoverForm((x) => ({ ...x, [k]: v }));
+  };
+
+  const validateCv = () => {
+    if (cvForm.name.trim().length < 2) return "Enter your full name.";
+    if (cvForm.expertise.trim().length < 2)
+      return "Enter your expertise or professional headline.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cvForm.email.trim()))
       return "Enter a valid email address.";
-    if (form.phone && !/^\+?[0-9 ()-]{7,20}$/.test(form.phone.trim()))
+    if (cvForm.phone && !/^\+?[0-9 ()-]{7,20}$/.test(cvForm.phone.trim()))
       return "Enter a valid phone number.";
-    if (needsCompany && form.company.trim().length < 2)
-      return "Enter the company you are applying to.";
-    if (form.website) {
+    if (cvForm.website) {
       try {
-        new URL(form.website);
+        new URL(cvForm.website);
+      } catch {
+        return "Enter a complete personal website URL, including https://.";
+      }
+    }
+    if (cvForm.linkedin && !/linkedin\.com/i.test(cvForm.linkedin))
+      return "Enter a LinkedIn profile URL, or leave it blank.";
+    if (cvForm.summary.trim().length < 30)
+      return "Add a professional summary of at least 30 characters.";
+    if (cvForm.experience.trim().length < 30)
+      return "Add at least 30 characters about your experience.";
+    if (cvForm.education.trim().length < 10)
+      return "Add your education background.";
+    if (split(cvForm.skills).length < 2)
+      return "Add at least two relevant skills.";
+    return "";
+  };
+
+  const validateCover = () => {
+    if (coverForm.name.trim().length < 2) return "Enter your full name.";
+    if (coverForm.role.trim().length < 2) return "Enter the target role.";
+    if (coverForm.company.trim().length < 2)
+      return "Enter the company you are applying to.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(coverForm.email.trim()))
+      return "Enter a valid email address.";
+    if (coverForm.phone && !/^\+?[0-9 ()-]{7,20}$/.test(coverForm.phone.trim()))
+      return "Enter a valid phone number.";
+    if (coverForm.companyWebsite) {
+      try {
+        new URL(coverForm.companyWebsite);
       } catch {
         return "Enter a complete company website URL, including https://.";
       }
     }
-    if (form.summary.trim().length < 30)
-      return "Add a professional summary of at least 30 characters.";
-    if (form.experience.trim().length < 30)
-      return "Add at least 30 characters about your experience.";
-    if (split(form.skills).length < 2)
-      return "Add at least two relevant skills.";
+    if (coverForm.summary.trim().length < 30)
+      return "Add why you are applying (at least 30 characters).";
+    if (coverForm.experience.trim().length < 30)
+      return "Add relevant experience for this letter.";
+    if (split(coverForm.skills).length < 2)
+      return "Add at least two skills to highlight.";
     return "";
   };
+
   const researchCompany = async () => {
-    if (!form.company.trim()) {
+    if (!coverForm.company.trim()) {
       setResearch({
         loading: false,
         text: "",
@@ -106,7 +173,11 @@ export default function Career() {
     const { data, error } = await supabase.functions.invoke(
       "company-research",
       {
-        body: { company: form.company, role: form.role, website: form.website },
+        body: {
+          company: coverForm.company,
+          role: coverForm.role,
+          website: coverForm.companyWebsite,
+        },
       },
     );
     const notFound = !error && data?.found === false;
@@ -122,6 +193,7 @@ export default function Career() {
           : ""),
     });
   };
+
   const useCompanyDescription = () => {
     const detail = manualCompany.trim().replace(/\s+/g, " ");
     if (detail.length < 30) {
@@ -135,84 +207,139 @@ export default function Career() {
     setResearch({
       loading: false,
       error: "",
-      text: `${form.company} is described as an organisation that ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)} This context has been shaped into a concise professional note for your application.`,
+      text: `${coverForm.company} is described as an organisation that ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)} This context has been shaped into a concise professional note for your application.`,
     });
     setShowCompanyFallback(false);
   };
-  const letter = useMemo(
-    () =>
-      `Dear Hiring Team,\n\nI am writing to apply for the ${form.role || "[role]"} position at ${form.company || "[company]"}. ${form.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` I was particularly drawn to your organisation's work: ${research.text}` : ""}\n\n${form.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(form.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${form.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${form.name || "[Your name]"}`,
-    [form, research.text],
-  );
-  const cv = async () => {
-    const invalid = validate(false);
+
+  const letter = useMemo(() => {
+    const manager = coverForm.hiringManager.trim() || "Hiring Team";
+    return `Dear ${manager},\n\nI am writing to apply for the ${coverForm.role || "[role]"} position at ${coverForm.company || "[company]"}. ${coverForm.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` I was particularly drawn to your organisation's work: ${research.text}` : ""}\n\n${coverForm.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(coverForm.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${coverForm.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${coverForm.name || "[Your name]"}`;
+  }, [coverForm, research.text]);
+
+  const generateCv = async () => {
+    const invalid = validateCv();
     if (invalid) {
       setValidation(invalid);
       return;
     }
     try {
       await authorizeGeneration("cv");
+      setCvGenerated(true);
+      setStudioMessage(
+        "CV generated. Review the preview, make final edits, then download.",
+      );
     } catch (error) {
       window.alert(error.message);
-      return;
     }
-    const photoData =
-      photo && cvTemplate.photo !== "none"
-        ? await cropImage(photo, photoCrop, cvTemplate.photo)
-        : null;
-    renderCvPdf({
-      form,
-      template: styledCvTemplate,
-      photoData,
-      skills: split(form.skills),
-    });
   };
-  const cover = async () => {
-    const invalid = validate(true);
+
+  const generateCover = async () => {
+    const invalid = validateCover();
     if (invalid) {
       setValidation(invalid);
       return;
     }
     try {
       await authorizeGeneration("cover_letter");
+      setCoverGenerated(true);
+      setStudioMessage(
+        "Cover letter generated. Review the preview, make final edits, then download.",
+      );
     } catch (error) {
       window.alert(error.message);
-      return;
     }
+  };
+
+  const downloadCvPdf = async () => {
+    if (!cvGenerated) return setValidation("Generate the CV before downloading.");
+    const invalid = validateCv();
+    if (invalid) return setValidation(invalid);
+    const photoData =
+      photo && cvTemplate.photo !== "none"
+        ? await cropImage(photo, photoCrop, cvTemplate.photo)
+        : null;
+    renderCvPdf({
+      form: { ...cvForm, role: cvForm.expertise },
+      template: styledCvTemplate,
+      photoData,
+      skills: split(cvForm.skills),
+    });
+  };
+
+  const downloadCoverPdf = async () => {
+    if (!coverGenerated)
+      return setValidation("Generate the cover letter before downloading.");
+    const invalid = validateCover();
+    if (invalid) return setValidation(invalid);
     const photoData =
       photo && coverTemplate.photo !== "none"
         ? await cropImage(photo, photoCrop, coverTemplate.photo)
         : null;
     renderCoverLetterPdf({
-      form,
+      form: coverForm,
       template: styledCoverTemplate,
       photoData,
       letter,
     });
   };
+
   const saveDraft = () => {
     localStorage.setItem(
       "baakanya-career-draft",
       JSON.stringify({
-        form,
+        cvForm,
+        coverForm,
         researchText: research.text,
         cvTemplateId,
         coverTemplateId,
         photoCrop,
         customization,
+        cvGenerated,
+        coverGenerated,
       }),
     );
     setStudioMessage(
       `Draft saved on this device.${photo ? " For privacy, select your photo again when you return." : ""}`,
     );
   };
+
   const loadDraft = () => {
     try {
       const saved = JSON.parse(
         localStorage.getItem("baakanya-career-draft") || "null",
       );
       if (!saved) return setStudioMessage("No saved career draft was found.");
-      if (saved.form) setForm((current) => ({ ...current, ...saved.form }));
+      if (saved.cvForm) setCvForm((current) => ({ ...current, ...saved.cvForm }));
+      else if (saved.form) {
+        setCvForm((current) => ({
+          ...current,
+          name: saved.form.name || "",
+          email: saved.form.email || "",
+          phone: saved.form.phone || "",
+          location: saved.form.location || current.location,
+          expertise: saved.form.expertise || saved.form.role || "",
+          website: saved.form.website || "",
+          summary: saved.form.summary || "",
+          experience: saved.form.experience || "",
+          skills: saved.form.skills || "",
+        }));
+        setCoverForm((current) => ({
+          ...current,
+          name: saved.form.name || "",
+          email: saved.form.email || "",
+          phone: saved.form.phone || "",
+          location: saved.form.location || current.location,
+          role: saved.form.role || "",
+          company: saved.form.company || "",
+          companyWebsite: saved.form.website || "",
+          summary: saved.form.summary || "",
+          experience: saved.form.experience || "",
+          skills: saved.form.skills || "",
+        }));
+      }
+      if (saved.coverForm)
+        setCoverForm((current) => ({ ...current, ...saved.coverForm }));
       if (saved.researchText)
         setResearch({ loading: false, error: "", text: saved.researchText });
       if (cvTemplates.some(({ id }) => id === saved.cvTemplateId))
@@ -222,19 +349,23 @@ export default function Career() {
       if (saved.photoCrop) setPhotoCrop(saved.photoCrop);
       if (saved.customization)
         setCustomization({ ...defaultCustomization, ...saved.customization });
+      setCvGenerated(Boolean(saved.cvGenerated));
+      setCoverGenerated(Boolean(saved.coverGenerated));
       setStudioMessage("Saved career draft loaded. You can continue editing.");
     } catch {
       setStudioMessage("The saved draft could not be opened.");
     }
   };
+
   const downloadCvWord = async () => {
-    const invalid = validate(false);
+    if (!cvGenerated) return setValidation("Generate the CV before downloading.");
+    const invalid = validateCv();
     if (invalid) return setValidation(invalid);
     try {
       await authorizeGeneration("cv_word");
       exportCvWord({
-        form,
-        skills: split(form.skills),
+        form: { ...cvForm, role: cvForm.expertise },
+        skills: split(cvForm.skills),
         template: styledCvTemplate,
         customization,
       });
@@ -242,13 +373,16 @@ export default function Career() {
       setValidation(error.message);
     }
   };
+
   const downloadCoverWord = async () => {
-    const invalid = validate(true);
+    if (!coverGenerated)
+      return setValidation("Generate the cover letter before downloading.");
+    const invalid = validateCover();
     if (invalid) return setValidation(invalid);
     try {
       await authorizeGeneration("cover_letter_word");
       exportCoverWord({
-        form,
+        form: coverForm,
         letter,
         template: styledCoverTemplate,
         customization,
@@ -257,26 +391,67 @@ export default function Career() {
       setValidation(error.message);
     }
   };
+
+  const canDownload =
+    activeDocument === "cv" ? cvGenerated : coverGenerated;
+
   return (
     <ToolShell
       eyebrow="CAREER DOCUMENTS"
       title="Put your best work on paper."
-      description="Build a clear ATS-friendly CV and tailored cover letter from one guided form."
+      description="CV and cover letter use their own fields. Generate first, refine the preview, then download."
     >
       <nav className="document-workflow" aria-label="Career document being edited">
-        <button className={activeDocument === "cv" ? "active" : ""} onClick={() => setActiveDocument("cv")}>
-          <span>01</span><div><b>Curriculum vitae</b><small>{cvTemplate.name}</small></div><em>{activeDocument === "cv" ? "Editing now" : "Open CV"}</em>
+        <button
+          className={activeDocument === "cv" ? "active" : ""}
+          onClick={() => setActiveDocument("cv")}
+        >
+          <span>01</span>
+          <div>
+            <b>Curriculum vitae</b>
+            <small>{cvTemplate.name}</small>
+          </div>
+          <em>{activeDocument === "cv" ? "Editing now" : "Open CV"}</em>
         </button>
-        <button className={activeDocument === "cover" ? "active" : ""} onClick={() => setActiveDocument("cover")}>
-          <span>02</span><div><b>Cover letter</b><small>{coverTemplate.name}</small></div><em>{activeDocument === "cover" ? "Editing now" : "Open letter"}</em>
+        <button
+          className={activeDocument === "cover" ? "active" : ""}
+          onClick={() => setActiveDocument("cover")}
+        >
+          <span>02</span>
+          <div>
+            <b>Cover letter</b>
+            <small>{coverTemplate.name}</small>
+          </div>
+          <em>{activeDocument === "cover" ? "Editing now" : "Open letter"}</em>
         </button>
       </nav>
       <div className="editing-context">
-        <div><span className="kicker">CURRENT DOCUMENT</span><h2>You’re editing your {activeDocument === "cv" ? "CV" : "cover letter"}.</h2></div>
-        <p>Your contact and experience details stay in sync across both documents.</p>
+        <div>
+          <span className="kicker">CURRENT DOCUMENT</span>
+          <h2>
+            You’re editing your {activeDocument === "cv" ? "CV" : "cover letter"}.
+          </h2>
+        </div>
+        <p>
+          Each document keeps its own international-standard fields. They do not
+          share form data.
+        </p>
       </div>
-      {activeDocument === "cv" ? <TemplatePicker label="CV template" templates={cvTemplates} value={cvTemplateId} onChange={setCvTemplateId} />
-        : <TemplatePicker label="Cover letter template" templates={coverLetterTemplates} value={coverTemplateId} onChange={setCoverTemplateId} />}
+      {activeDocument === "cv" ? (
+        <TemplatePicker
+          label="CV template"
+          templates={cvTemplates}
+          value={cvTemplateId}
+          onChange={setCvTemplateId}
+        />
+      ) : (
+        <TemplatePicker
+          label="Cover letter template"
+          templates={coverLetterTemplates}
+          value={coverTemplateId}
+          onChange={setCoverTemplateId}
+        />
+      )}
       {photoShape !== "none" && (
         <MediaAdjuster
           label={`${photoShape === "circle" ? "Circular" : "Square"} profile photo`}
@@ -289,193 +464,373 @@ export default function Career() {
       )}
       <div className="career-grid">
         <div className="form-card">
-          <div className="field-grid">
-            <label>
-              Full name
-              <input
-                required
-                minLength="2"
-                maxLength="80"
-                autoComplete="name"
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                placeholder="Your full name"
-              />
-            </label>
-            <label>
-              Target role
-              <input
-                required
-                minLength="2"
-                maxLength="100"
-                value={form.role}
-                onChange={(e) => set("role", e.target.value)}
-                placeholder="e.g. Project Coordinator"
-              />
-            </label>
-            <label>
-              Email
-              <input
-                required
-                type="email"
-                maxLength="254"
-                autoComplete="email"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-                placeholder="you@example.com"
-              />
-            </label>
-            <label>
-              Phone
-              <input
-                type="tel"
-                maxLength="20"
-                pattern="\+?[0-9 ()-]{7,20}"
-                autoComplete="tel"
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-                placeholder="+267 ..."
-              />
-            </label>
-            <label>
-              Target company
-              <input
-                minLength="2"
-                maxLength="120"
-                value={form.company}
-                onChange={(e) => set("company", e.target.value)}
-                placeholder="Company name"
-              />
-            </label>
-            <label>
-              Company website <span className="optional">Optional</span>
-              <input
-                type="url"
-                maxLength="300"
-                value={form.website}
-                onChange={(e) => set("website", e.target.value)}
-                placeholder="https://company.co.bw"
-              />
-            </label>
-            <label>
-              Location
-              <input
-                required
-                minLength="2"
-                maxLength="120"
-                autoComplete="address-level2"
-                value={form.location}
-                onChange={(e) => set("location", e.target.value)}
-              />
-            </label>
-          </div>
-          {activeDocument === "cover" && <div className="research-box">
-            <div>
-              <b>Company research</b>
-              <span>
-                Search public web information and add a relevant detail to your
-                letter.
-              </span>
-            </div>
-            <button
-              type="button"
-              className="btn btn-outline"
-              disabled={research.loading}
-              onClick={researchCompany}
-            >
-              <Search size={17} />{" "}
-              {research.loading ? "Researching…" : "Research company"}
-            </button>
-            {(research.text || research.error) && (
-              <p className={research.error ? "research-error" : ""}>
-                {research.error || research.text}
-              </p>
-            )}
-            {showCompanyFallback && (
-              <div className="company-fallback">
+          {activeDocument === "cv" ? (
+            <>
+              <div className="field-grid">
                 <label>
-                  What does the company do?
-                  <textarea
-                    minLength="30"
-                    maxLength="900"
-                    rows="4"
-                    value={manualCompany}
-                    onChange={(event) => setManualCompany(event.target.value)}
-                    placeholder="Describe its services, customers, mission or recent work in your own words."
+                  Full name
+                  <input
+                    required
+                    minLength="2"
+                    maxLength="80"
+                    autoComplete="name"
+                    value={cvForm.name}
+                    onChange={(e) => setCv("name", e.target.value)}
+                    placeholder="Your full name"
                   />
                 </label>
+                <label>
+                  Expertise / professional headline
+                  <input
+                    required
+                    minLength="2"
+                    maxLength="100"
+                    value={cvForm.expertise}
+                    onChange={(e) => setCv("expertise", e.target.value)}
+                    placeholder="e.g. Operations & project coordination"
+                  />
+                </label>
+                <label>
+                  Email
+                  <input
+                    required
+                    type="email"
+                    maxLength="254"
+                    autoComplete="email"
+                    value={cvForm.email}
+                    onChange={(e) => setCv("email", e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </label>
+                <label>
+                  Phone
+                  <input
+                    type="tel"
+                    maxLength="20"
+                    pattern="\+?[0-9 ()-]{7,20}"
+                    autoComplete="tel"
+                    value={cvForm.phone}
+                    onChange={(e) => setCv("phone", e.target.value)}
+                    placeholder="+267 ..."
+                  />
+                </label>
+                <label>
+                  Location
+                  <input
+                    required
+                    minLength="2"
+                    maxLength="120"
+                    autoComplete="address-level2"
+                    value={cvForm.location}
+                    onChange={(e) => setCv("location", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Personal website <span className="optional">Optional</span>
+                  <input
+                    type="url"
+                    maxLength="300"
+                    value={cvForm.website}
+                    onChange={(e) => setCv("website", e.target.value)}
+                    placeholder="https://your-site.com"
+                  />
+                </label>
+                <label>
+                  LinkedIn <span className="optional">Optional</span>
+                  <input
+                    maxLength="300"
+                    value={cvForm.linkedin}
+                    onChange={(e) => setCv("linkedin", e.target.value)}
+                    placeholder="https://linkedin.com/in/you"
+                  />
+                </label>
+              </div>
+              <label>
+                Professional summary
+                <textarea
+                  required
+                  minLength="30"
+                  maxLength="800"
+                  rows="4"
+                  value={cvForm.summary}
+                  onChange={(e) => setCv("summary", e.target.value)}
+                  placeholder="What do you do well, and what kind of opportunity are you looking for?"
+                />
+              </label>
+              <label>
+                Work experience
+                <textarea
+                  required
+                  minLength="30"
+                  maxLength="3000"
+                  rows="7"
+                  value={cvForm.experience}
+                  onChange={(e) => setCv("experience", e.target.value)}
+                  placeholder="Include roles, employers, dates, responsibilities and results."
+                />
+              </label>
+              <label>
+                Education
+                <textarea
+                  required
+                  minLength="10"
+                  maxLength="1200"
+                  rows="4"
+                  value={cvForm.education}
+                  onChange={(e) => setCv("education", e.target.value)}
+                  placeholder="Qualification, institution and year."
+                />
+              </label>
+              <label>
+                Skills
+                <textarea
+                  required
+                  minLength="3"
+                  maxLength="500"
+                  rows="3"
+                  value={cvForm.skills}
+                  onChange={(e) => setCv("skills", e.target.value)}
+                  placeholder="Project coordination, Excel, customer service..."
+                />
+              </label>
+              <label>
+                Certifications <span className="optional">Optional</span>
+                <textarea
+                  maxLength="800"
+                  rows="3"
+                  value={cvForm.certifications}
+                  onChange={(e) => setCv("certifications", e.target.value)}
+                  placeholder="Relevant licences or certificates."
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <div className="field-grid">
+                <label>
+                  Full name
+                  <input
+                    required
+                    minLength="2"
+                    maxLength="80"
+                    value={coverForm.name}
+                    onChange={(e) => setCover("name", e.target.value)}
+                    placeholder="Your full name"
+                  />
+                </label>
+                <label>
+                  Target role
+                  <input
+                    required
+                    minLength="2"
+                    maxLength="100"
+                    value={coverForm.role}
+                    onChange={(e) => setCover("role", e.target.value)}
+                    placeholder="e.g. Project Coordinator"
+                  />
+                </label>
+                <label>
+                  Target company
+                  <input
+                    required
+                    minLength="2"
+                    maxLength="120"
+                    value={coverForm.company}
+                    onChange={(e) => setCover("company", e.target.value)}
+                    placeholder="Company name"
+                  />
+                </label>
+                <label>
+                  Hiring manager <span className="optional">Optional</span>
+                  <input
+                    maxLength="120"
+                    value={coverForm.hiringManager}
+                    onChange={(e) => setCover("hiringManager", e.target.value)}
+                    placeholder="Name or leave blank for Hiring Team"
+                  />
+                </label>
+                <label>
+                  Email
+                  <input
+                    required
+                    type="email"
+                    maxLength="254"
+                    value={coverForm.email}
+                    onChange={(e) => setCover("email", e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </label>
+                <label>
+                  Phone
+                  <input
+                    type="tel"
+                    maxLength="20"
+                    value={coverForm.phone}
+                    onChange={(e) => setCover("phone", e.target.value)}
+                    placeholder="+267 ..."
+                  />
+                </label>
+                <label>
+                  Location
+                  <input
+                    required
+                    minLength="2"
+                    maxLength="120"
+                    value={coverForm.location}
+                    onChange={(e) => setCover("location", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Company website <span className="optional">Optional</span>
+                  <input
+                    type="url"
+                    maxLength="300"
+                    value={coverForm.companyWebsite}
+                    onChange={(e) => setCover("companyWebsite", e.target.value)}
+                    placeholder="https://company.co.bw"
+                  />
+                </label>
+              </div>
+              <div className="research-box">
+                <div>
+                  <b>Company research</b>
+                  <span>
+                    Search public web information and add a relevant detail to
+                    your letter.
+                  </span>
+                </div>
                 <button
                   type="button"
                   className="btn btn-outline"
-                  onClick={useCompanyDescription}
+                  disabled={research.loading}
+                  onClick={researchCompany}
                 >
-                  Format company description
+                  <Search size={17} />{" "}
+                  {research.loading ? "Researching…" : "Research company"}
                 </button>
+                {(research.text || research.error) && (
+                  <p className={research.error ? "research-error" : ""}>
+                    {research.error || research.text}
+                  </p>
+                )}
+                {showCompanyFallback && (
+                  <div className="company-fallback">
+                    <label>
+                      What does the company do?
+                      <textarea
+                        minLength="30"
+                        maxLength="900"
+                        rows="4"
+                        value={manualCompany}
+                        onChange={(event) =>
+                          setManualCompany(event.target.value)
+                        }
+                        placeholder="Describe its services, customers, mission or recent work in your own words."
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={useCompanyDescription}
+                    >
+                      Format company description
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>}
-          <label>
-            Professional summary
-            <textarea
-              required
-              minLength="30"
-              maxLength="800"
-              rows="4"
-              value={form.summary}
-              onChange={(e) => set("summary", e.target.value)}
-              placeholder="What do you do well, and what kind of opportunity are you looking for?"
-            />
-          </label>
-          <label>
-            Experience and achievements
-            <textarea
-              required
-              minLength="30"
-              maxLength="3000"
-              rows="7"
-              value={form.experience}
-              onChange={(e) => set("experience", e.target.value)}
-              placeholder="Include roles, projects, responsibilities and results. Use a new line for each point."
-            />
-          </label>
-          <label>
-            Skills
-            <textarea
-              required
-              minLength="3"
-              maxLength="500"
-              rows="3"
-              value={form.skills}
-              onChange={(e) => set("skills", e.target.value)}
-              placeholder="Project coordination, Excel, customer service..."
-            />
-          </label>
+              <label>
+                Why you are applying
+                <textarea
+                  required
+                  minLength="30"
+                  maxLength="800"
+                  rows="4"
+                  value={coverForm.summary}
+                  onChange={(e) => setCover("summary", e.target.value)}
+                  placeholder="Connect your motivation to this role and company."
+                />
+              </label>
+              <label>
+                Experience to highlight
+                <textarea
+                  required
+                  minLength="30"
+                  maxLength="2000"
+                  rows="6"
+                  value={coverForm.experience}
+                  onChange={(e) => setCover("experience", e.target.value)}
+                  placeholder="Evidence that matches this specific role."
+                />
+              </label>
+              <label>
+                Skills to highlight
+                <textarea
+                  required
+                  minLength="3"
+                  maxLength="500"
+                  rows="3"
+                  value={coverForm.skills}
+                  onChange={(e) => setCover("skills", e.target.value)}
+                  placeholder="Skills most relevant to this application"
+                />
+              </label>
+            </>
+          )}
           {validation && (
             <div className="form-message validation-error" role="alert">
               {validation}
             </div>
           )}
           <div className="form-downloads">
-            <button className="btn btn-blue" onClick={activeDocument === "cv" ? cv : cover}>
-              <Download />
-              Download {activeDocument === "cv" ? "CV" : "cover letter"}
+            <button
+              className="btn btn-blue"
+              onClick={activeDocument === "cv" ? generateCv : generateCover}
+            >
+              <Sparkles />
+              Generate {activeDocument === "cv" ? "CV" : "cover letter"}
             </button>
-            <button className="btn btn-outline" onClick={() => setActiveDocument(activeDocument === "cv" ? "cover" : "cv")}>Edit {activeDocument === "cv" ? "cover letter" : "CV"}</button>
+            <button
+              className="btn btn-ink"
+              disabled={!canDownload}
+              onClick={activeDocument === "cv" ? downloadCvPdf : downloadCoverPdf}
+            >
+              <Download />
+              Download PDF
+            </button>
           </div>
+          {!canDownload && (
+            <p className="generate-hint">
+              Generate first to unlock PDF and Word downloads after your final
+              edits.
+            </p>
+          )}
         </div>
-        <aside className={`letter-preview live-document-preview ${activeDocument}`}>
+        <aside
+          className={`letter-preview live-document-preview ${activeDocument}`}
+        >
           <div className="preview-label">
             <Sparkles />
-            Live {activeDocument === "cv" ? "CV" : "letter"} preview
+            Live {activeDocument === "cv" ? "CV" : "letter"} preview ·{" "}
+            {activeTemplate.name}
           </div>
-          {activeDocument === "cv" ? <div className="cv-preview-content">
-            <header><h3>{form.name || "Your name"}</h3><b>{form.role || "Target role"}</b><small>{[form.email, form.phone, form.location].filter(Boolean).join(" · ")}</small></header>
-            <section><strong>PROFILE</strong><p>{form.summary || "Your professional summary will appear here as you type."}</p></section>
-            <section><strong>EXPERIENCE</strong><p className="preline">{form.experience || "Add your roles, projects and achievements to build this section."}</p></section>
-            <section><strong>SKILLS</strong><div className="preview-skills">{(split(form.skills).length ? split(form.skills) : ["Your skills"]).map((skill) => <span key={skill}>{skill}</span>)}</div></section>
-          </div> : <><h3>{form.role || "Your target role"}</h3><p className="preline">{letter}</p></>}
+          {activeDocument === "cv" ? (
+            <CvDocumentPreview
+              form={cvForm}
+              template={styledCvTemplate}
+              skills={split(cvForm.skills)}
+              photoUrl={photoPreview}
+            />
+          ) : (
+            <CoverDocumentPreview
+              form={coverForm}
+              template={styledCoverTemplate}
+              letter={letter}
+              photoUrl={photoPreview}
+            />
+          )}
           <small>
-            This preview updates as you type. PDF and Word generation remain on this device.
+            This preview mirrors the selected template layout. PDF generation
+            stays on this device.
           </small>
         </aside>
       </div>
@@ -485,7 +840,17 @@ export default function Career() {
         onSave={saveDraft}
         onLoad={loadDraft}
         message={studioMessage}
-        wordActions={[activeDocument === "cv" ? { label: "Download CV for Word", onClick: downloadCvWord } : { label: "Download cover letter for Word", onClick: downloadCoverWord }]}
+        downloadEnabled={canDownload}
+        wordActions={
+          activeDocument === "cv"
+            ? [{ label: "Download CV for Word", onClick: downloadCvWord }]
+            : [
+                {
+                  label: "Download cover letter for Word",
+                  onClick: downloadCoverWord,
+                },
+              ]
+        }
       />
     </ToolShell>
   );

@@ -7,6 +7,7 @@ export default function DocumentStudio({
   onLoad,
   wordActions,
   message,
+  downloadEnabled = true,
 }) {
   return (
     <section className="document-studio">
@@ -16,7 +17,7 @@ export default function DocumentStudio({
           <h3>Keep editing until it feels like yours.</h3>
           <p>
             Change the information above at any time, customise the final style,
-            save a draft on this device, or download an editable Word copy.
+            save a draft on this device, then download after you generate.
           </p>
         </div>
         <div className="draft-actions">
@@ -81,11 +82,17 @@ export default function DocumentStudio({
             className="btn btn-ink"
             onClick={action.onClick}
             key={action.label}
+            disabled={!downloadEnabled}
           >
             <Download /> {action.label}
           </button>
         ))}
       </div>
+      {!downloadEnabled && (
+        <p className="generate-hint">
+          Generate the document above before Word download becomes available.
+        </p>
+      )}
       {message && (
         <div className="form-message" role="status">
           {message}

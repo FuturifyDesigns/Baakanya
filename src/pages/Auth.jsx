@@ -5,9 +5,11 @@ import { Logo } from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { getDeviceFingerprint } from "../lib/fingerprint";
+
 export default function Auth() {
   const [params] = useSearchParams();
   const [signup, setSignup] = useState(params.get("mode") === "signup");
+  const [accessMode, setAccessMode] = useState("trial");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -17,8 +19,9 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user, isAdmin, roleLoading } = useAuth();
+  const { user, isAdmin, roleLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const nextPath = params.get("next") || "/workspace";
   const passwordChecks = {
     length: form.password.length >= 10,
     letter: /[A-Za-z]/.test(form.password),
@@ -38,10 +41,42 @@ export default function Auth() {
         : strengthScore === 3
           ? { label: "Good", className: "good" }
           : { label: "Strong", className: "strong" };
+
   useEffect(() => {
-    if (user && !roleLoading)
-      navigate(isAdmin ? "/admin" : "/workspace", { replace: true });
-  }, [user, isAdmin, roleLoading, navigate]);
+    setSignup(params.get("mode") === "signup");
+  }, [params]);
+
+  useEffect(() => {
+    if (!user || roleLoading || signup) return;
+    (async () => {
+      if (isAdmin) {
+        navigate("/admin", { replace: true });
+        return;
+      }
+      const { data } = await supabase
+        ?.from("profiles")
+        .select("plan_type,trial_end_date,signup_intent")
+        .eq("id", user.id)
+        .maybeSingle();
+      const now = Date.now();
+      const trialActive =
+        data?.trial_end_date && new Date(data.trial_end_date).getTime() > now;
+      if (
+        !trialActive &&
+        data?.plan_type === "none" &&
+        (data?.signup_intent === "credits" ||
+          data?.signup_intent === "subscription")
+      ) {
+        navigate(
+          `/payment?plan=${data.signup_intent === "credits" ? "credits" : "subscription"}`,
+          { replace: true },
+        );
+        return;
+      }
+      navigate(nextPath, { replace: true });
+    })();
+  }, [user, isAdmin, roleLoading, navigate, signup, nextPath]);
+
   const submit = async (e) => {
     e.preventDefault();
     if (!supabase) {
@@ -56,32 +91,47 @@ export default function Auth() {
     let result;
     if (signup) {
       try {
-        const device = await getDeviceFingerprint();
-        const gate = await supabase.functions.invoke("trial-gate", {
-          body: {
-            email,
-            ...device,
-            website: form.website,
-            clientTimestamp: new Date().toISOString(),
-          },
-        });
-        if (gate.error || !gate.data?.reservationToken) {
-          throw new Error(
-            gate.data?.error ||
-              "This account is not eligible for another free trial.",
-          );
+        const metadata = {
+          name: form.name,
+          signup_intent: accessMode,
+        };
+        if (accessMode === "trial") {
+          const device = await getDeviceFingerprint();
+          const gate = await supabase.functions.invoke("trial-gate", {
+            body: {
+              email,
+              ...device,
+              website: form.website,
+              clientTimestamp: new Date().toISOString(),
+            },
+          });
+          if (gate.error || !gate.data?.reservationToken) {
+            throw new Error(
+              gate.data?.error ||
+                "This account is not eligible for another free trial.",
+            );
+          }
+          metadata.trial_reservation_token = gate.data.reservationToken;
         }
         result = await supabase.auth.signUp({
           email,
           password: form.password,
           options: {
             emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}verified.html`,
-            data: {
-              name: form.name,
-              trial_reservation_token: gate.data.reservationToken,
-            },
+            data: metadata,
           },
         });
+        if (!result.error) {
+          // Force sign-in screen after signup so verification is completed first.
+          if (result.data?.session) await signOut();
+          setBusy(false);
+          setSignup(false);
+          setMessage(
+            "Please check your email and verify your account, then sign in.",
+          );
+          navigate("/auth?mode=signin", { replace: true });
+          return;
+        }
       } catch (error) {
         result = { error };
       }
@@ -93,13 +143,8 @@ export default function Auth() {
     }
     setBusy(false);
     if (result.error) setMessage(result.error.message);
-    else if (signup)
-      setMessage(
-        "Check your email to verify your account and activate your 7-day trial.",
-      );
-    // The authenticated-session effect waits for the database-backed role
-    // lookup before choosing the correct dashboard.
   };
+
   return (
     <div className="auth-page">
       <div className="auth-brand">
@@ -110,11 +155,11 @@ export default function Auth() {
           <ul>
             <li>
               <CheckCircle2 />
-              All tools free for seven days
+              Choose free trial or paid access at signup
             </li>
             <li>
               <CheckCircle2 />
-              No card required
+              No card required for the trial
             </li>
             <li>
               <CheckCircle2 />
@@ -146,14 +191,42 @@ export default function Auth() {
             </label>
           </div>
           <span className="kicker">
-            {signup ? "START FREE" : "WELCOME BACK"}
+            {signup ? "CREATE ACCOUNT" : "WELCOME BACK"}
           </span>
           <h2>{signup ? "Create your account" : "Log in to Baakanya"}</h2>
           <p>
             {signup
-              ? "Seven days of full access. No payment upfront."
+              ? "Select how you want to access the tools before entering the workspace."
               : "Pick up where you left off."}
           </p>
+          {signup && (
+            <div className="access-mode-select" role="radiogroup" aria-label="Access mode">
+              <button
+                type="button"
+                className={accessMode === "trial" ? "active" : ""}
+                onClick={() => setAccessMode("trial")}
+              >
+                <b>Start free 7-day trial</b>
+                <span>Full tools · no payment yet</span>
+              </button>
+              <button
+                type="button"
+                className={accessMode === "credits" ? "active" : ""}
+                onClick={() => setAccessMode("credits")}
+              >
+                <b>Pay with credits · P25</b>
+                <span>5 documents · no expiry</span>
+              </button>
+              <button
+                type="button"
+                className={accessMode === "subscription" ? "active" : ""}
+                onClick={() => setAccessMode("subscription")}
+              >
+                <b>Pay monthly · P40</b>
+                <span>Unlimited for 30 days</span>
+              </button>
+            </div>
+          )}
           {signup && (
             <label>
               Full name
@@ -257,7 +330,13 @@ export default function Auth() {
             </div>
           )}
           <button className="btn btn-blue" disabled={busy}>
-            {busy ? "Please wait…" : signup ? "Start my free trial" : "Log in"}
+            {busy
+              ? "Please wait…"
+              : signup
+                ? accessMode === "trial"
+                  ? "Create account & start trial"
+                  : "Create account & continue to payment"
+                : "Log in"}
           </button>
           {message && <div className="form-message">{message}</div>}
           <p className="switch-auth">
@@ -268,9 +347,10 @@ export default function Auth() {
                 setSignup(!signup);
                 setMessage("");
                 setShowPassword(false);
+                navigate(signup ? "/auth?mode=signin" : "/auth?mode=signup");
               }}
             >
-              {signup ? "Log in" : "Start free"}
+              {signup ? "Log in" : "Create account"}
             </button>
           </p>
         </form>

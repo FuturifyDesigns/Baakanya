@@ -6,8 +6,9 @@ const benefits = [
   "CV, invoice and conversion tools",
   "Private browser-based file handling",
   "English and Setswana interface",
-  "No card required to begin",
+  "No card required for the free trial",
 ];
+
 export default function Pricing() {
   return (
     <Layout>
@@ -15,10 +16,11 @@ export default function Pricing() {
         <div className="container pricing-hero-grid">
           <div>
             <span className="micro-label light">PRICING</span>
-            <h1>Pay for the pace that fits your work.</h1>
+            <h1>Clear prices. Access is chosen when you create an account.</h1>
             <p>
-              Try every tool for seven days, then choose occasional credits or
-              unlimited monthly access. No automatic debit.
+              This page shows what each option costs. During account creation
+              you choose free trial, credits, or monthly access before entering
+              the workspace.
             </p>
           </div>
           <aside className="pricing-quick-guide">
@@ -39,16 +41,19 @@ export default function Pricing() {
         <div className="trial-banner">
           <div>
             <span>7 DAYS</span>
-            <h2>Everything is open while you decide.</h2>
+            <h2>Free trial is selected at signup.</h2>
           </div>
-          <p>No bank card. Verify your email and your trial begins.</p>
+          <p>
+            Pricing here is informational only. Activate trial or paid access
+            when you create your account.
+          </p>
           <Link className="btn btn-ink" to="/auth?mode=signup">
-            Start free <ArrowRight />
+            Create account <ArrowRight />
           </Link>
         </div>
         <div className="pricing-split">
           <article className="pricing-option credits-option">
-            <span className="micro-label">FOR THE URGENT JOB</span>
+            <span className="micro-label">CREDITS</span>
             <div className="big-price">
               <small>P</small>25
             </div>
@@ -69,13 +74,13 @@ export default function Pricing() {
                 Shared across all tools
               </li>
             </ul>
-            <Link className="plain-arrow" to="/payment?plan=credits">
-              Buy five credits <ArrowRight />
-            </Link>
+            <p className="pricing-note">
+              Activated from account creation or payment after trial.
+            </p>
           </article>
           <article className="pricing-option blue recommended-option">
             <div className="recommended-badge">BEST FOR REGULAR USE</div>
-            <span className="micro-label">FOR REGULAR USE</span>
+            <span className="micro-label">MONTHLY</span>
             <div className="big-price">
               <small>P</small>40<i>/month</i>
             </div>
@@ -99,9 +104,9 @@ export default function Pricing() {
                 No automatic debit
               </li>
             </ul>
-            <Link className="btn btn-ink" to="/payment?plan=subscription">
-              Choose monthly <ArrowRight />
-            </Link>
+            <p className="pricing-note">
+              Activated from account creation or payment after trial.
+            </p>
           </article>
         </div>
         <section className="pricing-scenarios">
@@ -132,8 +137,8 @@ export default function Pricing() {
               <span>03</span>
               <h3>Still deciding</h3>
               <p>
-                Use the full seven-day trial first. You do not need a card or a
-                payment to understand which tools you use most.
+                Choose the seven-day trial during account creation. You do not
+                need a card to understand which tools you use most.
               </p>
               <b>Best fit: Free trial</b>
             </article>
@@ -157,6 +162,13 @@ export default function Pricing() {
           </div>
           <div className="pricing-faq-list">
             <article>
+              <h3>Where do I activate a plan?</h3>
+              <p>
+                During account creation. The pricing page only explains the
+                costs.
+              </p>
+            </article>
+            <article>
               <h3>What uses a credit?</h3>
               <p>
                 Each document-generation or file-conversion action uses one
@@ -171,14 +183,10 @@ export default function Pricing() {
               </p>
             </article>
             <article>
-              <h3>Do unused credits expire?</h3>
-              <p>No. Purchased credits remain available until you use them.</p>
-            </article>
-            <article>
-              <h3>When is access activated?</h3>
+              <h3>What happens when the trial ends?</h3>
               <p>
-                Payment submissions are reviewed before credits or monthly
-                access are added to your account.
+                You are removed from the workspace until you pay for credits or
+                monthly access.
               </p>
             </article>
           </div>

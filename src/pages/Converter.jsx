@@ -9,12 +9,14 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import mammoth from "mammoth";
+import html2canvas from "html2canvas";
 import ToolShell from "../components/ToolShell";
 import { authorizeGeneration } from "../lib/generation";
+
 const saveBlob = (blob, name) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -23,6 +25,7 @@ const saveBlob = (blob, name) => {
   a.click();
   URL.revokeObjectURL(url);
 };
+
 const readImage = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -35,14 +38,44 @@ const readImage = (file) =>
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+
+const cloneBytes = async (file) => {
+  const buffer = await file.arrayBuffer();
+  return buffer.slice(0);
+};
+
+const defaultPrompt = (mode) =>
+  mode === "merge"
+    ? "Ready for another merge when you are."
+    : "Ready for another conversion when you are.";
+
 export default function Converter() {
   const [mode, setMode] = useState("images");
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [dragIndex, setDragIndex] = useState(null);
+  const [inputKey, setInputKey] = useState(0);
+  const resetTimer = useRef(null);
+
+  useEffect(
+    () => () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+    },
+    [],
+  );
+
+  const scheduleReset = () => {
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => {
+      setFiles([]);
+      setInputKey((value) => value + 1);
+      setMessage(defaultPrompt(mode));
+    }, 5000);
+  };
+
   const choose = (list) => {
-    const selected = Array.from(list);
+    const selected = Array.from(list || []);
     const pattern =
       mode === "images"
         ? /\.(jpe?g|png)$/i
@@ -66,9 +99,20 @@ export default function Converter() {
       setMessage("Each file must be smaller than 20 MB.");
       return;
     }
+    // Always replace the queue so previous merge selections cannot leak.
     setFiles(selected);
     setMessage("");
   };
+
+  const changeMode = (next) => {
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+    setMode(next);
+    setFiles([]);
+    setInputKey((value) => value + 1);
+    setMessage("");
+    setDragIndex(null);
+  };
+
   const reorder = (from, to) =>
     setFiles((current) => {
       if (from === to || from < 0 || to < 0 || to >= current.length)
@@ -79,6 +123,48 @@ export default function Converter() {
       return next;
     });
   const move = (index, direction) => reorder(index, index + direction);
+
+  const convertWordExact = async (file) => {
+    const bytes = await cloneBytes(file);
+    const { value: html } = await mammoth.convertToHtml(
+      { arrayBuffer: bytes },
+      {
+        includeDefaultStyleMap: true,
+        convertImage: mammoth.images.imgElement((image) =>
+          image.read("base64").then((imageBuffer) => ({
+            src: `data:${image.contentType};base64,${imageBuffer}`,
+          })),
+        ),
+      },
+    );
+    const host = document.createElement("div");
+    host.style.cssText =
+      "position:fixed;left:-10000px;top:0;width:794px;padding:48px;background:#fff;color:#111;font:16px/1.5 'Times New Roman',Times,serif;";
+    host.innerHTML = html || "<p></p>";
+    document.body.appendChild(host);
+    try {
+      const pdf = new jsPDF({ unit: "pt", format: "a4" });
+      await pdf.html(host, {
+        margin: [36, 36, 36, 36],
+        autoPaging: "text",
+        width: 523,
+        windowWidth: 794,
+        html2canvas: {
+          scale: 0.75,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          // Ensure the dependency is retained in the production bundle.
+          logging: false,
+        },
+      });
+      // Touch import so bundlers keep html2canvas available to jsPDF.html.
+      if (!html2canvas) throw new Error("PDF renderer unavailable");
+      pdf.save(file.name.replace(/\.docx$/i, "") + ".pdf");
+    } finally {
+      host.remove();
+    }
+  };
+
   const convert = async () => {
     if (!files.length) {
       setMessage("Choose at least one file first.");
@@ -90,64 +176,59 @@ export default function Converter() {
     }
     setBusy(true);
     setMessage("");
+    const queue = [...files];
     try {
       await authorizeGeneration(`converter_${mode}`);
       if (mode === "images") {
         const pdf = new jsPDF();
-        for (let i = 0; i < files.length; i++) {
-          const { img, data } = await readImage(files[i]);
+        for (let i = 0; i < queue.length; i++) {
+          const { img, data } = await readImage(queue[i]);
           if (i) pdf.addPage();
           const ratio = Math.min(180 / img.width, 260 / img.height),
             w = img.width * ratio,
             h = img.height * ratio;
           pdf.addImage(
             data,
-            files[i].type.includes("png") ? "PNG" : "JPEG",
+            queue[i].type.includes("png") ? "PNG" : "JPEG",
             (210 - w) / 2,
             (297 - h) / 2,
             w,
             h,
           );
         }
-        pdf.save("baakanya-images.pdf");
+        pdf.save(`baakanya-images-${Date.now()}.pdf`);
       }
       if (mode === "merge") {
         const merged = await PDFDocument.create();
-        for (const file of files) {
-          const source = await PDFDocument.load(await file.arrayBuffer());
-          const pages = await merged.copyPages(source, source.getPageIndices());
-          pages.forEach((p) => merged.addPage(p));
+        for (const file of queue) {
+          const bytes = await cloneBytes(file);
+          const source = await PDFDocument.load(bytes, {
+            ignoreEncryption: true,
+          });
+          const indices = source.getPageIndices();
+          const pages = await merged.copyPages(source, indices);
+          pages.forEach((page) => merged.addPage(page));
         }
+        const output = await merged.save();
         saveBlob(
-          new Blob([await merged.save()], { type: "application/pdf" }),
-          "baakanya-merged.pdf",
+          new Blob([output], { type: "application/pdf" }),
+          `baakanya-merged-${Date.now()}.pdf`,
         );
       }
       if (mode === "word") {
-        const result = await mammoth.extractRawText({
-          arrayBuffer: await files[0].arrayBuffer(),
-        });
-        const pdf = new jsPDF();
-        pdf.setFontSize(11);
-        const lines = pdf.splitTextToSize(result.value, 175);
-        let y = 22;
-        lines.forEach((line) => {
-          if (y > 278) {
-            pdf.addPage();
-            y = 22;
-          }
-          pdf.text(line, 18, y);
-          y += 6;
-        });
-        pdf.save(files[0].name.replace(/\.docx$/i, "") + ".pdf");
+        await convertWordExact(queue[0]);
       }
       setMessage("Done — your PDF has been downloaded.");
+      setFiles([]);
+      setInputKey((value) => value + 1);
+      scheduleReset();
     } catch (error) {
       setMessage(`We couldn't process that file: ${error.message}`);
     } finally {
       setBusy(false);
     }
   };
+
   const accepts =
     mode === "images" ? ".jpg,.jpeg,.png" : mode === "merge" ? ".pdf" : ".docx";
   return (
@@ -160,30 +241,21 @@ export default function Converter() {
         <div className="tabs">
           <button
             className={mode === "images" ? "active" : ""}
-            onClick={() => {
-              setMode("images");
-              setFiles([]);
-            }}
+            onClick={() => changeMode("images")}
           >
             <Image />
             Images to PDF
           </button>
           <button
             className={mode === "merge" ? "active" : ""}
-            onClick={() => {
-              setMode("merge");
-              setFiles([]);
-            }}
+            onClick={() => changeMode("merge")}
           >
             <Merge />
             Merge PDFs
           </button>
           <button
             className={mode === "word" ? "active" : ""}
-            onClick={() => {
-              setMode("word");
-              setFiles([]);
-            }}
+            onClick={() => changeMode("word")}
           >
             <File />
             Word to PDF
@@ -191,6 +263,7 @@ export default function Converter() {
         </div>
         <label className="drop-zone">
           <input
+            key={inputKey}
             type="file"
             accept={accepts}
             multiple={mode !== "word"}
@@ -203,7 +276,7 @@ export default function Converter() {
               ? "JPG or PNG · select more than one"
               : mode === "merge"
                 ? "PDF files · arrange them before merging"
-                : "DOCX · text is preserved in a clean PDF layout"}
+                : "DOCX · keeps the document content and formatting as closely as possible"}
           </p>
         </label>
         {files.length > 0 && (
@@ -211,7 +284,9 @@ export default function Converter() {
             <div className="file-list-head">
               <div>
                 <b>
-                  {mode === "merge" ? "PDF MERGE ORDER" : `${files.length} file${files.length > 1 ? "s" : ""} ready`}
+                  {mode === "merge"
+                    ? "PDF MERGE ORDER"
+                    : `${files.length} file${files.length > 1 ? "s" : ""} ready`}
                 </b>
                 {mode === "merge" && (
                   <small>
@@ -220,12 +295,19 @@ export default function Converter() {
                   </small>
                 )}
               </div>
-              <button onClick={() => setFiles([])}>Clear all</button>
+              <button
+                onClick={() => {
+                  setFiles([]);
+                  setInputKey((value) => value + 1);
+                }}
+              >
+                Clear all
+              </button>
             </div>
             {files.map((file, i) => (
               <div
                 className={`file-row ${dragIndex === i ? "dragging" : ""}`}
-                key={`${file.name}-${file.size}-${i}`}
+                key={`${file.name}-${file.size}-${file.lastModified}-${i}`}
                 draggable={mode === "merge"}
                 onDragStart={() => setDragIndex(i)}
                 onDragOver={(event) => event.preventDefault()}

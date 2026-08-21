@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 
 function CareerPreview({ template }) {
   const cover = template.type === "cover";
-  return <span className={`template-paper ${template.layout} ${cover ? "cover-paper" : "cv-paper"}`}>
+  return <span className={`template-paper ${template.layout} ${cover ? "cover-paper" : "cv-paper"}`} style={{ "--template-primary": template.primary, "--template-accent": template.accent }}>
     <span className="paper-brand"><b>{cover ? "K. Molefe" : "KAGO MOLEFE"}</b><i /></span>
     {template.photo !== "none" && <em className={`paper-photo ${template.photo}`} />}
     {cover ? <>
@@ -12,9 +12,10 @@ function CareerPreview({ template }) {
       <i className="paper-line wide" /><i className="paper-line short" />
       <span className="paper-sign">Kago Molefe</span>
     </> : <>
-      <span className="paper-contact">Gaborone · +267 71 234 567</span>
+      <span className="paper-contact">Expertise · Gaborone · +267</span>
       <strong>PROFILE</strong><i className="paper-line wide" /><i className="paper-line" />
       <strong>EXPERIENCE</strong><i className="paper-line wide" /><i className="paper-line wide" /><i className="paper-line short" />
+      <strong>EDUCATION</strong><i className="paper-line" />
       <strong>SKILLS</strong><span className="paper-skills"><i /><i /><i /></span>
     </>}
   </span>;

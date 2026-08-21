@@ -1,8 +1,10 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAccess } from "../lib/access";
+import { useAuth } from "../lib/auth";
 import Layout from "./Layout";
 export default function ToolShell({ eyebrow, title, description, children }) {
+  const { user, loading: authLoading } = useAuth();
   const access = useAccess();
   return (
     <Layout>
@@ -25,8 +27,23 @@ export default function ToolShell({ eyebrow, title, description, children }) {
             </span>
           </div>
         </div>
-        {access.loading ? (
+        {authLoading || access.loading ? (
           <div className="empty-state">Checking your access…</div>
+        ) : !user ? (
+          <div className="locked-card">
+            <ShieldCheck />
+            <span className="kicker">SIGN IN REQUIRED</span>
+            <h2>Only signed-in accounts can use this tool</h2>
+            <p>Create an account or log in to continue.</p>
+            <div>
+              <Link className="btn btn-blue" to="/auth?mode=signin">
+                Sign in
+              </Link>
+              <Link className="btn btn-outline" to="/auth?mode=signup">
+                Create account
+              </Link>
+            </div>
+          </div>
         ) : access.allowed ? (
           children
         ) : (
@@ -41,9 +58,6 @@ export default function ToolShell({ eyebrow, title, description, children }) {
             <div>
               <Link className="btn btn-blue" to="/payment">
                 View payment options
-              </Link>
-              <Link className="btn btn-outline" to="/auth">
-                Log in
               </Link>
             </div>
           </div>

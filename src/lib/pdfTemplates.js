@@ -73,7 +73,13 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     pdf.text(pdf.splitTextToSize(form.name, 45), 9, photoData ? 65 : 25);
     pdf.setFont(font, "normal");
     pdf.setFontSize(8.5);
-    const contact = [form.email, form.phone, form.location].filter(Boolean);
+    const contact = [
+      form.email,
+      form.phone,
+      form.location,
+      form.website,
+      form.linkedin,
+    ].filter(Boolean);
     pdf.text(contact, 9, photoData ? 86 : 48);
   } else if (band) {
     setColour(pdf, primary, true);
@@ -84,12 +90,14 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     pdf.text(form.name, 18, 20);
     pdf.setFont(font, "normal");
     pdf.setFontSize(10);
-    pdf.text(form.role, 18, 31);
+    pdf.text(form.expertise || form.role || "", 18, 31);
     if (photoData) pdf.addImage(photoData, "PNG", 165, 7, 32, 32);
     pdf.setTextColor(50, 63, 70);
     pdf.setFontSize(8.5);
     pdf.text(
-      [form.email, form.phone, form.location].filter(Boolean).join("  •  "),
+      [form.email, form.phone, form.location, form.website, form.linkedin]
+        .filter(Boolean)
+        .join("  •  "),
       18,
       54,
     );
@@ -100,14 +108,16 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     pdf.text(form.name, 18, 21);
     setColour(pdf, accent);
     pdf.setFontSize(10);
-    pdf.text(form.role.toUpperCase(), 18, 31);
+    pdf.text((form.expertise || form.role || "").toUpperCase(), 18, 31);
     setColour(pdf, accent, true);
     pdf.rect(18, 37, 174, 1.2, "F");
     pdf.setTextColor(65, 77, 84);
     pdf.setFont(font, "normal");
     pdf.setFontSize(8.5);
     pdf.text(
-      [form.email, form.phone, form.location].filter(Boolean).join("  •  "),
+      [form.email, form.phone, form.location, form.website, form.linkedin]
+        .filter(Boolean)
+        .join("  •  "),
       18,
       47,
     );
@@ -133,7 +143,23 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     font,
     density,
   });
-  writeSection(pdf, "Core skills", skills.join("  •  "), {
+  y = writeSection(pdf, "Education", form.education, {
+    x: contentX,
+    y,
+    width: contentWidth,
+    accent,
+    font,
+    density,
+  });
+  y = writeSection(pdf, "Core skills", skills.join("  •  "), {
+    x: contentX,
+    y,
+    width: contentWidth,
+    accent,
+    font,
+    density,
+  });
+  writeSection(pdf, "Certifications", form.certifications, {
     x: contentX,
     y,
     width: contentWidth,
@@ -252,8 +278,13 @@ export const renderBusinessPdf = ({
   pdf.setFont(font, "normal");
   pdf.setFontSize(9);
   pdf.text(`Prepared for: ${form.client}`, left, 58);
+  if (form.clientAddress) pdf.text(form.clientAddress, left, 63);
   pdf.text(`${kind} no: ${form.number}`, right, 52, { align: "right" });
   pdf.text(`Issue date: ${form.date}`, right, 58, { align: "right" });
+  if (kind === "Invoice" && form.dueDate)
+    pdf.text(`Due date: ${form.dueDate}`, right, 64, { align: "right" });
+  if (kind === "Quotation" && form.validUntil)
+    pdf.text(`Valid until: ${form.validUntil}`, right, 64, { align: "right" });
   const drawTableHead = (top) => {
     setColour(pdf, accent, true);
     pdf.rect(left, top, right - left, 10, "F");

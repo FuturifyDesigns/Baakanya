@@ -44,7 +44,12 @@ const filename = (value, fallback) =>
     .toLowerCase();
 
 export const exportCvWord = ({ form, skills, template, customization }) => {
-  const body = `<h1>${escapeHtml(form.name)}</h1><h3>${escapeHtml(form.role)}</h3><div class="meta">${[form.email, form.phone, form.location].filter(Boolean).map(escapeHtml).join(" &nbsp; • &nbsp; ")}</div><div class="accent"></div><h2>PROFESSIONAL PROFILE</h2>${paragraphs(form.summary)}<h2>EXPERIENCE AND ACHIEVEMENTS</h2>${paragraphs(form.experience)}<h2>CORE SKILLS</h2><p>${skills.map(escapeHtml).join(" &nbsp; • &nbsp; ")}</p>`;
+  const headline = form.expertise || form.role || "";
+  const meta = [form.email, form.phone, form.location, form.website, form.linkedin]
+    .filter(Boolean)
+    .map(escapeHtml)
+    .join(" &nbsp; • &nbsp; ");
+  const body = `<h1>${escapeHtml(form.name)}</h1><h3>${escapeHtml(headline)}</h3><div class="meta">${meta}</div><div class="accent"></div><h2>PROFESSIONAL PROFILE</h2>${paragraphs(form.summary)}<h2>EXPERIENCE AND ACHIEVEMENTS</h2>${paragraphs(form.experience)}<h2>EDUCATION</h2>${paragraphs(form.education)}<h2>CORE SKILLS</h2><p>${skills.map(escapeHtml).join(" &nbsp; • &nbsp; ")}</p>${form.certifications ? `<h2>CERTIFICATIONS</h2>${paragraphs(form.certifications)}` : ""}`;
   saveWord(`${filename(form.name, "baakanya")}-cv`, "Curriculum Vitae", body, {
     ...customization,
     accent: customization.accent || template.accent,

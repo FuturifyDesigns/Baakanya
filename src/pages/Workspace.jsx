@@ -1,15 +1,15 @@
-import {
-  ArrowRight,
-  ShieldCheck,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowRight, Clock3, ShieldCheck } from "lucide-react";
+import { Link, Navigate } from "react-router-dom";
 import {
   BusinessMark,
   CareerMark,
   FilesMark,
 } from "../components/BrandIllustrations";
 import Layout from "../components/Layout";
+import RequireAuth from "../components/RequireAuth";
+import { useAccess } from "../lib/access";
 import { useAuth } from "../lib/auth";
+
 const tools = [
   {
     icon: CareerMark,
@@ -30,8 +30,15 @@ const tools = [
     href: "/tools/convert",
   },
 ];
-export default function Workspace() {
+
+function WorkspaceBody() {
   const { user } = useAuth();
+  const access = useAccess();
+
+  if (!access.loading && !access.allowed) {
+    return <Navigate to="/payment?reason=trial_ended" replace />;
+  }
+
   return (
     <Layout>
       <section className="workspace container">
@@ -48,19 +55,40 @@ export default function Workspace() {
             <p>What are we sorting out today?</p>
           </div>
           <div className="access-pill">
-            <ShieldCheck />
+            {access.status === "trial_active" ? <Clock3 /> : <ShieldCheck />}
             <span>
               <b>
-                {user ? "Account ready" : "Get started"}
+                {access.status === "trial_active"
+                  ? "7-day trial"
+                  : access.status === "subscription_active"
+                    ? "Monthly access"
+                    : access.status === "credits_available"
+                      ? `${access.credits} credits`
+                      : "Account ready"}
               </b>
               <small>
-                {user
-                  ? "Your document tools are ready to use"
-                  : "Sign in to save drafts and use document tools"}
+                {access.status === "trial_active"
+                  ? `${access.trialCountdown} remaining`
+                  : access.reason}
               </small>
             </span>
           </div>
         </div>
+        {access.status === "trial_active" && (
+          <div className="trial-countdown-banner" role="status">
+            <div>
+              <span>LIVE TRIAL COUNTDOWN</span>
+              <strong>{access.trialCountdown}</strong>
+            </div>
+            <p>
+              When this timer hits zero you will leave the workspace until you
+              choose credits or monthly access.
+            </p>
+            <Link className="btn btn-outline" to="/payment">
+              Pay to continue <ArrowRight />
+            </Link>
+          </div>
+        )}
         <div className="workspace-grid">
           {tools.map(({ icon: Icon, ...tool }) => (
             <Link to={tool.href} className="workspace-tool" key={tool.title}>
@@ -86,5 +114,13 @@ export default function Workspace() {
         </div>
       </section>
     </Layout>
+  );
+}
+
+export default function Workspace() {
+  return (
+    <RequireAuth title="Sign in to open your workspace">
+      <WorkspaceBody />
+    </RequireAuth>
   );
 }
