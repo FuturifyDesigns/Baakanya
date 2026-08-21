@@ -6,6 +6,21 @@ import { supabase } from "../lib/supabase";
 
 const requestStatuses = ["new", "reviewing", "planned", "declined"];
 
+const submissionKindLabel = (kind, planType) => {
+  switch (kind) {
+    case "credit_topup":
+      return "Credit top-up";
+    case "monthly_renewal":
+      return "Monthly renewal";
+    case "new_credits":
+      return "New credits";
+    case "new_subscription":
+      return "New monthly";
+    default:
+      return planType === "credits" ? "Credits" : "Monthly";
+  }
+};
+
 export default function AdminControl() {
   const { user, configured, isAdmin, roleLoading } = useAuth();
   const [payments, setPayments] = useState([]);
@@ -108,6 +123,12 @@ export default function AdminControl() {
         (sum, row) => sum + (Number(row.credit_balance) || 0),
         0,
       ),
+      creditTopups: payments.filter(
+        (row) => row.submission_kind === "credit_topup",
+      ).length,
+      monthlyRenewals: payments.filter(
+        (row) => row.submission_kind === "monthly_renewal",
+      ).length,
     }),
     [payments, requests, users],
   );
@@ -220,6 +241,14 @@ export default function AdminControl() {
               <article>
                 <span>Under review</span>
                 <b>{metrics.underReview}</b>
+              </article>
+              <article>
+                <span>Credit top-ups</span>
+                <b>{metrics.creditTopups}</b>
+              </article>
+              <article>
+                <span>Monthly renewals</span>
+                <b>{metrics.monthlyRenewals}</b>
               </article>
             </div>
             <div className="admin-toolbar">
@@ -338,15 +367,24 @@ export default function AdminControl() {
                   <article key={row.id}>
                     <div>
                       <b>
-                        P{row.amount} · {row.plan_type}
+                        P{row.amount} ·{" "}
+                        {submissionKindLabel(row.submission_kind, row.plan_type)}
                       </b>
                       <small>
-                        {row.payment_method} ·{" "}
+                        {row.plan_type} · {row.payment_method} ·{" "}
                         {new Date(row.submitted_at).toLocaleString()}
                       </small>
                       <span className={`status ${row.status}`}>
                         {row.status}
                       </span>
+                      {row.submission_kind && (
+                        <span className={`status ${row.submission_kind}`}>
+                          {submissionKindLabel(
+                            row.submission_kind,
+                            row.plan_type,
+                          )}
+                        </span>
+                      )}
                     </div>
                     <code>{row.user_id}</code>
                     <div className="admin-actions">

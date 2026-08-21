@@ -49,9 +49,12 @@ export default function PaymentPanel({
   onPlanChange,
   onSubmitted,
   locked = false,
+  allowSubscription = true,
 }) {
   const [plan, setPlan] = useState(
-    initialPlan === "credits" ? "credits" : "subscription",
+    initialPlan === "credits" || !allowSubscription
+      ? "credits"
+      : "subscription",
   );
   const [receipt, setReceipt] = useState(null);
   const [method, setMethod] = useState("bank");
@@ -61,8 +64,12 @@ export default function PaymentPanel({
   const access = useAccess();
 
   useEffect(() => {
+    if (!allowSubscription) {
+      setPlan("credits");
+      return;
+    }
     setPlan(initialPlan === "credits" ? "credits" : "subscription");
-  }, [initialPlan]);
+  }, [initialPlan, allowSubscription]);
 
   if (locked || access.status === "under_review") {
     return (
@@ -74,6 +81,12 @@ export default function PaymentPanel({
   }
 
   const updatePlan = (next) => {
+    if (next === "subscription" && !allowSubscription) {
+      setMessage(
+        "Your monthly access is still active. You can renew after it expires.",
+      );
+      return;
+    }
     setPlan(next);
     onPlanChange?.(next);
   };
@@ -158,10 +171,20 @@ export default function PaymentPanel({
           <button
             type="button"
             className={plan === "subscription" ? "active" : ""}
+            disabled={!allowSubscription}
             onClick={() => updatePlan("subscription")}
+            title={
+              allowSubscription
+                ? undefined
+                : "Renew monthly only after your current month ends"
+            }
           >
             <b>P40 monthly</b>
-            <span>Unlimited documents</span>
+            <span>
+              {allowSubscription
+                ? "Unlimited documents"
+                : "Available after current month ends"}
+            </span>
           </button>
         </div>
         <h3>1. Choose a payment method</h3>

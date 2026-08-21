@@ -113,14 +113,14 @@ function WorkspaceBody() {
               <strong>{access.subscriptionCountdown}</strong>
             </div>
             <p>
-              Unlimited documents until this timer ends. Renew with another
-              monthly payment or switch to credits before it hits zero.
+              Unlimited documents until this timer ends. You can renew monthly
+              only after it expires — or buy credits anytime if you prefer.
             </p>
             <Link
               className="btn btn-outline"
-              to="/access?step=pay&plan=subscription&reason=renew"
+              to="/access?step=pay&plan=credits&reason=renew"
             >
-              Renew monthly <ArrowRight />
+              Buy credits instead <ArrowRight />
             </Link>
           </div>
         )}

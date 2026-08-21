@@ -148,7 +148,22 @@ function AccessModeBody() {
     }
   }, [forceModes, access.status]);
 
-  if (!access.loading && access.allowed && step !== "pay" && reason !== "renew") {
+  const creditTopUp =
+    access.status === "credits_available" &&
+    (reason === "renew" || step === "pay");
+  const trialPayingEarly =
+    access.status === "trial_active" && step === "pay";
+
+  // Monthly renew only after expiry — active subscribers stay in workspace.
+  if (!access.loading && access.status === "subscription_active") {
+    return <Navigate to="/workspace" replace />;
+  }
+  if (
+    !access.loading &&
+    access.allowed &&
+    !creditTopUp &&
+    !trialPayingEarly
+  ) {
     return <Navigate to="/workspace" replace />;
   }
 
@@ -287,7 +302,7 @@ function AccessModeBody() {
                     : "Your email is verified. Compare the options, pick one, then continue."}
             </p>
           </div>
-          {!underReview && (
+          {!underReview && !showPay && (
             <Link className="btn btn-ink access-pricing-btn" to="/pricing">
               Review pricing <ArrowRight size={16} />
             </Link>
@@ -363,23 +378,42 @@ function AccessModeBody() {
         {!underReview && showPay && (
           <div className="access-pay-step">
             <div className="access-pay-actions">
-              <button
-                type="button"
-                className="btn btn-outline"
-                disabled={busy === "reset"}
-                onClick={backToModes}
-              >
-                {busy === "reset" ? "Returning…" : "← Change access mode"}
-              </button>
+              {!access.allowed && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={busy === "reset"}
+                  onClick={backToModes}
+                >
+                  {busy === "reset" ? "Returning…" : "← Change access mode"}
+                </button>
+              )}
               <Link className="btn btn-ink access-pricing-btn" to="/pricing">
                 Review pricing <ArrowRight size={16} />
               </Link>
             </div>
             <PaymentPanel
               initialPlan={payPlan}
-              onPlanChange={(next) =>
-                setParams({ step: "pay", plan: next }, { replace: true })
-              }
+              allowSubscription={access.status !== "subscription_active"}
+              onPlanChange={(next) => {
+                if (
+                  next === "subscription" &&
+                  access.status === "subscription_active"
+                ) {
+                  setMessage(
+                    "Your monthly access is still active. Renew after it expires.",
+                  );
+                  return;
+                }
+                setParams(
+                  {
+                    step: "pay",
+                    plan: next,
+                    ...(reason ? { reason } : {}),
+                  },
+                  { replace: true },
+                );
+              }}
               onSubmitted={() => setParams({ step: "review" }, { replace: true })}
             />
           </div>
