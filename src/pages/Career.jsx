@@ -454,34 +454,67 @@ export default function Career() {
           share form data.
         </p>
       </div>
-      <div className="career-grid tool-workspace-grid">
-        <div className="tool-workspace-main">
-          {activeDocument === "cv" ? (
-            <TemplatePicker
-              label="CV template"
-              templates={cvTemplates}
-              value={cvTemplateId}
-              onChange={setCvTemplateId}
-            />
-          ) : (
-            <TemplatePicker
-              label="Cover letter template"
-              templates={coverLetterTemplates}
-              value={coverTemplateId}
-              onChange={setCoverTemplateId}
-            />
-          )}
-          {photoShape !== "none" && (
-            <MediaAdjuster
-              label={`${photoShape === "circle" ? "Circular" : "Square"} profile photo`}
-              file={photo}
-              onFile={setPhoto}
-              crop={photoCrop}
-              onCrop={setPhotoCrop}
-              shape={photoShape}
-            />
-          )}
-          <div className="form-card">
+      {activeDocument === "cv" ? (
+        <TemplatePicker
+          label="CV template"
+          templates={cvTemplates}
+          value={cvTemplateId}
+          onChange={setCvTemplateId}
+        />
+      ) : (
+        <TemplatePicker
+          label="Cover letter template"
+          templates={coverLetterTemplates}
+          value={coverTemplateId}
+          onChange={setCoverTemplateId}
+        />
+      )}
+      {photoShape !== "none" && (
+        <MediaAdjuster
+          label={`${photoShape === "circle" ? "Circular" : "Square"} profile photo`}
+          file={photo}
+          onFile={setPhoto}
+          crop={photoCrop}
+          onCrop={setPhotoCrop}
+          shape={photoShape}
+        />
+      )}
+      <div className="career-grid preview-left-grid">
+        <aside
+          className={`letter-preview live-document-preview ${activeDocument}`}
+        >
+          <div className="preview-chrome">
+            <div className="preview-label">
+              <Eye size={14} />
+              Live {activeDocument === "cv" ? "CV" : "letter"} preview ·{" "}
+              {activeTemplate.name}
+            </div>
+          </div>
+          <div className="preview-scroll">
+            <div className="preview-fit">
+              {activeDocument === "cv" ? (
+                <CvDocumentPreview
+                  form={cvForm}
+                  template={styledCvTemplate}
+                  skills={split(cvForm.skills)}
+                  photoUrl={photoPreview}
+                />
+              ) : (
+                <CoverDocumentPreview
+                  form={coverForm}
+                  template={styledCoverTemplate}
+                  letter={letter}
+                  photoUrl={photoPreview}
+                />
+              )}
+            </div>
+            <small>
+              Same layout as your downloadable PDF — what you see is what you
+              get.
+            </small>
+          </div>
+        </aside>
+        <div className="form-card">
           {activeDocument === "cv" ? (
             <>
               <div className="field-grid">
@@ -853,42 +886,7 @@ export default function Career() {
               {autosaveStatus}
             </p>
           )}
-          </div>
         </div>
-        <aside
-          className={`letter-preview live-document-preview ${activeDocument}`}
-        >
-          <div className="preview-chrome">
-            <div className="preview-label">
-              <Eye size={14} />
-              Live {activeDocument === "cv" ? "CV" : "letter"} preview ·{" "}
-              {activeTemplate.name}
-            </div>
-          </div>
-          <div className="preview-scroll">
-            <div className="preview-fit">
-              {activeDocument === "cv" ? (
-                <CvDocumentPreview
-                  form={cvForm}
-                  template={styledCvTemplate}
-                  skills={split(cvForm.skills)}
-                  photoUrl={photoPreview}
-                />
-              ) : (
-                <CoverDocumentPreview
-                  form={coverForm}
-                  template={styledCoverTemplate}
-                  letter={letter}
-                  photoUrl={photoPreview}
-                />
-              )}
-            </div>
-            <small>
-              Same layout as your downloadable PDF — what you see is what you
-              get.
-            </small>
-          </div>
-        </aside>
       </div>
     </ToolShell>
   );

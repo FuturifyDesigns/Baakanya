@@ -1148,17 +1148,9 @@ footer {
   gap: 28px;
   align-items: start;
 }
-.tool-workspace-grid {
-  align-items: start;
-}
-.tool-workspace-main {
-  display: grid;
-  gap: 22px;
-  min-width: 0;
-}
-.tool-workspace-main .template-section,
-.tool-workspace-main .media-adjuster {
-  margin: 0;
+.builder-grid.preview-left-grid,
+.career-grid.preview-left-grid {
+  grid-template-columns: minmax(400px, 460px) minmax(0, 1fr);
 }
 .form-card label,
 .auth-form label {
@@ -3800,6 +3792,10 @@ footer {
   .payment-grid {
     grid-template-columns: 1fr;
   }
+  .builder-grid.preview-left-grid,
+  .career-grid.preview-left-grid {
+    grid-template-columns: 1fr;
+  }
   .summary-card:not(.live-document-preview),
   .letter-preview:not(.live-document-preview),
   .payment-aside {
@@ -3814,18 +3810,6 @@ footer {
     max-height: min(42vh, 420px);
     margin-bottom: 4px;
     box-shadow: 0 12px 28px rgba(18, 45, 57, 0.22);
-  }
-  .tool-workspace-main {
-    display: contents;
-  }
-  .tool-workspace-main .template-section {
-    order: 0;
-  }
-  .tool-workspace-main .media-adjuster {
-    order: 1;
-  }
-  .tool-workspace-main .form-card {
-    order: 2;
   }
   .auth-page {
     grid-template-columns: 1fr;
@@ -4417,16 +4401,19 @@ footer {
 
 .summary-card.live-document-preview,
 .letter-preview.live-document-preview {
+  position: sticky;
+  top: 88px;
   padding: 0;
   background: #1b2830;
   color: #fff;
-  top: 88px;
   max-height: calc(100vh - 104px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   align-self: start;
   z-index: 6;
+  width: 100%;
+  min-width: 0;
 }
 .live-document-preview .preview-chrome {
   flex: 0 0 auto;

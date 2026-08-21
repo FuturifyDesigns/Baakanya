@@ -326,23 +326,46 @@ export default function Invoice() {
           commercial fields.
         </p>
       </div>
-      <div className="builder-grid tool-workspace-grid">
-        <div className="tool-workspace-main">
-          <TemplatePicker
-            label={`${kind} template`}
-            templates={templates}
-            value={templateId}
-            onChange={setTemplate}
-          />
-          <MediaAdjuster
-            label="Business logo"
-            file={logo}
-            onFile={setLogo}
-            crop={logoCrop}
-            onCrop={setLogoCrop}
-            shape="square"
-          />
-          <div className="form-card">
+      <TemplatePicker
+        label={`${kind} template`}
+        templates={templates}
+        value={templateId}
+        onChange={setTemplate}
+      />
+      <MediaAdjuster
+        label="Business logo"
+        file={logo}
+        onFile={setLogo}
+        crop={logoCrop}
+        onCrop={setLogoCrop}
+        shape="square"
+      />
+      <div className="builder-grid preview-left-grid">
+        <aside className="summary-card live-document-preview business">
+          <div className="preview-chrome">
+            <div className="preview-label">
+              LIVE {kind.toUpperCase()} PREVIEW · {template.name}
+            </div>
+          </div>
+          <div className="preview-scroll">
+            <div className="preview-fit">
+              <BusinessDocumentPreview
+                kind={kind}
+                form={form}
+                items={items}
+                vat={vat}
+                template={styledTemplate}
+                logoUrl={logoPreview}
+                money={money}
+              />
+            </div>
+            <small>
+              Same layout as your downloadable PDF — what you see is what you
+              get.
+            </small>
+          </div>
+        </aside>
+        <div className="form-card">
           <div className="field-grid">
             <label>
               Business name
@@ -573,32 +596,7 @@ export default function Invoice() {
               {autosaveStatus}
             </p>
           )}
-          </div>
         </div>
-        <aside className="summary-card live-document-preview business">
-          <div className="preview-chrome">
-            <div className="preview-label">
-              LIVE {kind.toUpperCase()} PREVIEW · {template.name}
-            </div>
-          </div>
-          <div className="preview-scroll">
-            <div className="preview-fit">
-              <BusinessDocumentPreview
-                kind={kind}
-                form={form}
-                items={items}
-                vat={vat}
-                template={styledTemplate}
-                logoUrl={logoPreview}
-                money={money}
-              />
-            </div>
-            <small>
-              Same layout as your downloadable PDF — what you see is what you
-              get.
-            </small>
-          </div>
-        </aside>
       </div>
     </ToolShell>
   );
