@@ -256,7 +256,7 @@ function AccessModeBody() {
                   >
                     <div className="access-mode-card-top">
                       <span className="access-mode-icon">
-                        <Icon size={20} />
+                        <Icon />
                       </span>
                       <div className="access-mode-price">
                         <strong>{mode.price}</strong>
