@@ -1,4 +1,5 @@
 import { Download, FolderOpen, Save } from "lucide-react";
+import { defaultSectionTitles } from "../lib/customization";
 
 export default function DocumentStudio({
   customization,
@@ -7,17 +8,39 @@ export default function DocumentStudio({
   onLoad,
   wordActions,
   message,
-  downloadEnabled = true,
+  downloadEnabled = false,
+  documentLabel = "document",
+  pdfAction,
+  showSectionTitles = false,
+  children,
 }) {
+  const titles = { ...defaultSectionTitles, ...(customization.titles || {}) };
+  const setTitle = (key, value) =>
+    onChange({
+      ...customization,
+      titles: { ...titles, [key]: value },
+    });
+
   return (
-    <section className="document-studio">
+    <section
+      className={`document-studio ${downloadEnabled ? "is-unlocked" : ""}`}
+      id="document-studio"
+      tabIndex={-1}
+    >
       <div className="document-studio-head">
         <div>
-          <span className="kicker">DOCUMENT STUDIO</span>
-          <h3>Keep editing until it feels like yours.</h3>
+          <span className="kicker">
+            {downloadEnabled ? "FINAL EDIT STUDIO" : "DOCUMENT STUDIO"}
+          </span>
+          <h3>
+            {downloadEnabled
+              ? "Polish the wording, then download."
+              : "Generate first, then finish edits here."}
+          </h3>
           <p>
-            Change the information above at any time, customise the final style,
-            save a draft on this device, then download after you generate.
+            {downloadEnabled
+              ? `Edit the text like a Word draft. When it reads the way you want, save and download your ${documentLabel}.`
+              : "After you generate, this studio unlocks for final wording, style tweaks, and downloads."}
           </p>
         </div>
         <div className="draft-actions">
@@ -29,6 +52,29 @@ export default function DocumentStudio({
           </button>
         </div>
       </div>
+
+      {downloadEnabled && (children || showSectionTitles) && (
+        <div className="studio-final-edit">
+          {children}
+          {showSectionTitles && (
+            <div className="studio-title-grid">
+              <span className="studio-subtitle">Section titles</span>
+              {Object.entries(titles).map(([key, value]) => (
+                <label key={key}>
+                  {key}
+                  <input
+                    type="text"
+                    maxLength="80"
+                    value={value}
+                    onChange={(event) => setTitle(key, event.target.value)}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="studio-controls">
         <label>
           Accent colour
@@ -75,7 +121,18 @@ export default function DocumentStudio({
           </select>
         </label>
       </div>
+
       <div className="word-actions">
+        {pdfAction && (
+          <button
+            type="button"
+            className="btn btn-blue"
+            onClick={pdfAction.onClick}
+            disabled={!downloadEnabled}
+          >
+            <Download /> {pdfAction.label}
+          </button>
+        )}
         {wordActions.map((action) => (
           <button
             type="button"
@@ -89,8 +146,9 @@ export default function DocumentStudio({
         ))}
       </div>
       {!downloadEnabled && (
-        <p className="generate-hint">
-          Generate the document above before Word download becomes available.
+        <p className="generate-hint studio-locked-hint">
+          Generate your {documentLabel} above to unlock this final edit studio and
+          downloads.
         </p>
       )}
       {message && (

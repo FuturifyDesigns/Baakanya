@@ -19,6 +19,16 @@ import { renderCoverLetterPdf, renderCvPdf } from "../lib/pdfTemplates";
 import { isValidWebsite, normalizeWebsite } from "../lib/urls";
 import { exportCoverWord, exportCvWord } from "../lib/wordExport";
 
+const openFinalStudio = (message) => {
+  window.requestAnimationFrame(() => {
+    const studio = document.getElementById("document-studio");
+    if (!studio) return;
+    studio.scrollIntoView({ behavior: "smooth", block: "start" });
+    studio.focus({ preventScroll: true });
+  });
+  return message;
+};
+
 const emptyCv = {
   name: "",
   email: "",
@@ -70,6 +80,7 @@ export default function Career() {
   const [studioMessage, setStudioMessage] = useState("");
   const [cvGenerated, setCvGenerated] = useState(false);
   const [coverGenerated, setCoverGenerated] = useState(false);
+  const [letterFinal, setLetterFinal] = useState("");
   const cvTemplate = cvTemplates.find(({ id }) => id === cvTemplateId);
   const coverTemplate = coverLetterTemplates.find(
     ({ id }) => id === coverTemplateId,
@@ -81,6 +92,7 @@ export default function Career() {
     accent: customization.accent || cvTemplate.accent,
     font: customization.font,
     density: customization.density,
+    titles: customization.titles,
   };
   const styledCoverTemplate = {
     ...coverTemplate,
@@ -204,10 +216,12 @@ export default function Career() {
     setShowCompanyFallback(false);
   };
 
-  const letter = useMemo(() => {
+  const letterDraft = useMemo(() => {
     const manager = coverForm.hiringManager.trim() || "Hiring Team";
     return `Dear ${manager},\n\nI am writing to apply for the ${coverForm.role || "[role]"} position at ${coverForm.company || "[company]"}. ${coverForm.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` I was particularly drawn to your organisation's work: ${research.text}` : ""}\n\n${coverForm.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(coverForm.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${coverForm.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${coverForm.name || "[Your name]"}`;
   }, [coverForm, research.text]);
+
+  const letter = coverGenerated && letterFinal ? letterFinal : letterDraft;
 
   const generateCv = async () => {
     const invalid = validateCv();
@@ -219,7 +233,9 @@ export default function Career() {
       await authorizeGeneration("cv");
       setCvGenerated(true);
       setStudioMessage(
-        "CV generated. Review the preview, make final edits, then download.",
+        openFinalStudio(
+          "CV generated. You are in the final edit studio — polish titles and wording, then download.",
+        ),
       );
     } catch (error) {
       window.alert(error.message);
@@ -234,9 +250,12 @@ export default function Career() {
     }
     try {
       await authorizeGeneration("cover_letter");
+      setLetterFinal(letterDraft);
       setCoverGenerated(true);
       setStudioMessage(
-        "Cover letter generated. Review the preview, make final edits, then download.",
+        openFinalStudio(
+          "Cover letter generated. Edit the letter text below, then download when ready.",
+        ),
       );
     } catch (error) {
       window.alert(error.message);
@@ -297,6 +316,7 @@ export default function Career() {
         customization,
         cvGenerated,
         coverGenerated,
+        letterFinal,
       }),
     );
     setStudioMessage(
@@ -348,9 +368,17 @@ export default function Career() {
         setCoverTemplateId(saved.coverTemplateId);
       if (saved.photoCrop) setPhotoCrop(saved.photoCrop);
       if (saved.customization)
-        setCustomization({ ...defaultCustomization, ...saved.customization });
+        setCustomization({
+          ...defaultCustomization,
+          ...saved.customization,
+          titles: {
+            ...defaultCustomization.titles,
+            ...(saved.customization.titles || {}),
+          },
+        });
       setCvGenerated(Boolean(saved.cvGenerated));
       setCoverGenerated(Boolean(saved.coverGenerated));
+      if (saved.letterFinal) setLetterFinal(saved.letterFinal);
       setStudioMessage("Saved career draft loaded. You can continue editing.");
     } catch {
       setStudioMessage("The saved draft could not be opened.");
@@ -846,31 +874,36 @@ export default function Career() {
         <aside
           className={`letter-preview live-document-preview ${activeDocument}`}
         >
-          <div className="preview-label">
-            <Eye size={14} />
-            Live {activeDocument === "cv" ? "CV" : "letter"} preview ·{" "}
-            {activeTemplate.name}
+          <div className="preview-chrome">
+            <div className="preview-label">
+              <Eye size={14} />
+              Live {activeDocument === "cv" ? "CV" : "letter"} preview ·{" "}
+              {activeTemplate.name}
+            </div>
           </div>
-          <div className="preview-fit">
-            {activeDocument === "cv" ? (
-              <CvDocumentPreview
-                form={cvForm}
-                template={styledCvTemplate}
-                skills={split(cvForm.skills)}
-                photoUrl={photoPreview}
-              />
-            ) : (
-              <CoverDocumentPreview
-                form={coverForm}
-                template={styledCoverTemplate}
-                letter={letter}
-                photoUrl={photoPreview}
-              />
-            )}
+          <div className="preview-scroll">
+            <div className="preview-fit">
+              {activeDocument === "cv" ? (
+                <CvDocumentPreview
+                  form={cvForm}
+                  template={styledCvTemplate}
+                  skills={split(cvForm.skills)}
+                  photoUrl={photoPreview}
+                />
+              ) : (
+                <CoverDocumentPreview
+                  form={coverForm}
+                  template={styledCoverTemplate}
+                  letter={letter}
+                  photoUrl={photoPreview}
+                />
+              )}
+            </div>
+            <small>
+              Same layout as your downloadable PDF — what you see is what you
+              get.
+            </small>
           </div>
-          <small>
-            Same layout as your downloadable PDF — what you see is what you get.
-          </small>
         </aside>
       </div>
       <DocumentStudio
@@ -880,6 +913,12 @@ export default function Career() {
         onLoad={loadDraft}
         message={studioMessage}
         downloadEnabled={canDownload}
+        documentLabel={activeDocument === "cv" ? "CV" : "cover letter"}
+        showSectionTitles={activeDocument === "cv" && cvGenerated}
+        pdfAction={{
+          label: `Download ${activeDocument === "cv" ? "CV" : "cover letter"} PDF`,
+          onClick: activeDocument === "cv" ? downloadCvPdf : downloadCoverPdf,
+        }}
         wordActions={
           activeDocument === "cv"
             ? [{ label: "Download CV for Word", onClick: downloadCvWord }]
@@ -890,7 +929,80 @@ export default function Career() {
                 },
               ]
         }
-      />
+      >
+        {activeDocument === "cv" && cvGenerated ? (
+          <div className="studio-copy-grid">
+            <span className="studio-subtitle">Final CV wording</span>
+            <label>
+              Full name
+              <input
+                value={cvForm.name}
+                onChange={(e) => setCv("name", e.target.value)}
+              />
+            </label>
+            <label>
+              Professional headline
+              <input
+                value={cvForm.expertise}
+                onChange={(e) => setCv("expertise", e.target.value)}
+              />
+            </label>
+            <label>
+              Professional summary
+              <textarea
+                rows="4"
+                value={cvForm.summary}
+                onChange={(e) => setCv("summary", e.target.value)}
+              />
+            </label>
+            <label>
+              Experience and achievements
+              <textarea
+                rows="7"
+                value={cvForm.experience}
+                onChange={(e) => setCv("experience", e.target.value)}
+              />
+            </label>
+            <label>
+              Education
+              <textarea
+                rows="4"
+                value={cvForm.education}
+                onChange={(e) => setCv("education", e.target.value)}
+              />
+            </label>
+            <label>
+              Skills
+              <textarea
+                rows="3"
+                value={cvForm.skills}
+                onChange={(e) => setCv("skills", e.target.value)}
+              />
+            </label>
+            <label>
+              Certifications
+              <textarea
+                rows="2"
+                value={cvForm.certifications}
+                onChange={(e) => setCv("certifications", e.target.value)}
+              />
+            </label>
+          </div>
+        ) : null}
+        {activeDocument === "cover" && coverGenerated ? (
+          <div className="studio-copy-grid">
+            <span className="studio-subtitle">Final cover letter text</span>
+            <label>
+              Letter body
+              <textarea
+                rows="14"
+                value={letterFinal}
+                onChange={(e) => setLetterFinal(e.target.value)}
+              />
+            </label>
+          </div>
+        ) : null}
+      </DocumentStudio>
     </ToolShell>
   );
 }

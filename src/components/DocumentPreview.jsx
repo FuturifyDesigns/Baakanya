@@ -183,18 +183,25 @@ function SkillsBlock({ skills, stacked = false }) {
   );
 }
 
-function CvSections({ form, skills, sidebarSkills }) {
+function CvSections({ form, skills, sidebarSkills, titles }) {
+  const heading = {
+    profile: titles?.profile || "Professional profile",
+    experience: titles?.experience || "Experience and achievements",
+    education: titles?.education || "Education",
+    skills: titles?.skills || "Core skills",
+    certifications: titles?.certifications || "Certifications",
+  };
   return (
     <>
       <section>
-        <SectionHeading>Professional profile</SectionHeading>
+        <SectionHeading>{heading.profile}</SectionHeading>
         <p className={`doc-body ${form.summary ? "" : "is-placeholder"}`}>
           {form.summary ||
             "A concise professional summary appears here — strengths, focus areas, and the roles you are targeting."}
         </p>
       </section>
       <section>
-        <SectionHeading>Experience and achievements</SectionHeading>
+        <SectionHeading>{heading.experience}</SectionHeading>
         <EntryList
           text={form.experience}
           emptyTitle="Role title, Employer — Dates"
@@ -206,7 +213,7 @@ function CvSections({ form, skills, sidebarSkills }) {
         />
       </section>
       <section>
-        <SectionHeading>Education</SectionHeading>
+        <SectionHeading>{heading.education}</SectionHeading>
         <EntryList
           text={form.education}
           emptyTitle="Qualification, Institution — Year"
@@ -215,12 +222,12 @@ function CvSections({ form, skills, sidebarSkills }) {
       </section>
       {!sidebarSkills && (
         <section>
-          <SectionHeading>Core skills</SectionHeading>
+          <SectionHeading>{heading.skills}</SectionHeading>
           <SkillsBlock skills={skills} />
         </section>
       )}
       <section>
-        <SectionHeading>Certifications</SectionHeading>
+        <SectionHeading>{heading.certifications}</SectionHeading>
         <p
           className={`doc-body ${form.certifications ? "" : "is-placeholder"}`}
         >
@@ -303,7 +310,12 @@ export function CvDocumentPreview({
             <ContactLines form={form} />
           </div>
         )}
-        <CvSections form={form} skills={skills} sidebarSkills={sidebar} />
+        <CvSections
+          form={form}
+          skills={skills}
+          sidebarSkills={sidebar}
+          titles={template?.titles}
+        />
       </div>
     </div>
   );

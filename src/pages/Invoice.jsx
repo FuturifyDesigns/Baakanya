@@ -13,6 +13,15 @@ import { cropImage } from "../lib/media";
 import { renderBusinessPdf } from "../lib/pdfTemplates";
 import { exportBusinessWord } from "../lib/wordExport";
 
+const openFinalStudio = () => {
+  window.requestAnimationFrame(() => {
+    const studio = document.getElementById("document-studio");
+    if (!studio) return;
+    studio.scrollIntoView({ behavior: "smooth", block: "start" });
+    studio.focus({ preventScroll: true });
+  });
+};
+
 const money = (n) =>
   Number(n || 0).toLocaleString("en-BW", {
     minimumFractionDigits: 2,
@@ -142,8 +151,9 @@ export default function Invoice() {
       await authorizeGeneration(kind.toLowerCase());
       if (kind === "Invoice") setInvoiceGenerated(true);
       else setQuotationGenerated(true);
+      openFinalStudio();
       setStudioMessage(
-        `${kind} generated. Review the preview, make final edits, then download.`,
+        `${kind} generated. You are in the final edit studio — polish the wording, then download.`,
       );
     } catch (error) {
       window.alert(error.message);
@@ -552,23 +562,28 @@ export default function Invoice() {
           )}
         </div>
         <aside className="summary-card live-document-preview business">
-          <div className="preview-label">
-            LIVE {kind.toUpperCase()} PREVIEW · {template.name}
+          <div className="preview-chrome">
+            <div className="preview-label">
+              LIVE {kind.toUpperCase()} PREVIEW · {template.name}
+            </div>
           </div>
-          <div className="preview-fit">
-            <BusinessDocumentPreview
-              kind={kind}
-              form={form}
-              items={items}
-              vat={vat}
-              template={styledTemplate}
-              logoUrl={logoPreview}
-              money={money}
-            />
+          <div className="preview-scroll">
+            <div className="preview-fit">
+              <BusinessDocumentPreview
+                kind={kind}
+                form={form}
+                items={items}
+                vat={vat}
+                template={styledTemplate}
+                logoUrl={logoPreview}
+                money={money}
+              />
+            </div>
+            <small>
+              Same layout as your downloadable PDF — what you see is what you
+              get.
+            </small>
           </div>
-          <small>
-            Same layout as your downloadable PDF — what you see is what you get.
-          </small>
         </aside>
       </div>
       <DocumentStudio
@@ -578,13 +593,91 @@ export default function Invoice() {
         onLoad={loadDraft}
         message={studioMessage}
         downloadEnabled={generated}
+        documentLabel={kind.toLowerCase()}
+        pdfAction={{
+          label: `Download ${kind.toLowerCase()} PDF`,
+          onClick: download,
+        }}
         wordActions={[
           {
             label: `Download editable ${kind} for Word`,
             onClick: downloadWord,
           },
         ]}
-      />
+      >
+        {generated ? (
+          <div className="studio-copy-grid">
+            <span className="studio-subtitle">Final {kind.toLowerCase()} details</span>
+            <label>
+              Business name
+              <input
+                value={form.business}
+                onChange={(e) => set("business", e.target.value)}
+              />
+            </label>
+            <label>
+              Client
+              <input
+                value={form.client}
+                onChange={(e) => set("client", e.target.value)}
+              />
+            </label>
+            <label>
+              Payment / footer note
+              <textarea
+                rows="3"
+                value={form.notes}
+                onChange={(e) => set("notes", e.target.value)}
+              />
+            </label>
+            <div className="studio-items-edit">
+              <span className="studio-subtitle">Line items</span>
+              {items.map((item, index) => (
+                <div className="studio-item-row" key={index}>
+                  <input
+                    value={item.description}
+                    onChange={(e) => {
+                      setItemsState((current) => {
+                        const next = [...current];
+                        next[index] = {
+                          ...next[index],
+                          description: e.target.value,
+                        };
+                        return next;
+                      });
+                    }}
+                    placeholder="Description"
+                  />
+                  <input
+                    type="number"
+                    value={item.qty}
+                    onChange={(e) => {
+                      setItemsState((current) => {
+                        const next = [...current];
+                        next[index] = { ...next[index], qty: e.target.value };
+                        return next;
+                      });
+                    }}
+                    placeholder="Qty"
+                  />
+                  <input
+                    type="number"
+                    value={item.price}
+                    onChange={(e) => {
+                      setItemsState((current) => {
+                        const next = [...current];
+                        next[index] = { ...next[index], price: e.target.value };
+                        return next;
+                      });
+                    }}
+                    placeholder="Price"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </DocumentStudio>
     </ToolShell>
   );
 }

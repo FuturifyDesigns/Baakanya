@@ -212,7 +212,7 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     }
   }
 
-  y = writeSection(pdf, "Professional profile", form.summary, {
+  y = writeSection(pdf, template.titles?.profile || "Professional profile", form.summary, {
     x: contentX,
     y,
     width: contentWidth,
@@ -220,15 +220,20 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     font,
     density,
   });
-  y = writeSection(pdf, "Experience and achievements", form.experience, {
-    x: contentX,
-    y,
-    width: contentWidth,
-    accent,
-    font,
-    density,
-  });
-  y = writeSection(pdf, "Education", form.education, {
+  y = writeSection(
+    pdf,
+    template.titles?.experience || "Experience and achievements",
+    form.experience,
+    {
+      x: contentX,
+      y,
+      width: contentWidth,
+      accent,
+      font,
+      density,
+    },
+  );
+  y = writeSection(pdf, template.titles?.education || "Education", form.education, {
     x: contentX,
     y,
     width: contentWidth,
@@ -237,23 +242,33 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     density,
   });
   if (!sidebar) {
-    y = writeSection(pdf, "Core skills", skills.join("  •  "), {
+    y = writeSection(
+      pdf,
+      template.titles?.skills || "Core skills",
+      skills.join("  •  "),
+      {
+        x: contentX,
+        y,
+        width: contentWidth,
+        accent,
+        font,
+        density,
+      },
+    );
+  }
+  writeSection(
+    pdf,
+    template.titles?.certifications || "Certifications",
+    form.certifications,
+    {
       x: contentX,
       y,
       width: contentWidth,
       accent,
       font,
       density,
-    });
-  }
-  writeSection(pdf, "Certifications", form.certifications, {
-    x: contentX,
-    y,
-    width: contentWidth,
-    accent,
-    font,
-    density,
-  });
+    },
+  );
   pdf.save(
     `${safeName(form.name, "baakanya")}-${safeName(template.name, "cv")}-cv.pdf`,
   );
