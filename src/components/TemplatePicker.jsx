@@ -1,45 +1,112 @@
 import { Check } from "lucide-react";
+import {
+  BusinessDocumentPreview,
+  CoverDocumentPreview,
+  CvDocumentPreview,
+} from "./DocumentPreview";
 
-function CareerPreview({ template }) {
-  const cover = template.type === "cover";
-  return <span className={`template-paper ${template.layout} ${cover ? "cover-paper" : "cv-paper"}`} style={{ "--template-primary": template.primary, "--template-accent": template.accent }}>
-    <span className="paper-brand"><b>{cover ? "K. Molefe" : "KAGO MOLEFE"}</b><i /></span>
-    {template.photo !== "none" && <em className={`paper-photo ${template.photo}`} />}
-    {cover ? <>
-      <span className="paper-date">20 AUGUST 2026</span>
-      <strong>Dear Hiring Manager,</strong>
-      <i className="paper-line wide" /><i className="paper-line" /><i className="paper-line wide" />
-      <i className="paper-line wide" /><i className="paper-line short" />
-      <span className="paper-sign">Kago Molefe</span>
-    </> : <>
-      <span className="paper-contact">Expertise · Gaborone · +267</span>
-      <strong>PROFILE</strong><i className="paper-line wide" /><i className="paper-line" />
-      <strong>EXPERIENCE</strong><i className="paper-line wide" /><i className="paper-line wide" /><i className="paper-line short" />
-      <strong>EDUCATION</strong><i className="paper-line" />
-      <strong>SKILLS</strong><span className="paper-skills"><i /><i /><i /></span>
-    </>}
-  </span>;
-}
+const sampleCv = {
+  name: "Kago Molefe",
+  expertise: "Management Consultant",
+  email: "kago@email.com",
+  phone: "+267 71 000 000",
+  location: "Gaborone",
+  website: "",
+  linkedin: "",
+  summary:
+    "Results-driven consultant advising organisations across Botswana on growth, delivery and operations.",
+  experience:
+    "Senior Consultant, FutureWorks — Led multi-client delivery programmes and process improvement workstreams.",
+  education: "BCom Management, University of Botswana",
+  certifications: "Project Management Professional (in progress)",
+};
 
-function BusinessPreview({ template }) {
-  const quote = template.type === "quotation";
-  return <span className={`template-paper business-paper ${template.layout}`}>
-    <span className="paper-business"><em>KM</em><b>KGETSI STUDIO</b></span>
-    <span className="paper-doc-title">{quote ? "QUOTATION" : "INVOICE"}</span>
-    <span className="paper-meta"><i /><i /></span>
-    <span className="paper-table-head"><i /><i /><i /></span>
-    <span className="paper-table-row"><i /><i /><i /></span>
-    <span className="paper-table-row"><i /><i /><i /></span>
-    <span className="paper-table-row"><i /><i /><i /></span>
-    <span className="paper-total"><span>TOTAL</span><b>P 4,250.00</b></span>
-  </span>;
+const sampleSkills = ["Strategy", "Analysis", "Stakeholder management"];
+
+const sampleCover = {
+  name: "Kago Molefe",
+  email: "kago@email.com",
+  phone: "+267 71 000 000",
+  location: "Gaborone",
+  role: "Consultant",
+  company: "Botswana Enterprise",
+};
+
+const sampleLetter = `Dear Hiring Manager,
+
+I am writing to express my interest in the Consultant role at Botswana Enterprise. My background in delivery and stakeholder work aligns closely with your needs.
+
+I would welcome the opportunity to discuss how I can contribute.
+
+Yours sincerely,
+Kago Molefe`;
+
+const sampleBusiness = {
+  business: "Kgetsi Studio",
+  client: "Serowe Retail Co.",
+  number: "INV-204",
+  date: "2026-08-20",
+  dueDate: "2026-09-05",
+  validUntil: "2026-09-20",
+  notes: "Payment due within 14 days.",
+};
+
+const sampleItems = [
+  { description: "Brand identity package", qty: 1, price: 2800 },
+  { description: "Print-ready artwork", qty: 2, price: 450 },
+  { description: "Revision round", qty: 1, price: 350 },
+];
+
+function money(value) {
+  return Number(value || 0).toLocaleString("en-BW", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function TemplatePreview({ template }) {
   const business = ["invoice", "quotation"].includes(template.type);
-  return <span className="template-preview-stage" style={{ "--template-primary": template.primary, "--template-accent": template.accent }}>
-    {business ? <BusinessPreview template={template} /> : <CareerPreview template={template} />}
-  </span>;
+  const cover = template.type === "cover";
+
+  return (
+    <span
+      className="template-preview-stage"
+      style={{
+        "--template-primary": template.primary,
+        "--template-accent": template.accent,
+      }}
+    >
+      <span className="template-thumb-frame" aria-hidden="true">
+        <span className="template-thumb-scale">
+          {business ? (
+            <BusinessDocumentPreview
+              kind={template.type === "quotation" ? "Quotation" : "Invoice"}
+              form={sampleBusiness}
+              items={sampleItems}
+              vat={false}
+              template={template}
+              money={money}
+              compact
+            />
+          ) : cover ? (
+            <CoverDocumentPreview
+              form={sampleCover}
+              template={template}
+              letter={sampleLetter}
+              compact
+            />
+          ) : (
+            <CvDocumentPreview
+              form={sampleCv}
+              template={template}
+              skills={sampleSkills}
+              compact
+            />
+          )}
+        </span>
+      </span>
+    </span>
+  );
 }
 
 export default function TemplatePicker({ label, templates, value, onChange }) {

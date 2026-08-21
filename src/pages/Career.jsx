@@ -829,8 +829,7 @@ export default function Career() {
             />
           )}
           <small>
-            This preview mirrors the selected template layout. PDF generation
-            stays on this device.
+            Same layout as your downloadable PDF — what you see is what you get.
           </small>
         </aside>
       </div>

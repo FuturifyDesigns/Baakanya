@@ -550,7 +550,7 @@ export default function Invoice() {
             </p>
           )}
         </div>
-        <aside className="summary-card business-live-preview">
+        <aside className="summary-card live-document-preview business">
           <div className="preview-label">
             LIVE {kind.toUpperCase()} PREVIEW · {template.name}
           </div>
@@ -563,10 +563,9 @@ export default function Invoice() {
             logoUrl={logoPreview}
             money={money}
           />
-          <p>
-            The preview mirrors the selected template. Your PDF is generated on
-            this device.
-          </p>
+          <small>
+            Same layout as your downloadable PDF — what you see is what you get.
+          </small>
         </aside>
       </div>
       <DocumentStudio
