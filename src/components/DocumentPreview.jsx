@@ -5,15 +5,67 @@ const split = (text) =>
     .filter(Boolean);
 
 const fontFamily = (font) => {
-  if (font === "times") return '"Times New Roman", Times, serif';
-  if (font === "courier") return "Courier New, Courier, monospace";
-  return "Helvetica, Arial, sans-serif";
+  if (font === "times") return '"Times New Roman", Times, Georgia, serif';
+  if (font === "courier") return '"Courier New", Courier, monospace';
+  return 'Helvetica, "Arial", "Segoe UI", sans-serif';
 };
 
 const densityGap = (density) => {
   if (density === "compact") return "compact";
   if (density === "spacious") return "spacious";
   return "comfortable";
+};
+
+/** Split free text into role/education blocks for a traditional CV look. */
+const parseEntries = (text) => {
+  const raw = String(text || "").trim();
+  if (!raw) return [];
+  const blocks = raw
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+  if (blocks.length > 1) {
+    return blocks.map((block) => {
+      const lines = block
+        .split(/\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const head = lines[0] || "";
+      const rest = lines.slice(1).map((line) => line.replace(/^[-•*]\s*/, ""));
+      const dated = head.match(/^(.*?)(?:\s+[—–\-]\s+|\s+\(|\s{2,})(.+)$/);
+      if (dated && dated[1].length > 2) {
+        return {
+          title: dated[1].trim(),
+          meta: dated[2].replace(/^\(|\)$/g, "").trim(),
+          points: rest,
+        };
+      }
+      return { title: head, meta: "", points: rest };
+    });
+  }
+  const lines = raw
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 1) {
+    return [{ title: lines[0], meta: "", points: [] }];
+  }
+  if (lines.every((line) => /^[-•*]/.test(line))) {
+    return [
+      {
+        title: "",
+        meta: "",
+        points: lines.map((line) => line.replace(/^[-•*]\s*/, "")),
+      },
+    ];
+  }
+  return [
+    {
+      title: lines[0],
+      meta: "",
+      points: lines.slice(1).map((line) => line.replace(/^[-•*]\s*/, "")),
+    },
+  ];
 };
 
 function ContactLines({ form, stacked = false }) {
@@ -25,7 +77,11 @@ function ContactLines({ form, stacked = false }) {
     form.linkedin,
   ].filter(Boolean);
   if (!parts.length) {
-    return <p className="doc-contact">{stacked ? "Contact details" : "Contact details"}</p>;
+    return (
+      <p className="doc-contact doc-placeholder">
+        email · phone · location
+      </p>
+    );
   }
   if (stacked) {
     return (
@@ -44,47 +100,132 @@ function PhotoSlot({ photoUrl, shape }) {
   if (photoUrl) {
     return <img src={photoUrl} alt="" className={`doc-photo ${shape}`} />;
   }
-  return <span className={`doc-photo doc-photo-placeholder ${shape}`} aria-hidden="true" />;
+  return (
+    <span
+      className={`doc-photo doc-photo-placeholder ${shape}`}
+      aria-hidden="true"
+    />
+  );
 }
 
-function CvSections({ form, skills, showSkills }) {
+function SectionHeading({ children }) {
+  return (
+    <div className="doc-section-head">
+      <strong>{children}</strong>
+    </div>
+  );
+}
+
+function EntryList({ text, emptyTitle, emptyPoints }) {
+  const entries = parseEntries(text);
+  if (!entries.length) {
+    return (
+      <div className="doc-entry is-placeholder">
+        {emptyTitle && <div className="doc-entry-head"><span>{emptyTitle}</span></div>}
+        <ul>
+          {emptyPoints.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+  return entries.map((entry, index) => (
+    <article className="doc-entry" key={`${entry.title}-${index}`}>
+      {entry.points.length > 0 ? (
+        <>
+          {(entry.title || entry.meta) && (
+            <div className="doc-entry-head">
+              <span>{entry.title}</span>
+              {entry.meta && <em>{entry.meta}</em>}
+            </div>
+          )}
+          <ul>
+            {entry.points.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        </>
+      ) : entry.meta ? (
+        <div className="doc-entry-head">
+          <span>{entry.title}</span>
+          <em>{entry.meta}</em>
+        </div>
+      ) : (
+        <p className="doc-entry-single">{entry.title}</p>
+      )}
+    </article>
+  ));
+}
+
+function SkillsBlock({ skills, stacked = false }) {
+  const list = skills.length
+    ? skills
+    : ["Client service", "Team coordination", "Microsoft Office"];
+  const empty = !skills.length;
+  if (stacked) {
+    return (
+      <ul className={`doc-skill-stack ${empty ? "is-placeholder" : ""}`}>
+        {list.map((skill) => (
+          <li key={skill}>{skill}</li>
+        ))}
+      </ul>
+    );
+  }
+  return (
+    <p className={`doc-skill-line ${empty ? "is-placeholder" : ""}`}>
+      {list.join("  ·  ")}
+    </p>
+  );
+}
+
+function CvSections({ form, skills, sidebarSkills }) {
   return (
     <>
       <section>
-        <strong>Professional profile</strong>
-        <p className="preline">
+        <SectionHeading>Professional profile</SectionHeading>
+        <p
+          className={`doc-body ${form.summary ? "" : "is-placeholder"}`}
+        >
           {form.summary ||
-            "Your professional summary will appear here as you type."}
+            "A concise professional summary appears here — strengths, focus areas, and the roles you are targeting."}
         </p>
       </section>
       <section>
-        <strong>Experience and achievements</strong>
-        <p className="preline">
-          {form.experience || "Add roles, projects and achievements."}
-        </p>
+        <SectionHeading>Experience and achievements</SectionHeading>
+        <EntryList
+          text={form.experience}
+          emptyTitle="Role title, Employer — Dates"
+          emptyPoints={[
+            "Key responsibility or achievement with measurable impact",
+            "Second achievement showing scope, tools or results",
+            "Additional contribution relevant to the target role",
+          ]}
+        />
       </section>
       <section>
-        <strong>Education</strong>
-        <p className="preline">
-          {form.education || "Add your education background."}
+        <SectionHeading>Education</SectionHeading>
+        <EntryList
+          text={form.education}
+          emptyTitle="Qualification, Institution — Year"
+          emptyPoints={["Relevant coursework, distinction or project focus"]}
+        />
+      </section>
+      {!sidebarSkills && (
+        <section>
+          <SectionHeading>Core skills</SectionHeading>
+          <SkillsBlock skills={skills} />
+        </section>
+      )}
+      <section>
+        <SectionHeading>Certifications</SectionHeading>
+        <p
+          className={`doc-body ${form.certifications ? "" : "is-placeholder"}`}
+        >
+          {form.certifications ||
+            "Licences and certificates appear here when added."}
         </p>
       </section>
-      {showSkills && (
-        <section>
-          <strong>Core skills</strong>
-          <p>
-            {(skills.length ? skills : ["Strategy", "Communication", "Delivery"]).join(
-              "  ·  ",
-            )}
-          </p>
-        </section>
-      )}
-      {(form.certifications || "").trim() && (
-        <section>
-          <strong>Certifications</strong>
-          <p className="preline">{form.certifications}</p>
-        </section>
-      )}
     </>
   );
 }
@@ -96,8 +237,9 @@ export function CvDocumentPreview({
   photoUrl,
   compact = false,
 }) {
-  const expertise = form.expertise || form.role || "Your expertise";
+  const expertise = form.expertise || form.role || "Professional headline";
   const layout = template?.layout || "minimal";
+  const sidebar = layout === "sidebar";
   const style = {
     "--doc-primary": template?.primary || "#17252d",
     "--doc-accent": template?.accent || "#58bcec",
@@ -109,11 +251,21 @@ export function CvDocumentPreview({
       className={`doc-sheet cv-sheet layout-${layout} density-${densityGap(template?.density)} ${compact ? "is-thumb" : ""}`}
       style={style}
     >
-      {layout === "sidebar" && (
+      {sidebar && (
         <aside className="doc-sidebar">
           <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
           <h3>{form.name || "Your name"}</h3>
-          <ContactLines form={form} stacked />
+          <p className={`doc-side-role ${form.expertise || form.role ? "" : "is-placeholder"}`}>
+            {expertise}
+          </p>
+          <div className="doc-side-block">
+            <strong>Contact</strong>
+            <ContactLines form={form} stacked />
+          </div>
+          <div className="doc-side-block">
+            <strong>Skills</strong>
+            <SkillsBlock skills={skills} stacked />
+          </div>
         </aside>
       )}
       <div className="doc-main">
@@ -121,24 +273,38 @@ export function CvDocumentPreview({
           <header className="doc-band">
             <div>
               <h3>{form.name || "Your name"}</h3>
-              <b>{expertise}</b>
+              <b className={form.expertise || form.role ? "" : "is-placeholder"}>
+                {expertise}
+              </b>
             </div>
             <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
           </header>
         )}
         {layout !== "sidebar" && layout !== "band" && (
           <header className="doc-classic-head">
-            <div>
+            <div className="doc-classic-copy">
               <h3>{form.name || "Your name"}</h3>
-              <b className="doc-expertise-line">{expertise}</b>
-              <span className="doc-rule" />
+              <p
+                className={`doc-expertise-line ${form.expertise || form.role ? "" : "is-placeholder"}`}
+              >
+                {expertise}
+              </p>
               <ContactLines form={form} />
             </div>
             <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
           </header>
         )}
-        {layout === "band" && <ContactLines form={form} />}
-        <CvSections form={form} skills={skills} showSkills />
+        {layout === "band" && (
+          <div className="doc-band-contact">
+            <ContactLines form={form} />
+          </div>
+        )}
+        {sidebar && (
+          <p className={`doc-main-role ${form.expertise || form.role ? "" : "is-placeholder"}`}>
+            {expertise}
+          </p>
+        )}
+        <CvSections form={form} skills={skills} sidebarSkills={sidebar} />
       </div>
     </div>
   );
@@ -163,27 +329,29 @@ export function CoverDocumentPreview({
       className={`doc-sheet cover-sheet layout-${layout} density-${densityGap(template?.density)} ${compact ? "is-thumb" : ""}`}
       style={style}
     >
-      {layout === "sidebar" && <div className="doc-cover-chrome sidebar-chrome" />}
+      {layout === "sidebar" && (
+        <div className="doc-cover-chrome sidebar-chrome" />
+      )}
       <div className="doc-main">
         <header className={lightHeader ? "cover-head-light" : "cover-head"}>
           <div>
             <h3>{form.name || "Your name"}</h3>
             <p className="doc-contact">
-              {[form.email, form.phone, form.location].filter(Boolean).join("  ·  ") ||
-                "Contact details"}
+              {[form.email, form.phone, form.location]
+                .filter(Boolean)
+                .join("  ·  ") || "email · phone · location"}
             </p>
           </div>
           <PhotoSlot photoUrl={photoUrl} shape={template?.photo || "none"} />
         </header>
-        {!lightHeader && <span className="doc-rule full" />}
-        {lightHeader && <span className="doc-rule full light-rule" />}
+        <span className={`doc-rule full ${lightHeader ? "light-rule" : ""}`} />
         <p className="cover-meta">
           {[form.company, form.role].filter(Boolean).join(" · ") ||
-            "Target company · Target role"}
+            "Company · Role"}
         </p>
-        <p className="preline cover-body">
+        <p className={`preline cover-body ${letter ? "" : "is-placeholder"}`}>
           {letter ||
-            "Dear Hiring Manager,\n\nYour cover letter will appear here once you generate it.\n\nYours sincerely,\nYour name"}
+            "Dear Hiring Manager,\n\nYour cover letter will appear here once you generate it. Keep the tone clear, specific and professional.\n\nYours sincerely,\nYour name"}
         </p>
       </div>
     </div>
@@ -219,6 +387,12 @@ export function BusinessDocumentPreview({
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }));
+  const rows = items.length
+    ? items.slice(0, 8)
+    : [
+        { description: "Professional services", qty: 1, price: 2500 },
+        { description: "Materials / disbursements", qty: 1, price: 350 },
+      ];
 
   return (
     <div
@@ -240,7 +414,13 @@ export function BusinessDocumentPreview({
                 {(form.business || "B").slice(0, 2).toUpperCase()}
               </span>
             )}
-            <b>{form.business || "Your business"}</b>
+            <div>
+              <b>{form.business || "Your business"}</b>
+              <small className="doc-biz-sub">
+                {[form.email, form.phone].filter(Boolean).join(" · ") ||
+                  "Business contact"}
+              </small>
+            </div>
           </div>
           <h3>{kind.toUpperCase()}</h3>
         </header>
@@ -271,10 +451,7 @@ export function BusinessDocumentPreview({
             <b>Qty</b>
             <b>Amount</b>
           </div>
-          {(items.length
-            ? items.slice(0, 6)
-            : [{ description: "Professional services", qty: 1, price: 2500 }]
-          ).map((item, index) => (
+          {rows.map((item, index) => (
             <div key={index}>
               <span>{item.description || "Item or service"}</span>
               <span>{item.qty || 0}</span>
@@ -287,23 +464,27 @@ export function BusinessDocumentPreview({
         <dl className="business-totals">
           <div>
             <dt>Subtotal</dt>
-            <dd>P {format(subtotal || 2500)}</dd>
+            <dd>P {format(subtotal || 2850)}</dd>
           </div>
           {vat && (
             <div>
-              <dt>VAT</dt>
+              <dt>VAT (14%)</dt>
               <dd>P {format(vatAmount)}</dd>
             </div>
           )}
           <div className="grand">
-            <dt>Total</dt>
-            <dd>P {format(total || 2500)}</dd>
+            <dt>Total due</dt>
+            <dd>P {format(total || 2850)}</dd>
           </div>
         </dl>
-        {form.notes && <p className="preline doc-notes">{form.notes}</p>}
+        {(form.notes || compact) && (
+          <p className="preline doc-notes">
+            {form.notes || "Payment terms and notes appear here."}
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
-export { split };
+export { split, parseEntries };

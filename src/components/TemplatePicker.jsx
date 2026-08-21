@@ -7,36 +7,49 @@ import {
 
 const sampleCv = {
   name: "Kago Molefe",
-  expertise: "Management Consultant",
-  email: "kago@email.com",
-  phone: "+267 71 000 000",
-  location: "Gaborone",
+  expertise: "Hospitality Supervisor",
+  email: "kago.molefe@email.com",
+  phone: "+267 71 234 567",
+  location: "Gaborone, Botswana",
   website: "",
-  linkedin: "",
+  linkedin: "linkedin.com/in/kagomolefe",
   summary:
-    "Results-driven consultant advising organisations across Botswana on growth, delivery and operations.",
-  experience:
-    "Senior Consultant, FutureWorks — Led multi-client delivery programmes and process improvement workstreams.",
-  education: "BCom Management, University of Botswana",
-  certifications: "Project Management Professional (in progress)",
+    "Hospitality supervisor with six years’ experience leading front-of-house teams in hotels and lodges. Known for calm service recovery, staff coaching and on-time shift operations.",
+  experience: `Front Office Supervisor, Cresta Lodge — 2022–Present
+Led a team of 8 across check-in, concierge and guest relations
+Raised guest satisfaction scores from 86% to 94% in 12 months
+Introduced a handover checklist that cut shift errors by 30%
+
+Guest Services Associate, Masa Hotel — 2019–2022
+Managed arrivals for conference and leisure guests
+Trained three junior associates on PMS and complaint handling`,
+  education: `Diploma in Hospitality Management, Botho University — 2019
+Certificate in Food Safety, Botswana Bureau of Standards — 2021`,
+  certifications: "First Aid Level 1 · Food Safety Certificate",
 };
 
-const sampleSkills = ["Strategy", "Analysis", "Stakeholder management"];
+const sampleSkills = [
+  "Guest relations",
+  "Team leadership",
+  "Opera PMS",
+  "Cash handling",
+  "Conflict resolution",
+];
 
 const sampleCover = {
   name: "Kago Molefe",
-  email: "kago@email.com",
-  phone: "+267 71 000 000",
-  location: "Gaborone",
-  role: "Consultant",
-  company: "Botswana Enterprise",
+  email: "kago.molefe@email.com",
+  phone: "+267 71 234 567",
+  location: "Gaborone, Botswana",
+  role: "Front Office Supervisor",
+  company: "Cresta Hotels",
 };
 
 const sampleLetter = `Dear Hiring Manager,
 
-I am writing to express my interest in the Consultant role at Botswana Enterprise. My background in delivery and stakeholder work aligns closely with your needs.
+I am writing to apply for the Front Office Supervisor role at Cresta Hotels. Over the past six years I have led guest-facing teams, improved satisfaction scores and kept busy shifts running smoothly.
 
-I would welcome the opportunity to discuss how I can contribute.
+At Cresta Lodge I supervise eight colleagues, coach new starters and own the evening service recovery process. I would welcome the chance to bring the same discipline and hospitality standards to your property.
 
 Yours sincerely,
 Kago Molefe`;
@@ -45,15 +58,17 @@ const sampleBusiness = {
   business: "Kgetsi Studio",
   client: "Serowe Retail Co.",
   number: "INV-204",
-  date: "2026-08-20",
-  dueDate: "2026-09-05",
-  validUntil: "2026-09-20",
-  notes: "Payment due within 14 days.",
+  date: "20 Aug 2026",
+  dueDate: "05 Sep 2026",
+  validUntil: "20 Sep 2026",
+  email: "accounts@kgetsi.co.bw",
+  phone: "+267 390 0000",
+  notes: "Bank: FNB · Acc 62870770297 · Payment due within 14 days.",
 };
 
 const sampleItems = [
   { description: "Brand identity package", qty: 1, price: 2800 },
-  { description: "Print-ready artwork", qty: 2, price: 450 },
+  { description: "Print-ready artwork sets", qty: 2, price: 450 },
   { description: "Revision round", qty: 1, price: 350 },
 ];
 

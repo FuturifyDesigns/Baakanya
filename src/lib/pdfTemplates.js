@@ -22,33 +22,74 @@ const writeSection = (pdf, title, body, options) => {
   const font = options.font || "helvetica";
   const lineHeight =
     options.density === "compact"
-      ? 4.5
+      ? 4.4
       : options.density === "spacious"
-        ? 6.2
-        : 5.2;
+        ? 5.8
+        : 4.9;
   if (!body) return y;
-  if (y > 265) {
+  if (y > 270) {
     pdf.addPage();
-    y = 22;
+    y = 20;
   }
   setColour(pdf, accent);
   pdf.setFont(font, "bold");
-  pdf.setFontSize(9);
-  pdf.text(title.toUpperCase(), x, y);
-  y += 7;
+  pdf.setFontSize(8.5);
+  pdf.text(String(title).toUpperCase(), x, y);
+  y += 2.2;
+  setColour(pdf, accent, true);
+  pdf.rect(x, y, width, 0.55, "F");
+  y += 5;
+
   pdf.setTextColor(38, 50, 57);
   pdf.setFont(font, "normal");
-  pdf.setFontSize(9.5);
-  const lines = pdf.splitTextToSize(body, width);
-  for (const line of lines) {
-    if (y > 280) {
-      pdf.addPage();
-      y = 22;
+  pdf.setFontSize(9.2);
+
+  const blocks = String(body)
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  const writeLines = (lines, bullet = false) => {
+    for (const line of lines) {
+      const wrapped = pdf.splitTextToSize(
+        bullet ? `•  ${line}` : line,
+        bullet ? width - 3 : width,
+      );
+      for (const part of wrapped) {
+        if (y > 282) {
+          pdf.addPage();
+          y = 20;
+        }
+        pdf.text(part, bullet ? x + 1 : x, y);
+        y += lineHeight;
+      }
     }
-    pdf.text(line, x, y);
-    y += lineHeight;
+  };
+
+  if (blocks.length > 1 || /\n/.test(body)) {
+    for (const block of blocks.length > 1 ? blocks : [body]) {
+      const lines = String(block)
+        .split(/\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (!lines.length) continue;
+      pdf.setFont(font, "bold");
+      pdf.setFontSize(9.4);
+      const head = lines[0].replace(/^[-•*]\s*/, "");
+      writeLines([head], false);
+      pdf.setFont(font, "normal");
+      pdf.setFontSize(9);
+      writeLines(
+        lines.slice(1).map((line) => line.replace(/^[-•*]\s*/, "")),
+        true,
+      );
+      y += 2.2;
+    }
+  } else {
+    writeLines(pdf.splitTextToSize(body, width), false);
+    y += 3;
   }
-  return y + 7;
+  return y + 3;
 };
 
 export const renderCvPdf = ({ form, template, photoData, skills }) => {
@@ -59,20 +100,43 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
   const accent = template.accent;
   const font = template.font || "helvetica";
   const density = template.density || "comfortable";
-  let contentX = sidebar ? 73 : 18;
-  let contentWidth = sidebar ? 119 : 174;
-  let y = band ? 62 : 58;
+  let contentX = sidebar ? 68 : 18;
+  let contentWidth = sidebar ? 124 : 174;
+  let y = band ? 58 : 48;
 
   if (sidebar) {
     setColour(pdf, primary, true);
-    pdf.rect(0, 0, 61, 297, "F");
-    if (photoData) pdf.addImage(photoData, "PNG", 13, 16, 35, 35);
+    pdf.rect(0, 0, 58, 297, "F");
+    let sideY = 16;
+    if (photoData) {
+      pdf.addImage(photoData, "PNG", 11, sideY, 34, 34);
+      sideY = 58;
+    }
     pdf.setTextColor(255, 255, 255);
     pdf.setFont(font, "bold");
-    pdf.setFontSize(17);
-    pdf.text(pdf.splitTextToSize(form.name, 45), 9, photoData ? 65 : 25);
+    pdf.setFontSize(13);
+    const nameLines = pdf.splitTextToSize(form.name || "Your name", 46);
+    pdf.text(nameLines, 8, sideY);
+    sideY += nameLines.length * 5 + 3;
     pdf.setFont(font, "normal");
-    pdf.setFontSize(8.5);
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(220, 230, 235);
+    const roleLines = pdf.splitTextToSize(
+      (form.expertise || form.role || "").toUpperCase(),
+      46,
+    );
+    if (roleLines[0]) {
+      pdf.text(roleLines, 8, sideY);
+      sideY += roleLines.length * 3.6 + 6;
+    }
+    pdf.setFont(font, "bold");
+    pdf.setFontSize(7);
+    pdf.setTextColor(180, 200, 210);
+    pdf.text("CONTACT", 8, sideY);
+    sideY += 4;
+    pdf.setFont(font, "normal");
+    pdf.setFontSize(7.4);
+    pdf.setTextColor(240, 245, 247);
     const contact = [
       form.email,
       form.phone,
@@ -80,7 +144,28 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
       form.website,
       form.linkedin,
     ].filter(Boolean);
-    pdf.text(contact, 9, photoData ? 86 : 48);
+    for (const line of contact) {
+      const wrapped = pdf.splitTextToSize(line, 46);
+      pdf.text(wrapped, 8, sideY);
+      sideY += wrapped.length * 3.4 + 1.2;
+    }
+    if (skills.length) {
+      sideY += 5;
+      pdf.setFont(font, "bold");
+      pdf.setFontSize(7);
+      pdf.setTextColor(180, 200, 210);
+      pdf.text("SKILLS", 8, sideY);
+      sideY += 4;
+      pdf.setFont(font, "normal");
+      pdf.setFontSize(7.4);
+      pdf.setTextColor(240, 245, 247);
+      for (const skill of skills) {
+        const wrapped = pdf.splitTextToSize(`•  ${skill}`, 46);
+        pdf.text(wrapped, 8, sideY);
+        sideY += wrapped.length * 3.4 + 1;
+      }
+    }
+    y = 22;
   } else if (band) {
     setColour(pdf, primary, true);
     pdf.rect(0, 0, 210, 47, "F");
@@ -151,14 +236,16 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     font,
     density,
   });
-  y = writeSection(pdf, "Core skills", skills.join("  •  "), {
-    x: contentX,
-    y,
-    width: contentWidth,
-    accent,
-    font,
-    density,
-  });
+  if (!sidebar) {
+    y = writeSection(pdf, "Core skills", skills.join("  •  "), {
+      x: contentX,
+      y,
+      width: contentWidth,
+      accent,
+      font,
+      density,
+    });
+  }
   writeSection(pdf, "Certifications", form.certifications, {
     x: contentX,
     y,
