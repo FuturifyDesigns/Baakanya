@@ -4518,3 +4518,34 @@ footer {
   .access-mode-cards { grid-template-columns: 1fr; }
 }
 
+
+.payment-review-card {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 34px;
+  border: 1px solid #cfe3d6;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f4fbf6 0%, #ffffff 55%);
+  box-shadow: 0 18px 40px rgba(23, 55, 70, .08);
+}
+.payment-review-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 16px;
+  background: #e3f6ea;
+  color: #237248;
+}
+.payment-review-card h2 { margin: 0; font-size: 28px; }
+.payment-review-card > p { margin: 0; color: var(--muted); max-width: 48ch; line-height: 1.55; }
+.payment-review-card ul {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  color: #35505c;
+  font-size: 14px;
+  line-height: 1.55;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Landmark, Smartphone, UploadCloud } from "lucide-react";
+import { CheckCircle2, Landmark, Smartphone, UploadCloud } from "lucide-react";
 import { useAuth } from "../lib/auth";
+import { useAccess } from "../lib/access";
 import { supabase } from "../lib/supabase";
 
 const bank = {
@@ -15,6 +16,7 @@ const bank = {
 export default function PaymentPanel({
   initialPlan = "subscription",
   onPlanChange,
+  onSubmitted,
 }) {
   const [plan, setPlan] = useState(
     initialPlan === "credits" ? "credits" : "subscription",
@@ -23,7 +25,9 @@ export default function PaymentPanel({
   const [method, setMethod] = useState("bank");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const { user } = useAuth();
+  const access = useAccess();
 
   useEffect(() => {
     setPlan(initialPlan === "credits" ? "credits" : "subscription");
@@ -45,9 +49,9 @@ export default function PaymentPanel({
       setMessage("Upload a JPG, PNG, WebP or PDF receipt.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 8 * 1024 * 1024) {
       setReceipt(null);
-      setMessage("The receipt must be smaller than 10 MB.");
+      setMessage("The receipt must be smaller than 8 MB.");
       return;
     }
     setReceipt(file);
@@ -64,37 +68,69 @@ export default function PaymentPanel({
     }
     setBusy(true);
     setMessage("");
-    const safeName = receipt.name.replace(/[^a-z0-9._-]/gi, "-");
-    const path = `${user.id}/${crypto.randomUUID()}-${safeName}`;
+    const extension = (receipt.name.split(".").pop() || "png").toLowerCase();
+    const safeExt = ["png", "jpg", "jpeg", "webp", "pdf"].includes(extension)
+      ? extension
+      : "png";
+    const path = `${user.id}/${crypto.randomUUID()}.${safeExt}`;
     const upload = await supabase.storage
       .from("payment-receipts")
-      .upload(path, receipt);
+      .upload(path, receipt, {
+        contentType: receipt.type || undefined,
+        upsert: false,
+      });
     if (upload.error) {
       setMessage(upload.error.message);
       setBusy(false);
       return;
     }
-    const amount = plan === "credits" ? 25 : 40;
-    const result = await supabase.from("payment_submissions").insert({
-      user_id: user.id,
-      amount,
-      plan_type: plan,
-      payment_method: method,
-      receipt_image_path: path,
+
+    const { data, error } = await supabase.rpc("submit_payment_proof", {
+      selected_plan: plan,
+      selected_method: method,
+      receipt_path: path,
     });
-    if (!result.error && supabase) {
-      await supabase.rpc("choose_access_mode", {
-        selected_mode: plan,
-        reservation_token: null,
-      });
+
+    if (error) {
+      setMessage(error.message);
+      setBusy(false);
+      return;
     }
-    setMessage(
-      result.error
-        ? result.error.message
-        : "Receipt submitted. We will review it and unlock your access.",
-    );
+
+    setSubmitted(true);
+    setReceipt(null);
+    access.refresh?.();
+    onSubmitted?.(data);
     setBusy(false);
   };
+
+  if (submitted) {
+    return (
+      <div className="payment-review-card" role="status" aria-live="polite">
+        <div className="payment-review-icon">
+          <CheckCircle2 size={34} />
+        </div>
+        <span className="kicker">UNDER REVIEW</span>
+        <h2>Your account is in review</h2>
+        <p>
+          We received your proof of payment. Please wait for a Baakanya admin to
+          verify your receipt. Your workspace stays locked until approval.
+        </p>
+        <ul>
+          <li>Selected plan: {plan === "credits" ? "P25 credits" : "P40 monthly"}</li>
+          <li>Reviews usually happen during Botswana business hours</li>
+          <li>You can sign out and return later — your submission is saved</li>
+        </ul>
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() => setSubmitted(false)}
+        >
+          Submit another receipt
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="payment-grid">
@@ -195,7 +231,11 @@ export default function PaymentPanel({
         >
           {busy ? "Submitting…" : "Submit for review"}
         </button>
-        {message && <div className="form-message">{message}</div>}
+        {message && (
+          <div className="form-message validation-error" role="alert">
+            {message}
+          </div>
+        )}
       </div>
       <aside className="payment-aside">
         <h2>What happens next?</h2>

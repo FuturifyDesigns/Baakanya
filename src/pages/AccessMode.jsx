@@ -313,10 +313,18 @@ function AccessModeBody() {
             {message}
           </div>
         )}
-        <p className="access-mode-footnote">
-          <Clock3 size={16} /> Workspace stays locked until a trial starts or
-          payment is approved.
-        </p>
+        {!showPay && (
+          <p className="access-mode-footnote">
+            <Clock3 size={16} /> Workspace stays locked until a trial starts or
+            payment is approved.
+          </p>
+        )}
+        {showPay && !message && (
+          <p className="access-mode-footnote">
+            <Clock3 size={16} /> After you submit, an admin must verify your
+            receipt before tools unlock.
+          </p>
+        )}
       </section>
     </Layout>
   );
