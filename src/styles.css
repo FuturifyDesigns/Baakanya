@@ -1148,6 +1148,18 @@ footer {
   gap: 28px;
   align-items: start;
 }
+.tool-workspace-grid {
+  align-items: start;
+}
+.tool-workspace-main {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+.tool-workspace-main .template-section,
+.tool-workspace-main .media-adjuster {
+  margin: 0;
+}
 .form-card label,
 .auth-form label {
   display: flex;
@@ -3788,10 +3800,32 @@ footer {
   .payment-grid {
     grid-template-columns: 1fr;
   }
-  .summary-card,
-  .letter-preview,
+  .summary-card:not(.live-document-preview),
+  .letter-preview:not(.live-document-preview),
   .payment-aside {
     position: static;
+  }
+  .career-grid .live-document-preview,
+  .builder-grid .live-document-preview {
+    order: -1;
+    position: sticky;
+    top: 72px;
+    z-index: 12;
+    max-height: min(42vh, 420px);
+    margin-bottom: 4px;
+    box-shadow: 0 12px 28px rgba(18, 45, 57, 0.22);
+  }
+  .tool-workspace-main {
+    display: contents;
+  }
+  .tool-workspace-main .template-section {
+    order: 0;
+  }
+  .tool-workspace-main .media-adjuster {
+    order: 1;
+  }
+  .tool-workspace-main .form-card {
+    order: 2;
   }
   .auth-page {
     grid-template-columns: 1fr;
@@ -4386,6 +4420,13 @@ footer {
   padding: 0;
   background: #1b2830;
   color: #fff;
+  top: 88px;
+  max-height: calc(100vh - 104px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  align-self: start;
+  z-index: 6;
 }
 .live-document-preview .preview-chrome {
   flex: 0 0 auto;
@@ -4564,7 +4605,7 @@ footer {
   .editing-context, .admin-title-row, .admin-toolbar { align-items: flex-start; flex-direction: column; }
   .template-card { min-height: 300px; }
   .template-preview-stage { min-height: 205px; }
-  .live-document-preview { min-height: 0; padding: 0; max-height: none; }
+  .live-document-preview { min-height: 0; padding: 0; }
   .admin-metrics { grid-template-columns: 1fr; }
 }
 
@@ -5179,9 +5220,9 @@ footer {
     gap: 18px;
   }
   .live-document-preview {
-    position: relative;
-    top: auto;
-    max-height: min(72vh, 680px);
+    position: sticky;
+    top: 72px;
+    max-height: min(42vh, 420px);
     overflow: hidden;
   }
   .live-document-preview .preview-scroll {
@@ -5539,7 +5580,7 @@ video {
     font-size: 16px; /* prevents iOS zoom on focus */
   }
   .live-document-preview {
-    max-height: min(68vh, 560px);
+    max-height: min(40vh, 360px);
     border-radius: 14px;
   }
   .preview-label {

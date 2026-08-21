@@ -447,33 +447,34 @@ export default function Career() {
           share form data.
         </p>
       </div>
-      {activeDocument === "cv" ? (
-        <TemplatePicker
-          label="CV template"
-          templates={cvTemplates}
-          value={cvTemplateId}
-          onChange={setCvTemplateId}
-        />
-      ) : (
-        <TemplatePicker
-          label="Cover letter template"
-          templates={coverLetterTemplates}
-          value={coverTemplateId}
-          onChange={setCoverTemplateId}
-        />
-      )}
-      {photoShape !== "none" && (
-        <MediaAdjuster
-          label={`${photoShape === "circle" ? "Circular" : "Square"} profile photo`}
-          file={photo}
-          onFile={setPhoto}
-          crop={photoCrop}
-          onCrop={setPhotoCrop}
-          shape={photoShape}
-        />
-      )}
-      <div className="career-grid">
-        <div className="form-card">
+      <div className="career-grid tool-workspace-grid">
+        <div className="tool-workspace-main">
+          {activeDocument === "cv" ? (
+            <TemplatePicker
+              label="CV template"
+              templates={cvTemplates}
+              value={cvTemplateId}
+              onChange={setCvTemplateId}
+            />
+          ) : (
+            <TemplatePicker
+              label="Cover letter template"
+              templates={coverLetterTemplates}
+              value={coverTemplateId}
+              onChange={setCoverTemplateId}
+            />
+          )}
+          {photoShape !== "none" && (
+            <MediaAdjuster
+              label={`${photoShape === "circle" ? "Circular" : "Square"} profile photo`}
+              file={photo}
+              onFile={setPhoto}
+              crop={photoCrop}
+              onCrop={setPhotoCrop}
+              shape={photoShape}
+            />
+          )}
+          <div className="form-card">
           {activeDocument === "cv" ? (
             <>
               <div className="field-grid">
@@ -845,6 +846,7 @@ export default function Career() {
               {autosaveStatus}
             </p>
           )}
+          </div>
         </div>
         <aside
           className={`letter-preview live-document-preview ${activeDocument}`}

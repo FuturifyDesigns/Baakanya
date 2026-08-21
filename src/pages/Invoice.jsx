@@ -326,22 +326,23 @@ export default function Invoice() {
           commercial fields.
         </p>
       </div>
-      <TemplatePicker
-        label={`${kind} template`}
-        templates={templates}
-        value={templateId}
-        onChange={setTemplate}
-      />
-      <MediaAdjuster
-        label="Business logo"
-        file={logo}
-        onFile={setLogo}
-        crop={logoCrop}
-        onCrop={setLogoCrop}
-        shape="square"
-      />
-      <div className="builder-grid">
-        <div className="form-card">
+      <div className="builder-grid tool-workspace-grid">
+        <div className="tool-workspace-main">
+          <TemplatePicker
+            label={`${kind} template`}
+            templates={templates}
+            value={templateId}
+            onChange={setTemplate}
+          />
+          <MediaAdjuster
+            label="Business logo"
+            file={logo}
+            onFile={setLogo}
+            crop={logoCrop}
+            onCrop={setLogoCrop}
+            shape="square"
+          />
+          <div className="form-card">
           <div className="field-grid">
             <label>
               Business name
@@ -572,6 +573,7 @@ export default function Invoice() {
               {autosaveStatus}
             </p>
           )}
+          </div>
         </div>
         <aside className="summary-card live-document-preview business">
           <div className="preview-chrome">
