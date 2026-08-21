@@ -254,8 +254,12 @@ export function useAccess() {
     }, 10000);
 
     if (configured && user && supabase) {
+      // Unique topic per hook instance — Layout + ToolShell/etc. all call
+      // useAccess(); reusing `access-${user.id}` returns an already-subscribed
+      // channel and throws if more postgres_changes callbacks are added.
+      const topic = `access-${user.id}-${Math.random().toString(36).slice(2, 10)}`;
       channel = supabase
-        .channel(`access-${user.id}`)
+        .channel(topic)
         .on(
           "postgres_changes",
           {
