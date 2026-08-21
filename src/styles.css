@@ -4117,6 +4117,9 @@ footer {
   .form-downloads {
     flex-direction: column;
   }
+  .form-downloads .btn {
+    width: 100%;
+  }
   .plan-select {
     grid-template-columns: 1fr;
   }
@@ -4922,13 +4925,17 @@ footer {
   .career-grid,
   .payment-grid {
     grid-template-columns: 1fr;
+    gap: 18px;
   }
   .live-document-preview {
-    position: static;
-    max-height: none;
+    position: relative;
+    top: auto;
+    max-height: min(72vh, 680px);
+    overflow: hidden;
   }
   .live-document-preview .preview-scroll {
-    overflow: visible;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .studio-copy-grid,
   .studio-title-grid,
@@ -4943,6 +4950,19 @@ footer {
   }
   .doc-sheet.layout-sidebar:not(.is-thumb) {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .doc-sheet.layout-sidebar:not(.is-thumb) .doc-sidebar {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px 14px;
+    align-items: start;
+  }
+  .doc-sheet.layout-sidebar:not(.is-thumb) .doc-sidebar h3,
+  .doc-sheet.layout-sidebar:not(.is-thumb) .doc-side-role {
+    grid-column: 2;
+  }
+  .doc-sheet.layout-sidebar:not(.is-thumb) .doc-side-block {
+    grid-column: 1 / -1;
   }
   .admin-metrics { grid-template-columns: 1fr 1fr; }
   .user-status-list article { grid-template-columns: 1fr; }
@@ -5141,4 +5161,168 @@ footer {
   color: #35505c;
   font-size: 14px;
   line-height: 1.55;
+}
+
+/* —— Mobile polish (tools, studio, access, payments) —— */
+html,
+body {
+  overflow-x: hidden;
+}
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  .nav {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .nav-links {
+    gap: 4px;
+    z-index: 40;
+  }
+  .nav-links > a,
+  .nav-links > button,
+  .nav-links .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .access-mode-page {
+    padding: 36px 0 70px;
+  }
+  .access-pay-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .access-pay-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .payment-methods {
+    grid-template-columns: 1fr;
+  }
+  .payment-review-card {
+    padding: 24px 18px;
+  }
+  .payment-review-card h2 {
+    font-size: 24px;
+  }
+  .form-downloads .btn,
+  .word-actions .btn,
+  .draft-actions .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+  .studio-final-edit {
+    padding: 16px;
+  }
+  .document-studio {
+    padding: 22px 16px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .template-card {
+    min-height: 0;
+  }
+  .template-preview-stage {
+    min-height: 180px;
+  }
+  .template-thumb-frame {
+    width: 128px;
+    height: 182px;
+  }
+  .template-thumb-scale {
+    transform: scale(0.305);
+  }
+  .editing-context {
+    padding-top: 24px;
+    gap: 14px;
+  }
+  .editing-context h2 {
+    font-size: 24px;
+  }
+  .locked-card > div {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .locked-card .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: min(100% - 20px, 1160px);
+  }
+  .field-grid,
+  .business-preview-meta,
+  .plan-select,
+  .payment-methods {
+    grid-template-columns: 1fr;
+  }
+  .item-fields {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .item-fields input:first-child {
+    grid-column: 1 / -1;
+  }
+  .item-fields > button {
+    grid-column: 1 / -1;
+    justify-self: start;
+    min-height: 40px;
+  }
+  .form-card input,
+  .form-card textarea,
+  .auth-form input,
+  .studio-final-edit input,
+  .studio-final-edit textarea {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+  .live-document-preview {
+    max-height: min(68vh, 560px);
+    border-radius: 14px;
+  }
+  .preview-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+  .admin-metrics {
+    grid-template-columns: 1fr;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+  .access-mode-card {
+    padding: 18px;
+  }
+  .access-mode-card:hover,
+  .access-mode-card:focus-visible,
+  .access-mode-card.is-active {
+    transform: none;
+  }
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+  .template-grid {
+    max-height: none;
+    overflow: visible;
+  }
+  .doc-band {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 14px 16px;
+  }
+  .cover-head-light {
+    margin-left: -16px;
+    margin-right: -16px;
+  }
 }
