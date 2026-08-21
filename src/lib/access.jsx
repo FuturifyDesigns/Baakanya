@@ -64,6 +64,9 @@ export function useAccess() {
       } else if (signupIntent === "credits" || signupIntent === "subscription") {
         status = "awaiting_payment";
         reason = "Choose a paid plan to unlock the tools";
+      } else if (!signupIntent) {
+        status = "awaiting_mode";
+        reason = "Choose free trial or paid access to continue";
       }
       setState({
         loading: false,

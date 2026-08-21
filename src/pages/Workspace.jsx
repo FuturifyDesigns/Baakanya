@@ -36,6 +36,9 @@ function WorkspaceBody() {
   const access = useAccess();
 
   if (!access.loading && !access.allowed) {
+    if (access.status === "awaiting_mode") {
+      return <Navigate to="/access" replace />;
+    }
     return <Navigate to="/payment?reason=trial_ended" replace />;
   }
 

@@ -46,6 +46,18 @@ export default function ToolShell({ eyebrow, title, description, children }) {
           </div>
         ) : access.allowed ? (
           children
+        ) : access.status === "awaiting_mode" ? (
+          <div className="locked-card">
+            <ShieldCheck />
+            <span className="kicker">CHOOSE ACCESS</span>
+            <h2>Select free trial or paid access</h2>
+            <p>Finish setup before using the tools.</p>
+            <div>
+              <Link className="btn btn-blue" to="/access">
+                Choose access
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="locked-card">
             <ShieldCheck />

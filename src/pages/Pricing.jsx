@@ -16,11 +16,11 @@ export default function Pricing() {
         <div className="container pricing-hero-grid">
           <div>
             <span className="micro-label light">PRICING</span>
-            <h1>Clear prices. Access is chosen when you create an account.</h1>
+            <h1>Clear prices. Access is chosen after you verify your account.</h1>
             <p>
-              This page shows what each option costs. During account creation
-              you choose free trial, credits, or monthly access before entering
-              the workspace.
+              This page shows what each option costs. After you create and
+              verify your account, you choose free trial, credits, or monthly
+              access before entering the workspace.
             </p>
           </div>
           <aside className="pricing-quick-guide">
@@ -41,11 +41,11 @@ export default function Pricing() {
         <div className="trial-banner">
           <div>
             <span>7 DAYS</span>
-            <h2>Free trial is selected at signup.</h2>
+            <h2>Free trial is selected after verification.</h2>
           </div>
           <p>
-            Pricing here is informational only. Activate trial or paid access
-            when you create your account.
+            Pricing here is informational only. After signup and email
+            verification, choose trial or paid access in the app.
           </p>
           <Link className="btn btn-ink" to="/auth?mode=signup">
             Create account <ArrowRight />
