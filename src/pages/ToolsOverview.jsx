@@ -84,21 +84,38 @@ export default function ToolsOverview() {
       </section>
       <section className="automation-future">
         <div className="container automation-future-grid">
-          <div>
+          <div className="automation-future-copy">
             <span className="micro-label light">WHAT SHOULD COME NEXT?</span>
             <h2>More automation tools are on the way.</h2>
             <p>
               Tell us about a repetitive task you want Baakanya to make shorter.
               Good requests go directly into the admin review queue.
             </p>
+            <ul className="automation-future-points">
+              <li>Reviewed by the Baakanya team</li>
+              <li>Shapes what we build next</li>
+              <li>No payment or signup required to suggest</li>
+            </ul>
           </div>
           <div className="automation-request-card">
             {!open ? (
-              <button className="btn btn-white" onClick={() => setOpen(true)}>
-                Recommend an automation <ArrowRight />
-              </button>
+              <div className="automation-request-closed">
+                <span className="kicker light">IDEA BOX</span>
+                <h3>Got a document chore that still eats your time?</h3>
+                <p>
+                  Send the workflow. If it fits Baakanya, it joins the build
+                  queue.
+                </p>
+                <button className="btn btn-white" onClick={() => setOpen(true)}>
+                  Recommend an automation <ArrowRight />
+                </button>
+              </div>
             ) : (
-              <form onSubmit={submitRequest}>
+              <form onSubmit={submitRequest} className="automation-request-form">
+                <div className="automation-request-form-head">
+                  <span className="kicker light">SEND A REQUEST</span>
+                  <h3>Recommend an automation</h3>
+                </div>
                 <div className="bot-field" aria-hidden="true">
                   <label>
                     Website
@@ -169,6 +186,7 @@ export default function ToolsOverview() {
                 </label>
                 <button className="btn btn-white" disabled={busy}>
                   {busy ? "Sending…" : "Send recommendation"}
+                  {!busy && <ArrowRight />}
                 </button>
                 {message && <div className="form-message">{message}</div>}
               </form>
