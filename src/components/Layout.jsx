@@ -61,6 +61,11 @@ export default function Layout({ children }) {
             </button>
             {user ? (
               <>
+                {!isAdmin && (
+                  <NavLink to="/workspace/history" onClick={close}>
+                    History
+                  </NavLink>
+                )}
                 <NavLink to={workspaceHref} onClick={close}>
                   {isAdmin
                     ? "Admin"

@@ -17,6 +17,12 @@ import {
   updateDocumentHistoryTitle,
 } from "../lib/documentHistory";
 import { saveEditorDocument } from "../lib/documentEditorStore";
+import { useAccess } from "../lib/access";
+import {
+  canDownloadHistoryRecord,
+  registerFinalizedDraft,
+  renewalDestination,
+} from "../lib/finalizedAccess";
 
 function formatWhen(value) {
   if (!value) return "Unknown date";
@@ -31,6 +37,7 @@ function formatWhen(value) {
 
 function HistoryBody() {
   const navigate = useNavigate();
+  const access = useAccess();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState("");
@@ -54,15 +61,36 @@ function HistoryBody() {
     refresh();
   }, []);
 
-  const openInEditor = (record) => {
-    saveEditorDocument(draftFromHistoryRecord(record));
-    navigate("/tools/editor?step=download");
+  const openInEditor = async (record) => {
+    setBusyId(`${record.id}-open`);
+    setMessage("");
+    try {
+      const allowed = await canDownloadHistoryRecord(access, record);
+      if (!allowed) {
+        setMessage(
+          "This document cannot be opened. Only confirmed, paid documents stay available after credits run out.",
+        );
+        return;
+      }
+      registerFinalizedDraft(record.draft_key);
+      saveEditorDocument(draftFromHistoryRecord(record));
+      navigate("/tools/editor?step=download");
+    } finally {
+      setBusyId("");
+    }
   };
 
   const handleDownloadPdf = async (record) => {
     setBusyId(`${record.id}-pdf`);
     setMessage("");
     try {
+      const allowed = await canDownloadHistoryRecord(access, record);
+      if (!allowed) {
+        setMessage(
+          "Download blocked. Only documents you already confirmed and paid for can be downloaded without credits.",
+        );
+        return;
+      }
       downloadDraftPdf(draftFromHistoryRecord(record));
       await markDocumentHistoryDownloaded(record.id);
       await refresh();
@@ -78,6 +106,13 @@ function HistoryBody() {
     setBusyId(`${record.id}-word`);
     setMessage("");
     try {
+      const allowed = await canDownloadHistoryRecord(access, record);
+      if (!allowed) {
+        setMessage(
+          "Download blocked. Only documents you already confirmed and paid for can be downloaded without credits.",
+        );
+        return;
+      }
       downloadDraftWord(draftFromHistoryRecord(record));
       await markDocumentHistoryDownloaded(record.id);
       await refresh();
@@ -138,8 +173,20 @@ function HistoryBody() {
             <p>
               Confirmed documents are saved here so you can download them again
               if you leave before saving a file.
+              {!access.allowed && renewalDestination(access) && (
+                <>
+                  {" "}
+                  Your credits are used up — renew access to create new
+                  documents. Paid items here can still be downloaded.
+                </>
+              )}
             </p>
           </div>
+          {!access.allowed && renewalDestination(access) && (
+            <Link className="btn btn-outline" to={renewalDestination(access)}>
+              Renew access
+            </Link>
+          )}
         </div>
 
         <WorkspaceTabs />

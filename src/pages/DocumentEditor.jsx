@@ -31,9 +31,15 @@ import {
   findDocumentTemplate,
 } from "../lib/documentDownloads";
 import { upsertDocumentHistory } from "../lib/documentHistory";
+import {
+  canAccessPaidEditor,
+  registerFinalizedDraft,
+  renewalDestination,
+  verifyFinalizedOnServer,
+  hasFinalizedGrace,
+} from "../lib/finalizedAccess";
 import { finalizeGeneration } from "../lib/generation";
 import { useAccess } from "../lib/access";
-import { getAccessDestination } from "../lib/accessRoutes";
 import { useAutoSave } from "../lib/draftStore";
 
 const money = (n) =>
@@ -90,12 +96,42 @@ function EditorBody() {
   );
 
   const [liveStyle, setLiveStyle] = useState({});
+  const [paidAccessReady, setPaidAccessReady] = useState(null);
 
   useEffect(() => {
     if (!draft) return;
     const timer = window.setTimeout(() => saveEditorDocument(draft), 350);
     return () => window.clearTimeout(timer);
   }, [draft]);
+
+  useEffect(() => {
+    if (access.loading) return undefined;
+    if (access.allowed) {
+      setPaidAccessReady(true);
+      return undefined;
+    }
+    if (!draft?.draftKey) {
+      setPaidAccessReady(false);
+      return undefined;
+    }
+    if (hasFinalizedGrace(draft.draftKey)) {
+      setPaidAccessReady(true);
+      return undefined;
+    }
+    if (!draft?.billed) {
+      setPaidAccessReady(false);
+      return undefined;
+    }
+    let active = true;
+    verifyFinalizedOnServer(draft.draftKey).then((ok) => {
+      if (!active) return;
+      if (ok) registerFinalizedDraft(draft.draftKey);
+      setPaidAccessReady(ok);
+    });
+    return () => {
+      active = false;
+    };
+  }, [access.loading, access.allowed, draft?.draftKey, draft?.billed]);
 
   useEffect(() => {
     if (!draft?.billed) return;
@@ -124,8 +160,27 @@ function EditorBody() {
     [template, activeCustomization],
   );
 
-  if (!access.loading && !access.allowed) {
-    return <Navigate to={getAccessDestination(access) || "/access"} replace />;
+  if (!access.loading && paidAccessReady === false) {
+    const dest = renewalDestination(access) || "/access";
+    return <Navigate to={dest} replace />;
+  }
+
+  if (
+    access.loading ||
+    (!access.allowed && draft?.billed && paidAccessReady === null)
+  ) {
+    return (
+      <Layout>
+        <section className="container editor-missing">
+          <p>Checking download access…</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  if (!access.loading && !canAccessPaidEditor(access, draft) && !draft?.billed) {
+    const dest = renewalDestination(access) || "/access";
+    return <Navigate to={dest} replace />;
   }
 
   if (!draft || !template) {
@@ -195,10 +250,12 @@ function EditorBody() {
 
   const ensureFinalized = async () => {
     if (draft.billed) {
+      registerFinalizedDraft(draft.draftKey);
       return { charged: false, alreadyFinalized: true, draftKey: draft.draftKey };
     }
     const draftKey = draft.draftKey || crypto.randomUUID();
     const result = await finalizeGeneration(toolNameFor(draft), draftKey);
+    registerFinalizedDraft(draftKey);
     setDraft((current) => ({
       ...current,
       draftKey,
@@ -206,6 +263,15 @@ function EditorBody() {
     }));
     access.refresh?.();
     return { ...result, draftKey };
+  };
+
+  const exitEditor = (path) => {
+    const renew = renewalDestination(access);
+    if (renew && draft?.billed && step === "download") {
+      navigate(renew, { replace: true });
+      return;
+    }
+    navigate(path);
   };
 
   const markDocumentComplete = () => {
@@ -233,12 +299,16 @@ function EditorBody() {
           "Already confirmed for this draft. PDF and Word are ready. Saved in History too.",
         );
       } else if (result?.accessType === "credits" && result?.charged) {
+        const creditsLeft =
+          typeof result.remainingCredits === "number"
+            ? result.remainingCredits
+            : null;
         setMessage(
-          `Final version confirmed. One credit used${
-            typeof result.remainingCredits === "number"
-              ? ` · ${result.remainingCredits} left`
-              : ""
-          }. Find it anytime under Workspace → History.`,
+          creditsLeft === 0
+            ? "Final version confirmed with your last credit. Download PDF or Word now — renew access after you leave this page."
+            : `Final version confirmed. One credit used${
+                creditsLeft !== null ? ` · ${creditsLeft} left` : ""
+              }. Find it anytime under Workspace → History.`,
         );
       } else {
         setMessage(
@@ -309,6 +379,11 @@ function EditorBody() {
 
   const startNewDocument = () => {
     finishDocumentSession(draft.kind);
+    const renew = renewalDestination(access);
+    if (renew) {
+      navigate(renew, { replace: true });
+      return;
+    }
     navigate(draft.returnPath || "/workspace", {
       state: { freshDocument: true, completedKind: draft.kind },
     });
@@ -451,7 +526,7 @@ function EditorBody() {
           <button
             type="button"
             className="btn btn-outline"
-            onClick={() => navigate(draft.returnPath || "/workspace")}
+            onClick={() => exitEditor(draft.returnPath || "/workspace")}
           >
             <ArrowLeft size={16} /> Back to form
           </button>
@@ -754,6 +829,13 @@ function EditorBody() {
               same confirmed draft — no extra credit. After you download, the
               form clears so you can pick a new template. Missed a download?{" "}
               <Link to="/workspace/history">Open History</Link>.
+              {!access.allowed && renewalDestination(access) && (
+                <>
+                  {" "}
+                  Your credits are used up — renew access when you leave this
+                  page to start a new document.
+                </>
+              )}
             </p>
             <div className="editor-actions">
               <button
