@@ -3337,6 +3337,18 @@ footer {
   color: var(--muted);
   font-size: 13px;
 }
+.template-swipe-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: -12px 0 16px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .template-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3356,6 +3368,8 @@ footer {
   border-radius: 12px;
   background: white;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
 }
 .template-card:hover,
 .template-card.selected {
@@ -3364,6 +3378,12 @@ footer {
 }
 .template-card.selected {
   background: #eef9fe;
+}
+@media (pointer: fine) {
+  .template-card:focus-visible {
+    outline: 2px solid var(--blue-deep);
+    outline-offset: 2px;
+  }
 }
 .template-miniature {
   position: relative;
@@ -4779,13 +4799,20 @@ footer {
 
 @media (max-width: 900px) {
   .document-workflow { grid-template-columns: 1fr; }
-  .template-section-head > b {
-    font-size: 12px;
-  }
-  .template-section-head > b::before {
-    content: "Swipe to browse · ";
+  .template-swipe-hint {
+    display: flex;
   }
   .template-card { min-height: 290px; }
+  .template-card:focus {
+    outline: none;
+  }
+  .template-card:hover:not(.selected),
+  .template-card:focus:not(.selected),
+  .template-card:active:not(.selected) {
+    border-color: #d6e0e3;
+    background: white;
+    box-shadow: none;
+  }
   .automation-admin-list article { grid-template-columns: 1fr; }
   .admin-actions { justify-content: flex-start; }
 }

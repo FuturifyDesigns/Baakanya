@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, ChevronsLeftRight } from "lucide-react";
 import {
   BusinessDocumentPreview,
   CoverDocumentPreview,
@@ -141,6 +141,10 @@ export default function TemplatePicker({ label, templates, value, onChange }) {
         </div>
         <b>{templates.length} professional templates</b>
       </div>
+      <p className="template-swipe-hint" aria-hidden="true">
+        <ChevronsLeftRight size={16} strokeWidth={2.25} />
+        Swipe to browse templates
+      </p>
       <div className="template-grid">
         {templates.map((template) => (
           <button
