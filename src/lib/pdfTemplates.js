@@ -28,10 +28,79 @@ const bodyLineHeight = (templateOrOptions) => {
   return Math.max(3.6, base * spacing);
 };
 
+const PAGE_BOTTOM = 282;
+
+const estimateWrappedLines = (pdf, text, width) => {
+  if (!text) return 0;
+  let lines = 0;
+  const blocks = String(text)
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+  if (blocks.length > 1 || /\n/.test(text)) {
+    for (const block of blocks.length > 1 ? blocks : [text]) {
+      const rowLines = String(block)
+        .split(/\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (!rowLines.length) continue;
+      lines += pdf.splitTextToSize(rowLines[0], width).length;
+      for (const line of rowLines.slice(1)) {
+        lines += pdf.splitTextToSize(
+          `•  ${line.replace(/^[-•*]\s*/, "")}`,
+          Math.max(width - 3, 20),
+        ).length;
+      }
+      lines += 1;
+    }
+  } else {
+    lines = pdf.splitTextToSize(String(text), width).length;
+  }
+  return lines;
+};
+
+const estimateSectionHeight = (pdf, body, width, lineHeight) => {
+  if (!body) return 0;
+  return 12 + estimateWrappedLines(pdf, body, width) * lineHeight + 3;
+};
+
+const pageFillScale = (startY, estimatedHeight, pageBottom = PAGE_BOTTOM) => {
+  const available = pageBottom - startY;
+  if (available <= 0 || estimatedHeight <= 0) return 1;
+  const ratio = estimatedHeight / available;
+  if (ratio >= 0.82) return 1;
+  return Math.min(1.55, available / estimatedHeight);
+};
+
+const writeSidebarSection = (pdf, title, body, options) => {
+  let { sideY, width, font } = options;
+  if (!body || sideY > 250) return sideY;
+  pdf.setFont(font, "bold");
+  pdf.setFontSize(7);
+  pdf.setTextColor(180, 200, 210);
+  pdf.text(String(title).toUpperCase(), 8, sideY);
+  sideY += 4;
+  pdf.setFont(font, "normal");
+  pdf.setFontSize(7.2);
+  pdf.setTextColor(240, 245, 247);
+  const blocks = String(body)
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  for (const line of blocks) {
+    const wrapped = pdf.splitTextToSize(line.replace(/^[-•*]\s*/, "•  "), width);
+    pdf.text(wrapped, 8, sideY);
+    sideY += wrapped.length * 3.2 + 1;
+    if (sideY > 268) break;
+  }
+  return sideY + 4;
+};
+
 const writeSection = (pdf, title, body, options) => {
   let { x, y, width, accent } = options;
   const font = pdfFont(options.font);
   const lineHeight = options.lineHeight || bodyLineHeight(options);
+  const sectionGap = options.sectionGap ?? 3;
   if (!body) return y;
   if (y > 270) {
     pdf.addPage();
@@ -62,7 +131,7 @@ const writeSection = (pdf, title, body, options) => {
         bullet ? width - 3 : width,
       );
       for (const part of wrapped) {
-        if (y > 282) {
+        if (y > PAGE_BOTTOM) {
           pdf.addPage();
           y = 20;
         }
@@ -95,7 +164,7 @@ const writeSection = (pdf, title, body, options) => {
     writeLines(pdf.splitTextToSize(body, width), false);
     y += 3;
   }
-  return y + 3;
+  return y + sectionGap;
 };
 
 export const renderCvPdf = ({ form, template, photoData, skills }) => {
@@ -178,6 +247,19 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
         sideY += wrapped.length * 3.4 + 1;
       }
     }
+    const titles = template.titles || {};
+    sideY = writeSidebarSection(
+      pdf,
+      titles.education || "Education",
+      form.education,
+      { sideY, width: 46, font },
+    );
+    sideY = writeSidebarSection(
+      pdf,
+      titles.certifications || "Certifications",
+      form.certifications,
+      { sideY, width: 46, font },
+    );
     y = 22;
   } else if (band) {
     setColour(pdf, primary, true);
@@ -225,73 +307,57 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     }
   }
 
-  y = writeSection(pdf, template.titles?.profile || "Professional profile", form.summary, {
-    x: contentX,
-    y,
-    width: contentWidth,
-    accent,
-    font,
-    density,
-    lineSpacing: template.lineSpacing,
-    lineHeight,
-  });
-  y = writeSection(
-    pdf,
-    template.titles?.experience || "Experience and achievements",
-    form.experience,
-    {
-      x: contentX,
-      y,
-      width: contentWidth,
-      accent,
-      font,
-      density,
-      lineSpacing: template.lineSpacing,
-      lineHeight,
-    },
-  );
-  y = writeSection(pdf, template.titles?.education || "Education", form.education, {
-    x: contentX,
-    y,
-    width: contentWidth,
-    accent,
-    font,
-    density,
-    lineSpacing: template.lineSpacing,
-    lineHeight,
-  });
-  if (!sidebar) {
-    y = writeSection(
+  const titles = template.titles || {};
+  const mainSections = sidebar
+    ? [
+        { key: "profile", body: form.summary },
+        { key: "experience", body: form.experience },
+      ]
+    : [
+        { key: "profile", body: form.summary },
+        { key: "experience", body: form.experience },
+        { key: "education", body: form.education },
+        { key: "skills", body: skills.join("  •  ") },
+        { key: "certifications", body: form.certifications },
+      ];
+  const sectionLabels = {
+    profile: titles.profile || "Professional profile",
+    experience: titles.experience || "Experience and achievements",
+    education: titles.education || "Education",
+    skills: titles.skills || "Core skills",
+    certifications: titles.certifications || "Certifications",
+  };
+  let estimatedHeight = 0;
+  for (const section of mainSections) {
+    if (!section.body) continue;
+    estimatedHeight += estimateSectionHeight(
       pdf,
-      template.titles?.skills || "Core skills",
-      skills.join("  •  "),
-      {
-        x: contentX,
-        y,
-        width: contentWidth,
-        accent,
-        font,
-        density,
-        lineSpacing: template.lineSpacing,
-        lineHeight,
-      },
+      section.body,
+      contentWidth,
+      lineHeight,
     );
   }
-  writeSection(
-    pdf,
-    template.titles?.certifications || "Certifications",
-    form.certifications,
-    {
-      x: contentX,
+  const fillScale = pageFillScale(y, estimatedHeight);
+  const filledLineHeight = lineHeight * fillScale;
+  const sectionGap = 3 * fillScale;
+  const sectionOptions = {
+    x: contentX,
+    width: contentWidth,
+    accent,
+    font,
+    density,
+    lineSpacing: template.lineSpacing,
+    lineHeight: filledLineHeight,
+    sectionGap,
+  };
+
+  for (const section of mainSections) {
+    if (!section.body && section.key !== "skills") continue;
+    y = writeSection(pdf, sectionLabels[section.key], section.body, {
+      ...sectionOptions,
       y,
-      width: contentWidth,
-      accent,
-      font,
-      density,
-      lineSpacing: template.lineSpacing,
-      lineHeight,
-    },
-  );
+    });
+  }
   pdf.save(
     `${safeName(form.name, "baakanya")}-${safeName(template.name, "cv")}-cv.pdf`,
   );
@@ -384,6 +450,15 @@ export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
     .split(/\n\s*\n/)
     .map((part) => part.trim())
     .filter(Boolean);
+  let estimatedLines = 0;
+  for (const paragraph of paragraphs) {
+    estimatedLines += pdf.splitTextToSize(paragraph, width).length;
+  }
+  const estimatedHeight =
+    estimatedLines * lineHeight + Math.max(paragraphs.length - 1, 0) * 3.5;
+  const fillScale = pageFillScale(y, estimatedHeight);
+  const filledLineHeight = lineHeight * fillScale;
+  const paragraphGap = 3.5 * fillScale;
   for (const paragraph of paragraphs) {
     const lines = pdf.splitTextToSize(paragraph, width);
     for (const line of lines) {
@@ -392,9 +467,9 @@ export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
         y = 22;
       }
       pdf.text(line, x, y);
-      y += lineHeight;
+      y += filledLineHeight;
     }
-    y += 3.5;
+    y += paragraphGap;
   }
   pdf.save(
     `${safeName(form.name, "baakanya")}-${safeName(template.name, "cover-letter")}-cover-letter.pdf`,
@@ -509,6 +584,13 @@ export const renderBusinessPdf = ({
   drawTableHead(70);
   let y = 91;
   pdf.setFont(font, "normal");
+  const itemCount = Math.max(items.length, 1);
+  const rowFillScale = pageFillScale(
+    y,
+    itemCount * rowHeight + 48,
+    250,
+  );
+  const filledRowHeight = rowHeight * Math.max(rowFillScale, 1);
   items.forEach((item) => {
     if (y > 250) {
       pdf.addPage();
@@ -524,9 +606,9 @@ export const renderBusinessPdf = ({
     });
     pdf.setDrawColor(222, 228, 231);
     pdf.line(left, y + 4, right, y + 4);
-    y += rowHeight;
+    y += filledRowHeight;
   });
-  y = Math.max(y + 8, 135);
+  y += 12;
   if (y > 252) {
     pdf.addPage();
     y = 36;
@@ -542,10 +624,11 @@ export const renderBusinessPdf = ({
   setColour(pdf, primary);
   pdf.text(isQuote ? "QUOTE TOTAL" : "TOTAL DUE", 145, y + 23);
   pdf.text(`P ${amount(total)}`, right, y + 23, { align: "right" });
+  const notesY = y + 38;
   pdf.setFont(font, "bold");
   pdf.setFontSize(8.5);
   pdf.setTextColor(40, 55, 62);
-  pdf.text(isQuote ? "QUOTE NOTES" : "PAYMENT DETAILS", left, 268);
+  pdf.text(isQuote ? "QUOTE NOTES" : "PAYMENT DETAILS", left, notesY);
   pdf.setFont(font, "normal");
   pdf.setFontSize(8.2);
   pdf.setTextColor(75, 87, 94);
@@ -558,7 +641,7 @@ export const renderBusinessPdf = ({
       Math.min(110, right - left - 60),
     ),
     left,
-    273,
+    notesY + 5,
   );
   pdf.save(
     `${kind.toLowerCase()}-${safeName(form.number, "document")}-${safeName(template.name, "template")}.pdf`,

@@ -1,6 +1,6 @@
 import { Search, Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
@@ -54,6 +54,7 @@ const emptyCover = {
 
 export default function Career() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeDocument, setActiveDocument] = useState("cv");
   const [cvForm, setCvForm] = useState(emptyCv);
   const [coverForm, setCoverForm] = useState(emptyCover);
@@ -120,7 +121,35 @@ export default function Career() {
     [photoPreview],
   );
 
+  const resetCareerWorkspace = () => {
+    setActiveDocument("cv");
+    setCvForm(emptyCv);
+    setCoverForm(emptyCover);
+    setResearch({ loading: false, text: "", error: "" });
+    setManualCompany("");
+    setShowCompanyFallback(false);
+    setCvTemplateId(cvTemplates[0].id);
+    setCoverTemplateId(coverLetterTemplates[0].id);
+    setPhoto(null);
+    setPhotoCrop({ zoom: 1, x: 0, y: 0 });
+    setCustomization(defaultCustomization);
+    setCvGenerated(false);
+    setCoverGenerated(false);
+    setLetterFinal("");
+    setValidation("");
+  };
+
   useEffect(() => {
+    if (location.state?.freshDocument) {
+      resetCareerWorkspace();
+      setStudioMessage(
+        "Ready for a new document. Pick a template and fill in the form.",
+      );
+      navigate(location.pathname, { replace: true, state: null });
+      setDraftReady(true);
+      return;
+    }
+
     const saved = readLocalDraft(CAREER_DRAFT_KEY);
     if (!saved) {
       setDraftReady(true);
@@ -187,7 +216,7 @@ export default function Career() {
     } finally {
       setDraftReady(true);
     }
-  }, []);
+  }, [location.pathname, location.state?.freshDocument, navigate]);
 
   const careerDraftPayload = useMemo(
     () => ({

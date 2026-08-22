@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ToolShell from "../components/ToolShell";
 import TemplatePicker from "../components/TemplatePicker";
 import MediaAdjuster from "../components/MediaAdjuster";
@@ -55,8 +55,26 @@ const emptyQuotation = {
   notes: "Thank you for the opportunity to quote.",
 };
 
+const freshBusinessNumbers = () => {
+  const year = new Date().getFullYear();
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    invoice: {
+      ...emptyInvoice,
+      number: `INV-${year}-001`,
+      date: today,
+    },
+    quotation: {
+      ...emptyQuotation,
+      number: `QUO-${year}-001`,
+      date: today,
+    },
+  };
+};
+
 export default function Invoice() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [kind, setKind] = useState("Invoice");
   const [vat, setVat] = useState(false);
   const [invoiceForm, setInvoiceForm] = useState(emptyInvoice);
@@ -94,7 +112,35 @@ export default function Invoice() {
     [logoPreview],
   );
 
+  const resetBusinessWorkspace = () => {
+    const fresh = freshBusinessNumbers();
+    setKind("Invoice");
+    setVat(false);
+    setInvoiceForm(fresh.invoice);
+    setQuotationForm(fresh.quotation);
+    setInvoiceItems([{ description: "", qty: 1, price: "" }]);
+    setQuotationItems([{ description: "", qty: 1, price: "" }]);
+    setInvoiceTemplateId(invoiceTemplates[0].id);
+    setQuotationTemplateId(quotationTemplates[0].id);
+    setLogo(null);
+    setLogoCrop({ zoom: 1, x: 0, y: 0 });
+    setCustomization(defaultCustomization);
+    setInvoiceGenerated(false);
+    setQuotationGenerated(false);
+    setValidation("");
+  };
+
   useEffect(() => {
+    if (location.state?.freshDocument) {
+      resetBusinessWorkspace();
+      setStudioMessage(
+        "Ready for a new document. Pick a template and fill in the form.",
+      );
+      navigate(location.pathname, { replace: true, state: null });
+      setDraftReady(true);
+      return;
+    }
+
     const saved = readLocalDraft(BUSINESS_DRAFT_KEY);
     if (!saved) {
       setDraftReady(true);
@@ -137,7 +183,7 @@ export default function Invoice() {
     } finally {
       setDraftReady(true);
     }
-  }, []);
+  }, [location.pathname, location.state?.freshDocument, navigate]);
 
   const businessDraftPayload = useMemo(
     () => ({

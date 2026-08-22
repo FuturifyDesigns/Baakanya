@@ -1,5 +1,10 @@
 import { defaultCustomization } from "./customization";
-import { EDITOR_DRAFT_KEY } from "./draftStore";
+import {
+  BUSINESS_DRAFT_KEY,
+  CAREER_DRAFT_KEY,
+  clearLocalDraft,
+  EDITOR_DRAFT_KEY,
+} from "./draftStore";
 
 export const EDITOR_STORAGE_KEY = EDITOR_DRAFT_KEY;
 
@@ -66,6 +71,23 @@ export function clearEditorDocument() {
   } catch {
     /* ignore */
   }
+}
+
+/** Clears the Career or Invoice tool form draft after a document is finished. */
+export function clearToolFormDraft(kind) {
+  if (kind === "cv" || kind === "cover") {
+    clearLocalDraft(CAREER_DRAFT_KEY);
+    return;
+  }
+  if (kind === "invoice" || kind === "quotation") {
+    clearLocalDraft(BUSINESS_DRAFT_KEY);
+  }
+}
+
+/** Clears editor + tool drafts so the user can start completely fresh. */
+export function finishDocumentSession(kind) {
+  clearToolFormDraft(kind);
+  clearEditorDocument();
 }
 
 export function buildStyledTemplate(template, customization = {}) {

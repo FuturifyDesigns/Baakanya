@@ -83,6 +83,14 @@ export function readLocalDraft(storageKey) {
   }
 }
 
+export function clearLocalDraft(storageKey) {
+  try {
+    localStorage.removeItem(storageKey);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function writeLocalDraft(storageKey, payload) {
   localStorage.setItem(
     storageKey,

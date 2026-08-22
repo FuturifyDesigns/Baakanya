@@ -19,6 +19,8 @@ import {
 } from "../components/DocumentPreview";
 import {
   buildStyledTemplate,
+  clearToolFormDraft,
+  finishDocumentSession,
   loadEditorDocument,
   saveEditorDocument,
 } from "../lib/documentEditorStore";
@@ -70,6 +72,22 @@ const toolNameFor = (draft) => {
   return "invoice";
 };
 
+function EditorColorInput({ label, value, onLiveChange, onCommit }) {
+  return (
+    <label>
+      {label}
+      <input
+        type="color"
+        value={value}
+        onInput={(event) => onLiveChange(event.currentTarget.value)}
+        onChange={(event) => onLiveChange(event.currentTarget.value)}
+        onPointerUp={(event) => onCommit(event.currentTarget.value)}
+        onBlur={(event) => onCommit(event.currentTarget.value)}
+      />
+    </label>
+  );
+}
+
 function EditorBody() {
   const navigate = useNavigate();
   const access = useAccess();
@@ -83,9 +101,12 @@ function EditorBody() {
     "Credits are only used when you confirm the final version — not when you open the editor.",
   );
 
+  const [liveStyle, setLiveStyle] = useState({});
+
   useEffect(() => {
     if (!draft) return;
-    saveEditorDocument(draft);
+    const timer = window.setTimeout(() => saveEditorDocument(draft), 350);
+    return () => window.clearTimeout(timer);
   }, [draft]);
 
   const autosaveStatus = useAutoSave(
@@ -98,9 +119,14 @@ function EditorBody() {
     () => (draft ? findTemplate(draft.kind, draft.templateId) : null),
     [draft],
   );
+  const customization = draft?.customization || defaultCustomization;
+  const activeCustomization = useMemo(
+    () => ({ ...customization, ...liveStyle }),
+    [customization, liveStyle],
+  );
   const styledTemplate = useMemo(
-    () => buildStyledTemplate(template, draft?.customization),
-    [template, draft?.customization],
+    () => (template ? buildStyledTemplate(template, activeCustomization) : null),
+    [template, activeCustomization],
   );
 
   if (!access.loading && !access.allowed) {
@@ -121,7 +147,6 @@ function EditorBody() {
     );
   }
 
-  const customization = draft.customization || defaultCustomization;
   const form = draft.form || {};
   const updateForm = (key, value) =>
     setDraft((current) => ({
@@ -133,6 +158,15 @@ function EditorBody() {
       ...current,
       customization: { ...current.customization, ...patch },
     }));
+  const commitStyleColor = (key, value) => {
+    setLiveStyle((current) => {
+      if (current[key] === undefined) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    updateCustomization({ [key]: value });
+  };
   const updateTitle = (key, value) =>
     updateCustomization({
       titles: {
@@ -175,6 +209,13 @@ function EditorBody() {
     }));
     access.refresh?.();
     return result;
+  };
+
+  const markDocumentComplete = () => {
+    clearToolFormDraft(draft.kind);
+    setMessage(
+      "Download saved. The form is cleared — start a new document when you are ready.",
+    );
   };
 
   const confirmPreview = async () => {
@@ -247,6 +288,7 @@ function EditorBody() {
           logoData: draft.logoData || null,
         });
       }
+      markDocumentComplete();
     } catch (error) {
       setMessage(error.message || "Download blocked until access is confirmed.");
     } finally {
@@ -274,7 +316,8 @@ function EditorBody() {
           },
           skills: split(form.skills || ""),
           template: styledTemplate,
-          customization,
+          customization: activeCustomization,
+          photoData: draft.photoData || "",
         });
       } else if (draft.kind === "cover") {
         exportCoverWord({
@@ -284,7 +327,8 @@ function EditorBody() {
           },
           letter: draft.letter || "",
           template: styledTemplate,
-          customization,
+          customization: activeCustomization,
+          photoData: draft.photoData || "",
         });
       } else {
         exportBusinessWord({
@@ -293,14 +337,23 @@ function EditorBody() {
           items: draft.items || [],
           vat: Boolean(draft.vat),
           template: styledTemplate,
-          customization,
+          customization: activeCustomization,
+          logoData: draft.logoData || "",
         });
       }
+      markDocumentComplete();
     } catch (error) {
       setMessage(error.message || "Download blocked until access is confirmed.");
     } finally {
       setBusy(false);
     }
+  };
+
+  const startNewDocument = () => {
+    finishDocumentSession(draft.kind);
+    navigate(draft.returnPath || "/workspace", {
+      state: { freshDocument: true, completedKind: draft.kind },
+    });
   };
 
   const previewNode =
@@ -336,32 +389,30 @@ function EditorBody() {
         <Palette size={16} /> Style · {template.name}
       </h2>
       <div className="editor-color-row">
-        <label>
-          Title / sidebar
-          <input
-            type="color"
-            value={customization.primary || template.primary}
-            onChange={(e) => updateCustomization({ primary: e.target.value })}
-          />
-        </label>
-        <label>
-          Accent
-          <input
-            type="color"
-            value={customization.accent || template.accent}
-            onChange={(e) => updateCustomization({ accent: e.target.value })}
-          />
-        </label>
-        <label>
-          Background
-          <input
-            type="color"
-            value={customization.background || "#ffffff"}
-            onChange={(e) =>
-              updateCustomization({ background: e.target.value })
-            }
-          />
-        </label>
+        <EditorColorInput
+          label="Title / sidebar"
+          value={activeCustomization.primary || template.primary}
+          onLiveChange={(value) =>
+            setLiveStyle((current) => ({ ...current, primary: value }))
+          }
+          onCommit={(value) => commitStyleColor("primary", value)}
+        />
+        <EditorColorInput
+          label="Accent"
+          value={activeCustomization.accent || template.accent}
+          onLiveChange={(value) =>
+            setLiveStyle((current) => ({ ...current, accent: value }))
+          }
+          onCommit={(value) => commitStyleColor("accent", value)}
+        />
+        <EditorColorInput
+          label="Background"
+          value={activeCustomization.background || "#ffffff"}
+          onLiveChange={(value) =>
+            setLiveStyle((current) => ({ ...current, background: value }))
+          }
+          onCommit={(value) => commitStyleColor("background", value)}
+        />
       </div>
       <label>
         Font (Word-style)
@@ -742,7 +793,8 @@ function EditorBody() {
             <h2>Your {kindLabel(draft.kind)} is ready</h2>
             <p>
               Confirmed layout for <b>{template.name}</b>. PDF and Word use the
-              same confirmed draft — no extra credit.
+              same confirmed draft — no extra credit. After you download, the
+              form clears so you can pick a new template.
             </p>
             <div className="editor-actions">
               <button
@@ -760,6 +812,14 @@ function EditorBody() {
                 disabled={busy}
               >
                 <Download size={16} /> Download Word
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={startNewDocument}
+                disabled={busy}
+              >
+                Start new document
               </button>
               <button
                 type="button"
