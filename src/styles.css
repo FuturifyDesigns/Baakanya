@@ -6087,6 +6087,90 @@ video {
   max-width: 100%;
 }
 
+/* Touch devices: remove blue tap flash and sticky pressed/hover states */
+@media (hover: none) and (pointer: coarse) {
+  *,
+  *::before,
+  *::after {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  label,
+  summary,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+  }
+
+  a:focus,
+  button:focus,
+  summary:focus,
+  [role="button"]:focus,
+  label:focus,
+  .menu-btn:focus,
+  .btn:focus,
+  .access-mode-card:focus,
+  .document-workflow button:focus,
+  .template-card:focus,
+  .tool-card:focus,
+  .workspace-tool:focus,
+  .home-tool-row:focus,
+  .access-mode-select button:focus {
+    outline: none;
+  }
+
+  .btn:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .nav-links > a:hover:not(.active):not(.btn) {
+    color: inherit;
+  }
+
+  .access-mode-card:hover:not(.is-active):not(:disabled) {
+    transform: none;
+    border-color: #d5e0e4;
+    box-shadow: none;
+  }
+
+  .access-mode-select button:hover:not(.active) {
+    border-color: #c9d6db;
+    box-shadow: none;
+    background: #fff;
+  }
+
+  .document-workflow button:hover:not(.active) {
+    border-color: #ccd9de;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .tool-card:hover,
+  .workspace-tool:hover,
+  .home-tool-row:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .workspace-tool:hover {
+    border-color: var(--line);
+  }
+
+  .template-card:hover:not(.selected),
+  .template-card:focus:not(.selected),
+  .template-card:active:not(.selected) {
+    border-color: #d6e0e3;
+    background: #fff;
+    box-shadow: none;
+  }
+}
+
 @media (max-width: 900px) {
   .nav {
     padding-top: 12px;
