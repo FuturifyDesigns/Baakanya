@@ -118,6 +118,7 @@ Deno.serve(async (request) => {
     const bodyText = await request.text();
     if (bodyText.length > 5000) throw new Error("Invalid request");
     const body = JSON.parse(bodyText);
+    const checkOnly = body.mode === "check";
     const email = typeof body.email === "string" ? body.email : "";
     const normalizedEmail = normalizeEmail(email);
     const deviceFingerprint =
@@ -237,14 +238,23 @@ Deno.serve(async (request) => {
 
     if (reason !== "eligible") {
       await record(false, reason);
+      if (checkOnly) {
+        return Response.json({ eligible: false, reason }, { headers });
+      }
       return Response.json(
         {
           error: reason.endsWith("rate_limit")
             ? "Too many trial attempts. Please try again later."
             : "This request is not eligible for a free trial.",
+          reason,
         },
         { status: reason.endsWith("rate_limit") ? 429 : 403, headers },
       );
+    }
+
+    if (checkOnly) {
+      await record(true, "eligible_check");
+      return Response.json({ eligible: true }, { headers });
     }
 
     const reservationToken = randomToken();

@@ -2898,6 +2898,14 @@ footer {
   width: 17px;
   color: #27845a;
 }
+.pricing-option-cta {
+  margin-top: 1.25rem;
+  width: 100%;
+  justify-content: center;
+}
+.returning-pricing-banner {
+  border-color: rgba(15, 23, 42, 0.12);
+}
 .pricing-scenarios,
 .pricing-faq {
   padding-top: 120px;

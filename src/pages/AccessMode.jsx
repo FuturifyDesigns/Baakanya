@@ -258,9 +258,18 @@ function AccessModeBody() {
   };
 
   const visibleModes =
-    renewing || isRenewalStatus(access.status)
+    renewing ||
+    isRenewalStatus(access.status) ||
+    access.hasUsedTrial ||
+    access.trialEligible === false
       ? modes.filter((mode) => mode.id !== "trial")
       : modes;
+
+  const returningPicker =
+    access.isReturningUser &&
+    !renewTitle &&
+    !showPay &&
+    visibleModes.length < modes.length;
 
   const renewTitle =
     reason === "trial_ended" || access.status === "trial_expired"
@@ -302,18 +311,22 @@ function AccessModeBody() {
                 ? "Your account is in review"
                 : renewTitle
                   ? renewTitle
-                  : showPay
-                    ? "Complete payment to unlock tools"
-                    : "How do you want to use Baakanya?"}
+                  : returningPicker
+                    ? "Welcome back — choose how to continue"
+                    : showPay
+                      ? "Complete payment to unlock tools"
+                      : "How do you want to use Baakanya?"}
             </h1>
             <p>
               {underReview
                 ? "A receipt is waiting for admin verification. Plan options stay locked until that review finishes."
                 : renewTitle
                   ? renewCopy
-                  : showPay
-                    ? "You selected a paid option. Finish payment here — workspace opens only after approval."
-                    : "Your email is verified. Compare the options, pick one, then continue."}
+                  : returningPicker
+                    ? "You have already used the free trial on this account or device. Pick credits or monthly access to unlock the tools."
+                    : showPay
+                      ? "You selected a paid option. Finish payment here — workspace opens only after approval."
+                      : "Your email is verified. Compare the options, pick one, then continue."}
             </p>
           </div>
           {!underReview && !showPay && (
@@ -445,8 +458,10 @@ function AccessModeBody() {
         )}
         {!underReview && !showPay && (
           <p className="access-mode-footnote">
-            <Clock3 size={16} /> Workspace stays locked until a trial starts or
-            payment is approved.
+            <Clock3 size={16} />{" "}
+            {visibleModes.some((mode) => mode.id === "trial")
+              ? "Workspace stays locked until a trial starts or payment is approved."
+              : "Workspace stays locked until payment is approved."}
           </p>
         )}
         {!underReview && showPay && !message && (

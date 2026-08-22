@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./auth";
 import { supabase } from "./supabase";
+import { checkTrialEligible } from "./trialEligibility";
 
 const formatRemaining = (ms) => {
   if (ms <= 0) return "0d 00:00:00";
@@ -28,6 +29,11 @@ const emptyState = (overrides = {}) => ({
   subscriptionCountdown: "",
   credits: 0,
   status: "unknown",
+  hasUsedTrial: false,
+  isReturningUser: false,
+  trialEligible: null,
+  hadSubscription: false,
+  hadCredits: false,
   ...overrides,
 });
 
@@ -52,6 +58,9 @@ export function useAccess() {
     pendingSubmittedAt: null,
     hadSubscription: false,
     hadCredits: false,
+    hasUsedTrial: false,
+    isReturningUser: false,
+    trialEligible: null,
   });
 
   const refresh = useCallback(() => {
@@ -76,6 +85,9 @@ export function useAccess() {
         pendingSubmittedAt,
         hadSubscription,
         hadCredits,
+        hasUsedTrial,
+        isReturningUser,
+        trialEligible,
       } = snapshot.current;
       const now = Date.now();
       const trialActive = Boolean(trialEnd && trialEnd.getTime() > now);
@@ -155,6 +167,11 @@ export function useAccess() {
           : "",
         credits: creditBalance,
         status,
+        hasUsedTrial,
+        isReturningUser,
+        trialEligible,
+        hadSubscription,
+        hadCredits,
       });
     };
 
@@ -180,7 +197,7 @@ export function useAccess() {
         return;
       }
 
-      const [profileResult, subscriptionResult, creditResult, pendingResult] =
+      const [profileResult, subscriptionResult, creditResult, pendingResult, contextResult] =
         await Promise.all([
           supabase
             .from("profiles")
@@ -207,6 +224,7 @@ export function useAccess() {
             .order("submitted_at", { ascending: false })
             .limit(1)
             .maybeSingle(),
+          supabase.rpc("get_user_access_context"),
         ]);
 
       if (!active) return;
@@ -221,6 +239,40 @@ export function useAccess() {
       const creditBalance = creditResult.data?.balance || 0;
       const planType = profileResult.data?.plan_type || "none";
       const subscriptionWasPurchased = Boolean(subscriptionEnd);
+      const accessContext = contextResult.error ? {} : contextResult.data || {};
+      const hasUsedTrial = Boolean(
+        accessContext.has_used_trial || trialEnd,
+      );
+      const hadSubscription = Boolean(
+        accessContext.had_subscription || subscriptionWasPurchased,
+      );
+      const hadCredits = Boolean(
+        accessContext.had_credits ||
+          planType === "credits" ||
+          creditBalance > 0,
+      );
+      const isReturningUser = Boolean(
+        accessContext.is_returning_user ||
+          hasUsedTrial ||
+          hadSubscription ||
+          hadCredits,
+      );
+
+      let trialEligible = null;
+      if (hasUsedTrial) {
+        trialEligible = false;
+      } else if (user.email) {
+        try {
+          const check = await checkTrialEligible(user.email);
+          if (active) trialEligible = check.eligible;
+        } catch {
+          if (active) trialEligible = false;
+        }
+      } else {
+        trialEligible = false;
+      }
+
+      if (!active) return;
 
       snapshot.current = {
         trialEnd,
@@ -230,8 +282,11 @@ export function useAccess() {
         signupIntent: profileResult.data?.signup_intent || null,
         pendingPlan: pendingResult.data?.plan_type || null,
         pendingSubmittedAt: pendingResult.data?.submitted_at || null,
-        hadSubscription: subscriptionWasPurchased,
-        hadCredits: planType === "credits" || creditBalance > 0,
+        hadSubscription,
+        hadCredits,
+        hasUsedTrial,
+        isReturningUser,
+        trialEligible,
       };
       publish();
     };

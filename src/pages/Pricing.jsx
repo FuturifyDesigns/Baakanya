@@ -1,6 +1,9 @@
 import { ArrowRight, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
+import { useAccess } from "../lib/access";
+import { getAccessDestination, isRenewalStatus } from "../lib/accessRoutes";
+import { useAuth } from "../lib/auth";
 
 const benefits = [
   "CV, invoice and conversion tools",
@@ -10,22 +13,46 @@ const benefits = [
 ];
 
 export default function Pricing() {
+  const { user } = useAuth();
+  const access = useAccess();
+  const signedIn = Boolean(user);
+  const renewing =
+    signedIn &&
+    (isRenewalStatus(access.status) ||
+      access.status === "credits_available" ||
+      access.isReturningUser);
+  const showTrial =
+    !signedIn ||
+    (!access.hasUsedTrial &&
+      access.trialEligible !== false &&
+      !isRenewalStatus(access.status));
+  const renewHref =
+    signedIn && getAccessDestination(access)
+      ? getAccessDestination(access)
+      : "/access";
+
   return (
     <Layout>
       <section className="pricing-hero" data-cursor-theme="dark">
         <div className="container pricing-hero-grid">
           <div>
             <span className="micro-label light">PRICING</span>
-            <h1>Clear prices. Access is chosen after you verify your account.</h1>
+            <h1>
+              {renewing
+                ? "Renew or top up your Baakanya access."
+                : "Clear prices. Access is chosen after you verify your account."}
+            </h1>
             <p>
-              This page shows what each option costs. After you create and
-              verify your account, you choose free trial, credits, or monthly
-              access before entering the workspace.
+              {renewing
+                ? signedIn && access.hasUsedTrial
+                  ? "You have already used the free trial. Choose credits or monthly access below — the same prices as when you first joined."
+                  : "Pick credits or monthly access to keep working. Prices stay the same whether you are topping up or starting fresh."
+                : "This page shows what each option costs. After you create and verify your account, you choose free trial, credits, or monthly access before entering the workspace."}
             </p>
           </div>
           <aside className="pricing-quick-guide">
-            <span>THE QUICK ANSWER</span>
-            <h2>Which option is best?</h2>
+            <span>{renewing ? "RETURNING USER" : "THE QUICK ANSWER"}</span>
+            <h2>{renewing ? "What fits now?" : "Which option is best?"}</h2>
             <div>
               <b>Up to 5 documents</b>
               <p>Choose credits. Pay once and keep them until you need them.</p>
@@ -34,23 +61,45 @@ export default function Pricing() {
               <b>6+ documents in 30 days</b>
               <p>Choose monthly. It is usually the better value.</p>
             </div>
+            {renewing && access.hadCredits && (
+              <div>
+                <b>Used credits before</b>
+                <p>Buy another P25 pack — your history and settings stay on your account.</p>
+              </div>
+            )}
           </aside>
         </div>
       </section>
       <section className="pricing-page container">
-        <div className="trial-banner">
-          <div>
-            <span>7 DAYS</span>
-            <h2>Free trial is selected after verification.</h2>
+        {showTrial ? (
+          <div className="trial-banner">
+            <div>
+              <span>7 DAYS</span>
+              <h2>Free trial is selected after verification.</h2>
+            </div>
+            <p>
+              Pricing here is informational only. After signup and email
+              verification, choose trial or paid access in the app.
+            </p>
+            <Link className="btn btn-ink" to="/auth?mode=signup">
+              Create account <ArrowRight />
+            </Link>
           </div>
-          <p>
-            Pricing here is informational only. After signup and email
-            verification, choose trial or paid access in the app.
-          </p>
-          <Link className="btn btn-ink" to="/auth?mode=signup">
-            Create account <ArrowRight />
-          </Link>
-        </div>
+        ) : signedIn ? (
+          <div className="trial-banner returning-pricing-banner">
+            <div>
+              <span>RETURNING USER</span>
+              <h2>Free trial is not available again.</h2>
+            </div>
+            <p>
+              Your account or device has already used the one-time trial. Choose
+              credits or monthly access to unlock the workspace again.
+            </p>
+            <Link className="btn btn-ink" to={renewHref}>
+              Renew access <ArrowRight />
+            </Link>
+          </div>
+        ) : null}
         <div className="pricing-split">
           <article className="pricing-option credits-option">
             <span className="micro-label">CREDITS</span>
@@ -75,8 +124,15 @@ export default function Pricing() {
               </li>
             </ul>
             <p className="pricing-note">
-              Activated from account creation or payment after trial.
+              {renewing && access.hadCredits
+                ? "Top up with another pack whenever you run out."
+                : "Activated from account creation or payment after trial."}
             </p>
+            {signedIn && (
+              <Link className="btn btn-outline pricing-option-cta" to={`${renewHref}${renewHref.includes("?") ? "&" : "?"}plan=credits`}>
+                Choose credits <ArrowRight size={16} />
+              </Link>
+            )}
           </article>
           <article className="pricing-option blue recommended-option">
             <div className="recommended-badge">BEST FOR REGULAR USE</div>
@@ -105,8 +161,18 @@ export default function Pricing() {
               </li>
             </ul>
             <p className="pricing-note">
-              Activated from account creation or payment after trial.
+              {renewing && access.hadSubscription
+                ? "Renew for another 30 days when your current period ends."
+                : "Activated from account creation or payment after trial."}
             </p>
+            {signedIn && (
+              <Link
+                className="btn btn-blue pricing-option-cta"
+                to={`${renewHref}${renewHref.includes("?") ? "&" : "?"}plan=subscription`}
+              >
+                Choose monthly <ArrowRight size={16} />
+              </Link>
+            )}
           </article>
         </div>
         <section className="pricing-scenarios">
@@ -133,26 +199,43 @@ export default function Pricing() {
               </p>
               <b>Best fit: Monthly</b>
             </article>
-            <article>
-              <span>03</span>
-              <h3>Still deciding</h3>
-              <p>
-                Choose the seven-day trial during account creation. You do not
-                need a card to understand which tools you use most.
-              </p>
-              <b>Best fit: Free trial</b>
-            </article>
+            {showTrial ? (
+              <article>
+                <span>03</span>
+                <h3>Still deciding</h3>
+                <p>
+                  Choose the seven-day trial during account creation. You do not
+                  need a card to understand which tools you use most.
+                </p>
+                <b>Best fit: Free trial</b>
+              </article>
+            ) : (
+              <article>
+                <span>03</span>
+                <h3>Coming back after a break</h3>
+                <p>
+                  If you used Baakanya before, skip the trial — credits or
+                  monthly access picks up where you left off.
+                </p>
+                <b>Best fit: {access.hadSubscription ? "Monthly" : "Credits"}</b>
+              </article>
+            )}
           </div>
         </section>
         <div className="included">
           <span className="micro-label">EVERY OPTION INCLUDES</span>
           <div>
-            {benefits.map((item) => (
-              <p key={item}>
-                <Check />
-                {item}
-              </p>
-            ))}
+            {benefits
+              .filter(
+                (item) =>
+                  showTrial || item !== "No card required for the free trial",
+              )
+              .map((item) => (
+                <p key={item}>
+                  <Check />
+                  {item}
+                </p>
+              ))}
           </div>
         </div>
         <section className="pricing-faq">
@@ -164,8 +247,9 @@ export default function Pricing() {
             <article>
               <h3>Where do I activate a plan?</h3>
               <p>
-                During account creation. The pricing page only explains the
-                costs.
+                {signedIn
+                  ? "Open Renew access from your account or workspace, or use the buttons above."
+                  : "During account creation. The pricing page only explains the costs."}
               </p>
             </article>
             <article>
@@ -185,10 +269,11 @@ export default function Pricing() {
               </p>
             </article>
             <article>
-              <h3>What happens when the trial ends?</h3>
+              <h3>Can I get another free trial?</h3>
               <p>
-                You are removed from the workspace until you pay for credits or
-                monthly access.
+                {showTrial
+                  ? "Each person and device gets one trial. After that, choose credits or monthly access."
+                  : "No — the free trial is one-time per person and device. Returning users renew with credits or monthly access."}
               </p>
             </article>
           </div>

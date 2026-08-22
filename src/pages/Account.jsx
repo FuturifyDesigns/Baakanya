@@ -187,6 +187,12 @@ function AccountBody() {
               </div>
             </div>
             <div className="account-access-actions">
+              {access.hasUsedTrial && !access.allowed && (
+                <p className="account-note">
+                  Your free trial was already used on this account. Renew with
+                  credits or monthly access.
+                </p>
+              )}
               {access.allowed ? (
                 <Link className="btn btn-blue" to="/workspace">
                   Open workspace <ArrowRight size={16} />
@@ -195,7 +201,9 @@ function AccountBody() {
                 <Link className="btn btn-blue" to={renewHref}>
                   {isRenewalStatus(access.status)
                     ? "Renew access"
-                    : "Set up access"}{" "}
+                    : access.isReturningUser
+                      ? "Renew access"
+                      : "Set up access"}{" "}
                   <ArrowRight size={16} />
                 </Link>
               )}
