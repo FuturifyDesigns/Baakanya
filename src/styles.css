@@ -4757,6 +4757,12 @@ footer {
 .automation-admin-list article { grid-template-columns: .75fr 1.4fr auto; }
 .admin-status-select { display: grid; gap: 5px; color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; }
 .admin-status-select select { min-width: 120px; padding: 9px; border: 1px solid #cbd8dc; border-radius: 8px; background: #fff; text-transform: capitalize; }
+.automation-admin-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+  align-content: start;
+}
 
 @media (max-width: 900px) {
   .document-workflow { grid-template-columns: 1fr; }

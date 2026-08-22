@@ -157,6 +157,45 @@ export default function AdminControl() {
     else await load();
   };
 
+  const deleteRequest = async (id, label) => {
+    const ok = window.confirm(
+      `Delete recommendation${label ? ` “${label}”` : ""}? This cannot be undone.`,
+    );
+    if (!ok) return;
+    setBusyId(id);
+    setMessage("");
+    const { error } = await supabase
+      .from("automation_requests")
+      .delete()
+      .eq("id", id);
+    setBusyId("");
+    if (error) setMessage(error.message);
+    else await load();
+  };
+
+  const clearResolvedRequests = async () => {
+    const removable = requests.filter((row) =>
+      ["planned", "declined"].includes(row.status),
+    );
+    if (!removable.length) {
+      setMessage("No planned or declined recommendations to clear.");
+      return;
+    }
+    const ok = window.confirm(
+      `Delete ${removable.length} planned/declined recommendation${removable.length === 1 ? "" : "s"}?`,
+    );
+    if (!ok) return;
+    setBusyId("clear-requests");
+    setMessage("");
+    const { error } = await supabase
+      .from("automation_requests")
+      .delete()
+      .in("status", ["planned", "declined"]);
+    setBusyId("");
+    if (error) setMessage(error.message);
+    else await load();
+  };
+
   const openReceipt = async (path) => {
     setMessage("");
     const { data, error } = await supabase.storage
@@ -422,6 +461,15 @@ export default function AdminControl() {
                 <span className="kicker">PRODUCT IDEAS</span>
                 <h2>Automation requests</h2>
               </div>
+              <button
+                className="btn btn-small btn-outline"
+                disabled={busyId === "clear-requests" || requests.length === 0}
+                onClick={clearResolvedRequests}
+              >
+                {busyId === "clear-requests"
+                  ? "Clearing…"
+                  : "Clear planned / declined"}
+              </button>
             </div>
             <div className="admin-list automation-admin-list">
               {requests.length === 0 ? (
@@ -435,24 +483,38 @@ export default function AdminControl() {
                       <small>
                         {new Date(request.created_at).toLocaleString()}
                       </small>
+                      <span className={`status ${request.status}`}>
+                        {request.status}
+                      </span>
                     </div>
                     <p>{request.details}</p>
-                    <label className="admin-status-select">
-                      Status
-                      <select
-                        value={request.status}
+                    <div className="admin-actions automation-admin-actions">
+                      <label className="admin-status-select">
+                        Status
+                        <select
+                          value={request.status}
+                          disabled={busyId === request.id}
+                          onChange={(event) =>
+                            updateRequest(request.id, event.target.value)
+                          }
+                        >
+                          {requestStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        className="btn btn-small btn-outline"
                         disabled={busyId === request.id}
-                        onChange={(event) =>
-                          updateRequest(request.id, event.target.value)
+                        onClick={() =>
+                          deleteRequest(request.id, request.tool_name)
                         }
                       >
-                        {requestStatuses.map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                        Delete
+                      </button>
+                    </div>
                   </article>
                 ))
               )}
