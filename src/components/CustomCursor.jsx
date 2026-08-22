@@ -1,7 +1,11 @@
 import { useEffect, useRef } from "react";
 
+const isProcessing = () =>
+  document.documentElement.classList.contains("is-processing");
+
 export default function CustomCursor() {
   const cursor = useRef(null);
+  const themeFrame = useRef(0);
 
   useEffect(() => {
     const element = cursor.current;
@@ -26,17 +30,28 @@ export default function CustomCursor() {
       return false;
     };
 
-    const move = (event) => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const target = document.elementFromPoint(event.clientX, event.clientY);
-        element.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
-        element.classList.add("visible");
+    const syncTheme = (x, y) => {
+      cancelAnimationFrame(themeFrame.current);
+      themeFrame.current = requestAnimationFrame(() => {
+        const target = document.elementFromPoint(x, y);
         element.classList.toggle(
           "interactive",
           Boolean(target?.closest("a, button, input, textarea, select, label")),
         );
         element.classList.toggle("on-dark", isDarkBackground(target));
+      });
+    };
+
+    const move = (event) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        element.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+        element.classList.add("visible");
+        if (isProcessing()) {
+          element.classList.remove("interactive", "on-dark");
+          return;
+        }
+        syncTheme(event.clientX, event.clientY);
       });
     };
     const leave = () => element.classList.remove("visible");
@@ -48,6 +63,7 @@ export default function CustomCursor() {
     window.addEventListener("pointerup", up);
     return () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(themeFrame.current);
       window.removeEventListener("pointermove", move);
       document.documentElement.removeEventListener("mouseleave", leave);
       window.removeEventListener("pointerdown", down);

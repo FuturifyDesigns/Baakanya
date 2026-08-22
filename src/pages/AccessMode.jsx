@@ -170,15 +170,18 @@ function AccessModeBody() {
     showPay && !underReview && !creditsOnlyPay && !access.allowed;
 
   // Monthly renew only after expiry — active subscribers stay in workspace.
-  if (!access.loading && access.status === "subscription_active") {
+  if (access.loading) {
+    return (
+      <Layout>
+        <div className="empty-state container">Checking your access…</div>
+      </Layout>
+    );
+  }
+
+  if (access.status === "subscription_active") {
     return <Navigate to="/workspace" replace />;
   }
-  if (
-    !access.loading &&
-    access.allowed &&
-    !creditTopUp &&
-    !trialPayingEarly
-  ) {
+  if (access.allowed && !creditTopUp && !trialPayingEarly) {
     return <Navigate to="/workspace" replace />;
   }
 

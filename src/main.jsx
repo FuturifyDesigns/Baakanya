@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./lib/auth";
+import { AccessProvider } from "./lib/access";
 import { LanguageProvider } from "./lib/i18n";
 import { ToastProvider } from "./lib/toast";
 import { recoverFromOutdatedChunk } from "./lib/lazyWithRefresh";
@@ -17,9 +18,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <LanguageProvider>
         <AuthProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
+          <AccessProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </AccessProvider>
         </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>

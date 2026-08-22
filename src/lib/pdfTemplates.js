@@ -28,6 +28,115 @@ const bodyLineHeight = (templateOrOptions) => {
   return Math.max(3.6, base * spacing);
 };
 
+const contactValues = (form) =>
+  [form.email, form.phone, form.location, form.website, form.linkedin].filter(
+    Boolean,
+  );
+
+const businessContactValues = (form) =>
+  [form.email, form.phone, form.address].filter(Boolean);
+
+const writeJoinedText = (
+  pdf,
+  parts,
+  x,
+  y,
+  width,
+  font,
+  {
+    color = [65, 77, 84],
+    size = 8.5,
+    style = "normal",
+    lineHeight = 4.2,
+    gap = 6,
+    align,
+  } = {},
+) => {
+  const text = parts.filter(Boolean).join("  •  ");
+  if (!text) return y;
+  pdf.setFont(font, style);
+  pdf.setFontSize(size);
+  pdf.setTextColor(...color);
+  const lines = pdf.splitTextToSize(text, width);
+  if (align) pdf.text(lines, x, y, { align });
+  else pdf.text(lines, x, y);
+  return y + lines.length * lineHeight + (lines.length ? gap : 0);
+};
+
+const writeContactInline = (pdf, form, x, y, width, font, color = [65, 77, 84]) =>
+  writeJoinedText(pdf, contactValues(form), x, y, width, font, { color });
+
+const writeBusinessContact = (
+  pdf,
+  form,
+  x,
+  y,
+  width,
+  font,
+  color = [100, 115, 122],
+) =>
+  writeJoinedText(pdf, businessContactValues(form), x, y, width, font, {
+    color,
+    size: 8,
+    lineHeight: 3.8,
+    gap: 4,
+  });
+
+const writeWrapped = (
+  pdf,
+  text,
+  x,
+  y,
+  width,
+  font,
+  {
+    color = [38, 50, 57],
+    size = 9,
+    style = "normal",
+    lineHeight = 4.5,
+    gap = 0,
+    align,
+  } = {},
+) => {
+  if (!text) return y;
+  pdf.setFont(font, style);
+  pdf.setFontSize(size);
+  pdf.setTextColor(...color);
+  const lines = pdf.splitTextToSize(String(text), width);
+  if (align) pdf.text(lines, x, y, { align });
+  else pdf.text(lines, x, y);
+  return y + lines.length * lineHeight + gap;
+};
+
+const drawAccentRule = (pdf, x, y, width, accent) => {
+  setColour(pdf, accent, true);
+  pdf.rect(x, y, width, 0.8, "F");
+  return y + 5;
+};
+
+const writeContactStacked = (
+  pdf,
+  form,
+  x,
+  y,
+  width,
+  font,
+  color = [65, 77, 84],
+) => {
+  const values = contactValues(form);
+  if (!values.length) return y;
+  pdf.setFont(font, "normal");
+  pdf.setFontSize(8.2);
+  pdf.setTextColor(...color);
+  let cy = y;
+  for (const line of values) {
+    const wrapped = pdf.splitTextToSize(line, width);
+    pdf.text(wrapped, x, cy);
+    cy += wrapped.length * 3.8 + 1.5;
+  }
+  return cy + 4;
+};
+
 const PAGE_BOTTOM = 282;
 
 const estimateWrappedLines = (pdf, text, width) => {
@@ -169,8 +278,12 @@ const writeSection = (pdf, title, body, options) => {
 
 export const renderCvPdf = ({ form, template, photoData, skills }) => {
   const pdf = new jsPDF();
-  const sidebar = template.layout === "sidebar";
-  const band = template.layout === "band";
+  const layout = template.layout || "minimal";
+  const sidebar = layout === "sidebar";
+  const band = layout === "band";
+  const splitLike = layout === "split" || layout === "panel";
+  const stackedLike = layout === "stacked" || layout === "centered";
+  const classicLike = ["minimal", "classic", "modern", "flag"].includes(layout);
   const primary = template.primary;
   const accent = template.accent;
   const font = pdfFont(template.font);
@@ -179,7 +292,7 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
   const background = template.background || "#ffffff";
   let contentX = sidebar ? 68 : 18;
   let contentWidth = sidebar ? 124 : 174;
-  let y = band ? 58 : 48;
+  let y = 20;
 
   if (background.toLowerCase() !== "#ffffff") {
     setColour(pdf, background, true);
@@ -262,49 +375,155 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     );
     y = 22;
   } else if (band) {
+    pdf.setFont(font, "bold");
+    pdf.setFontSize(23);
+    const nameLines = pdf.splitTextToSize(
+      form.name || "Your name",
+      photoData ? 138 : 174,
+    );
+    const roleText = form.expertise || form.role || "";
+    pdf.setFont(font, "normal");
+    pdf.setFontSize(10);
+    const roleLines = roleText
+      ? pdf.splitTextToSize(roleText, photoData ? 138 : 174)
+      : [];
+    const bandHeight = Math.max(
+      47,
+      12 + nameLines.length * 7 + roleLines.length * 4.5 + 10,
+    );
     setColour(pdf, primary, true);
-    pdf.rect(0, 0, 210, 47, "F");
+    pdf.rect(0, 0, 210, bandHeight, "F");
     pdf.setTextColor(255, 255, 255);
     pdf.setFont(font, "bold");
     pdf.setFontSize(23);
-    pdf.text(form.name, 18, 20);
-    pdf.setFont(font, "normal");
-    pdf.setFontSize(10);
-    pdf.text(form.expertise || form.role || "", 18, 31);
+    pdf.text(nameLines, 18, 20);
+    let bandY = 20 + nameLines.length * 7;
+    if (roleLines.length) {
+      pdf.setFont(font, "normal");
+      pdf.setFontSize(10);
+      pdf.text(roleLines, 18, bandY);
+      bandY += roleLines.length * 4.5;
+    }
     if (photoData) pdf.addImage(photoData, "PNG", 165, 7, 32, 32);
-    pdf.setTextColor(50, 63, 70);
-    pdf.setFontSize(8.5);
-    pdf.text(
-      [form.email, form.phone, form.location, form.website, form.linkedin]
-        .filter(Boolean)
-        .join("  •  "),
+    y = writeContactInline(
+      pdf,
+      form,
       18,
-      54,
+      bandHeight + 6,
+      photoData ? 138 : 174,
+      font,
+      [50, 63, 70],
     );
+    y = Math.max(y, bandHeight + 14);
+  } else if (splitLike) {
+    const headerHeight = 50;
+    if (layout === "panel") {
+      setColour(pdf, background, true);
+      pdf.rect(0, 0, 210, headerHeight, "F");
+    }
+    setColour(pdf, primary);
+    pdf.setFont(font, "bold");
+    pdf.setFontSize(22);
+    const nameLines = pdf.splitTextToSize(form.name || "Your name", photoData ? 118 : 174);
+    pdf.text(nameLines, 18, 17);
+    const roleY = 17 + nameLines.length * 7 + 2;
+    setColour(pdf, accent);
+    pdf.setFont(font, "normal");
+    pdf.setFontSize(9.5);
+    const roleLines = pdf.splitTextToSize(
+      (form.expertise || form.role || "").toUpperCase(),
+      photoData ? 118 : 174,
+    );
+    pdf.text(roleLines, 18, roleY);
+    let metaBottom = roleY + roleLines.length * 4;
+    if (photoData) {
+      pdf.addImage(photoData, "PNG", 152, 10, 26, 26);
+      metaBottom = Math.max(
+        metaBottom,
+        writeContactStacked(pdf, form, 152, 38, 48, font),
+      );
+    } else {
+      metaBottom = Math.max(
+        metaBottom,
+        writeContactStacked(pdf, form, 118, 12, 80, font),
+      );
+    }
+    setColour(pdf, accent, true);
+    pdf.rect(18, headerHeight - 1, 174, 1.2, "F");
+    y = Math.max(headerHeight + 8, metaBottom + 6);
+  } else if (stackedLike) {
+    let cy = 14;
+    if (photoData) {
+      const photoX = layout === "centered" ? 91 : 18;
+      pdf.addImage(photoData, "PNG", photoX, cy, 28, 28);
+      cy += 34;
+    }
+    setColour(pdf, primary);
+    pdf.setFont(font, "bold");
+    pdf.setFontSize(layout === "centered" ? 24 : 22);
+    const nameX = layout === "centered" ? 105 : 18;
+    const nameWidth = layout === "centered" ? 150 : 174;
+    const nameLines = pdf.splitTextToSize(form.name || "Your name", nameWidth);
+    pdf.text(nameLines, nameX, cy, {
+      align: layout === "centered" ? "center" : "left",
+    });
+    cy += nameLines.length * 7 + 2;
+    setColour(pdf, accent);
+    pdf.setFont(font, "normal");
+    pdf.setFontSize(9.5);
+    const roleLines = pdf.splitTextToSize(
+      (form.expertise || form.role || "").toUpperCase(),
+      nameWidth,
+    );
+    pdf.text(roleLines, nameX, cy, {
+      align: layout === "centered" ? "center" : "left",
+    });
+    cy += roleLines.length * 4 + 3;
+    cy = writeContactStacked(
+      pdf,
+      form,
+      layout === "centered" ? 30 : 18,
+      cy,
+      nameWidth,
+      font,
+    );
+    setColour(pdf, accent, true);
+    pdf.rect(18, cy - 2, 174, 1.2, "F");
+    y = cy + 8;
+  } else if (classicLike) {
+    setColour(pdf, primary);
+    pdf.setFont(font, "bold");
+    pdf.setFontSize(layout === "classic" ? 25 : 23);
+    const nameWidth = photoData ? 130 : 174;
+    const nameLines = pdf.splitTextToSize(form.name || "Your name", nameWidth);
+    pdf.text(nameLines, 18, 21);
+    const roleY = 21 + nameLines.length * 7 + 2;
+    setColour(pdf, accent);
+    pdf.setFontSize(10);
+    pdf.text((form.expertise || form.role || "").toUpperCase(), 18, roleY);
+    const ruleY = roleY + 6;
+    setColour(pdf, accent, true);
+    pdf.rect(18, ruleY, 174, 1.2, "F");
+    if (photoData) pdf.addImage(photoData, "PNG", 164, 9, 28, 28);
+    y = writeContactInline(pdf, form, 18, ruleY + 5, nameWidth, font);
+    y = Math.max(y, photoData ? ruleY + 19 : ruleY + 15);
   } else {
     setColour(pdf, primary);
     pdf.setFont(font, "bold");
-    pdf.setFontSize(template.layout === "classic" ? 25 : 23);
-    pdf.text(form.name, 18, 21);
+    pdf.setFontSize(23);
+    const nameWidth = photoData ? 130 : 174;
+    const nameLines = pdf.splitTextToSize(form.name || "Your name", nameWidth);
+    pdf.text(nameLines, 18, 21);
+    const roleY = 21 + nameLines.length * 7 + 2;
     setColour(pdf, accent);
     pdf.setFontSize(10);
-    pdf.text((form.expertise || form.role || "").toUpperCase(), 18, 31);
+    pdf.text((form.expertise || form.role || "").toUpperCase(), 18, roleY);
+    const ruleY = roleY + 6;
     setColour(pdf, accent, true);
-    pdf.rect(18, 37, 174, 1.2, "F");
-    pdf.setTextColor(65, 77, 84);
-    pdf.setFont(font, "normal");
-    pdf.setFontSize(8.5);
-    pdf.text(
-      [form.email, form.phone, form.location, form.website, form.linkedin]
-        .filter(Boolean)
-        .join("  •  "),
-      18,
-      47,
-    );
-    if (photoData) {
-      pdf.addImage(photoData, "PNG", 164, 9, 28, 28);
-      contentWidth = 174;
-    }
+    pdf.rect(18, ruleY, 174, 1.2, "F");
+    if (photoData) pdf.addImage(photoData, "PNG", 164, 9, 28, 28);
+    y = writeContactInline(pdf, form, 18, ruleY + 5, nameWidth, font);
+    y = Math.max(y, photoData ? ruleY + 19 : ruleY + 15);
   }
 
   const titles = template.titles || {};
@@ -365,83 +584,150 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
 
 export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
   const pdf = new jsPDF();
+  const layout = template.layout || "letter";
   const { primary, accent } = template;
   const font = pdfFont(template.font);
   const background = template.background || "#ffffff";
   const lineHeight = bodyLineHeight(template);
+  const lightHeader = layout === "band";
+  const showRail = layout === "rail";
+  const isCentered = layout === "centered";
+  const isAccentTop = layout === "accent-top";
+  const hasPhoto = photoData && template.photo !== "none";
+
   if (background.toLowerCase() !== "#ffffff") {
     setColour(pdf, background, true);
     pdf.rect(0, 0, 210, 297, "F");
   }
-  if (template.layout === "band" || template.layout === "sidebar") {
-    setColour(pdf, primary, true);
-    pdf.rect(
-      0,
-      0,
-      template.layout === "sidebar" ? 28 : 210,
-      template.layout === "sidebar" ? 297 : 40,
-      "F",
-    );
-  }
-  const x = template.layout === "sidebar" ? 42 : 20;
-  const width = template.layout === "sidebar" ? 148 : 170;
-  const lightHeader = template.layout === "band";
-  pdf.setTextColor(...(lightHeader ? [255, 255, 255] : rgb(primary)));
-  pdf.setFont(font, "bold");
-  pdf.setFontSize(18);
-  pdf.text(form.name || "Your name", x, 18);
-  pdf.setFont(font, "normal");
-  pdf.setFontSize(8.5);
-  if (!lightHeader) setColour(pdf, accent);
-  else pdf.setTextColor(235, 242, 246);
-  pdf.text(
-    [form.email, form.phone, form.location].filter(Boolean).join("  •  "),
-    x,
-    26,
-  );
-  if (photoData && template.photo !== "none")
-    pdf.addImage(photoData, "PNG", 170, 8, 24, 24);
-  setColour(pdf, accent, true);
-  pdf.rect(x, 32, width, 0.8, "F");
 
-  let y = 42;
-  pdf.setTextColor(80, 95, 102);
-  pdf.setFont(font, "normal");
-  pdf.setFontSize(9);
-  pdf.text(
+  const contentX = showRail ? 42 : 20;
+  const contentWidth = showRail ? 148 : 170;
+  const textWidth = contentWidth - (hasPhoto && !lightHeader ? 30 : 0);
+  const nameColor = lightHeader ? [255, 255, 255] : rgb(primary);
+  const contactColor = lightHeader ? [235, 242, 246] : rgb(accent);
+  let y = isAccentTop ? 14 : 18;
+
+  if (showRail) {
+    setColour(pdf, primary, true);
+    pdf.rect(0, 0, 28, 297, "F");
+  }
+  if (isAccentTop) {
+    setColour(pdf, accent, true);
+    pdf.rect(0, 0, 210, 6, "F");
+  }
+
+  if (lightHeader) {
+    pdf.setFont(font, "bold");
+    pdf.setFontSize(18);
+    const nameLines = pdf.splitTextToSize(form.name || "Your name", textWidth);
+    pdf.setFont(font, "normal");
+    pdf.setFontSize(8.5);
+    const contactText = contactValues(form).join("  •  ");
+    const contactLines = contactText
+      ? pdf.splitTextToSize(contactText, textWidth)
+      : [];
+    const bandHeight = Math.max(
+      42,
+      14 +
+        nameLines.length * 6.5 +
+        (contactLines.length ? contactLines.length * 4.2 + 4 : 0) +
+        8,
+    );
+    setColour(pdf, primary, true);
+    pdf.rect(0, 0, 210, bandHeight, "F");
+    pdf.setFont(font, "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(...nameColor);
+    pdf.text(nameLines, contentX, 16);
+    let contactY = 16 + nameLines.length * 6.5 + 2;
+    if (contactLines.length) {
+      pdf.setFont(font, "normal");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(...contactColor);
+      pdf.text(contactLines, contentX, contactY);
+    }
+    if (hasPhoto) pdf.addImage(photoData, "PNG", 170, 8, 24, 24);
+    y = bandHeight + 6;
+  } else if (isCentered) {
+    let cy = 14;
+    if (hasPhoto) {
+      pdf.addImage(photoData, "PNG", 93, cy, 24, 24);
+      cy += 30;
+    }
+    cy = writeWrapped(pdf, form.name || "Your name", 105, cy, 150, font, {
+      color: nameColor,
+      size: 18,
+      style: "bold",
+      lineHeight: 7,
+      gap: 4,
+      align: "center",
+    });
+    cy = writeContactStacked(pdf, form, 30, cy, 150, font, contactColor);
+    y = cy + 4;
+  } else {
+    y = writeWrapped(pdf, form.name || "Your name", contentX, y, textWidth, font, {
+      color: nameColor,
+      size: 18,
+      style: "bold",
+      lineHeight: 7,
+      gap: 2,
+    });
+    y = writeContactInline(pdf, form, contentX, y, textWidth, font, contactColor);
+    if (hasPhoto) pdf.addImage(photoData, "PNG", 170, 8, 24, 24);
+    y += 2;
+  }
+
+  y = drawAccentRule(pdf, contentX, y, contentWidth, accent);
+
+  y = writeWrapped(
+    pdf,
     new Date().toLocaleDateString("en-GB", {
       day: "numeric",
       month: "long",
       year: "numeric",
     }),
-    x,
+    contentX,
     y,
+    contentWidth,
+    font,
+    { color: [80, 95, 102], size: 9, lineHeight: 4.5, gap: 8 },
   );
-  y += 8;
-  pdf.setTextColor(30, 42, 48);
-  pdf.setFont(font, "bold");
-  pdf.setFontSize(10);
-  pdf.text(form.hiringManager || "Hiring Manager", x, y);
-  y += 5;
-  pdf.setFont(font, "normal");
-  pdf.setFontSize(9.5);
-  pdf.text(form.company || "Company name", x, y);
-  y += 5;
+
+  y = writeWrapped(
+    pdf,
+    form.hiringManager || "Hiring Manager",
+    contentX,
+    y,
+    contentWidth,
+    font,
+    { color: [30, 42, 48], size: 10, style: "bold", lineHeight: 5, gap: 2 },
+  );
+  y = writeWrapped(
+    pdf,
+    form.company || "Company name",
+    contentX,
+    y,
+    contentWidth,
+    font,
+    { color: [30, 42, 48], size: 9.5, lineHeight: 5, gap: 2 },
+  );
   if (form.companyWebsite) {
-    pdf.setTextColor(90, 105, 112);
-    pdf.text(form.companyWebsite, x, y);
-    y += 5;
+    y = writeWrapped(pdf, form.companyWebsite, contentX, y, contentWidth, font, {
+      color: [90, 105, 112],
+      size: 9,
+      lineHeight: 4.5,
+      gap: 2,
+    });
   }
   y += 3;
+
   setColour(pdf, accent);
   pdf.setFont(font, "bold");
   pdf.setFontSize(10);
-  pdf.text(
-    `Re: ${form.role ? `Application for ${form.role}` : "Application for the advertised role"}`,
-    x,
-    y,
-  );
-  y += 9;
+  const subject = `Re: ${form.role ? `Application for ${form.role}` : "Application for the advertised role"}`;
+  const subjectLines = pdf.splitTextToSize(subject, contentWidth);
+  pdf.text(subjectLines, contentX, y);
+  y += subjectLines.length * 5 + 6;
 
   pdf.setTextColor(40, 51, 58);
   pdf.setFont(font, "normal");
@@ -452,7 +738,7 @@ export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
     .filter(Boolean);
   let estimatedLines = 0;
   for (const paragraph of paragraphs) {
-    estimatedLines += pdf.splitTextToSize(paragraph, width).length;
+    estimatedLines += pdf.splitTextToSize(paragraph, contentWidth).length;
   }
   const estimatedHeight =
     estimatedLines * lineHeight + Math.max(paragraphs.length - 1, 0) * 3.5;
@@ -460,13 +746,13 @@ export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
   const filledLineHeight = lineHeight * fillScale;
   const paragraphGap = 3.5 * fillScale;
   for (const paragraph of paragraphs) {
-    const lines = pdf.splitTextToSize(paragraph, width);
+    const lines = pdf.splitTextToSize(paragraph, contentWidth);
     for (const line of lines) {
       if (y > 278) {
         pdf.addPage();
         y = 22;
       }
-      pdf.text(line, x, y);
+      pdf.text(line, contentX, y);
       y += filledLineHeight;
     }
     y += paragraphGap;
@@ -485,6 +771,7 @@ export const renderBusinessPdf = ({
   logoData,
 }) => {
   const pdf = new jsPDF();
+  const layout = template.layout || "clean";
   const { primary, accent } = template;
   const font = pdfFont(template.font);
   const background = template.background || "#ffffff";
@@ -511,66 +798,152 @@ export const renderBusinessPdf = ({
   );
   const vatAmount = vat ? subtotal * 0.14 : 0;
   const total = subtotal + vatAmount;
-  if (template.layout === "band" || template.layout === "proposal") {
-    setColour(pdf, primary, true);
-    pdf.rect(0, 0, 210, template.layout === "proposal" ? 52 : 48, "F");
-  } else if (template.layout === "side") {
+  const isQuote = kind === "Quotation";
+  const showBand =
+    layout === "band" || layout === "proposal" || layout === "masthead";
+  const showSide = layout === "side";
+  const showEstimateBar = layout === "estimate" || layout === "scope";
+  const left = showSide ? 56 : 16;
+  const right = 194;
+  const brandX = left + (logoData ? 34 : 0);
+  const brandWidth = showBand ? 112 : 124;
+  const lightHeader = showBand;
+
+  if (showSide) {
     setColour(pdf, primary, true);
     pdf.rect(0, 0, 45, 297, "F");
-  } else if (
-    template.layout === "estimate" ||
-    template.layout === "scope"
-  ) {
+  }
+  if (showEstimateBar) {
     setColour(pdf, accent, true);
     pdf.rect(0, 0, 210, 6, "F");
   }
-  const left = template.layout === "side" ? 56 : 16;
-  const right = 194;
-  const isQuote = kind === "Quotation";
-  if (logoData) pdf.addImage(logoData, "PNG", left, 10, 28, 20);
+
   pdf.setFont(font, "bold");
   pdf.setFontSize(logoData ? 15 : 22);
-  pdf.setTextColor(
-    ...(template.layout === "band" || template.layout === "proposal"
-      ? [255, 255, 255]
-      : rgb(primary)),
+  const businessLines = pdf.splitTextToSize(
+    form.business || "Your business",
+    brandWidth,
   );
-  pdf.text(form.business, left + (logoData ? 34 : 0), 21);
+  pdf.setFont(font, "normal");
+  pdf.setFontSize(8);
+  const contactText = businessContactValues(form).join("  •  ");
+  const contactLines = contactText
+    ? pdf.splitTextToSize(contactText, brandWidth)
+    : [];
+  const brandBlockHeight =
+    (logoData ? 22 : 0) +
+    businessLines.length * (logoData ? 5.5 : 7) +
+    (contactLines.length ? contactLines.length * 3.8 + 2 : 0) +
+    8;
+  const titleBlockHeight = isQuote ? 28 : 22;
+  const headerInnerHeight = Math.max(brandBlockHeight, titleBlockHeight);
+  const bandHeight = showBand
+    ? Math.max(layout === "proposal" ? 52 : 48, headerInnerHeight + 14)
+    : 0;
+  const headerBottom = showBand ? bandHeight + 8 : Math.max(44, headerInnerHeight + 12);
+
+  if (showBand) {
+    setColour(pdf, primary, true);
+    pdf.rect(0, 0, 210, bandHeight, "F");
+  }
+
+  if (logoData) pdf.addImage(logoData, "PNG", left, showBand ? 12 : 10, 28, 20);
+
+  pdf.setFont(font, "bold");
+  pdf.setFontSize(logoData ? 15 : 22);
+  pdf.setTextColor(...(lightHeader ? [255, 255, 255] : rgb(primary)));
+  pdf.text(businessLines, brandX, showBand ? 18 : 21);
+  let brandEndY =
+    (showBand ? 18 : 21) + businessLines.length * (logoData ? 5.5 : 7);
+  if (contactLines.length) {
+    brandEndY = writeBusinessContact(
+      pdf,
+      form,
+      brandX,
+      brandEndY + 1,
+      brandWidth,
+      font,
+      lightHeader ? [230, 238, 244] : [100, 115, 122],
+    );
+  }
+
+  pdf.setFont(font, "bold");
   pdf.setFontSize(isQuote ? 16 : 20);
-  pdf.text(isQuote ? "QUOTATION" : "INVOICE", right, 21, { align: "right" });
+  pdf.setTextColor(...(lightHeader ? [255, 255, 255] : rgb(primary)));
+  pdf.text(isQuote ? "QUOTATION" : "INVOICE", right, showBand ? 18 : 21, {
+    align: "right",
+  });
   if (isQuote) {
     pdf.setFontSize(8);
     pdf.text(
-      template.layout === "estimate"
+      layout === "estimate"
         ? "ESTIMATE"
-        : template.layout === "scope"
+        : layout === "scope"
           ? "SCOPE OF WORK"
           : "PROPOSAL",
       right,
-      28,
+      showBand ? 26 : 28,
       { align: "right" },
     );
   }
+
+  let metaY = headerBottom;
+  if (showEstimateBar && isQuote) {
+    setColour(pdf, accent, true);
+    pdf.rect(left, metaY, right - left, 8, "F");
+    pdf.setFont(font, "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(20, 31, 37);
+    pdf.text(
+      `Valid until ${form.validUntil || "—"}  ·  Not a tax invoice`,
+      left + 4,
+      metaY + 5.5,
+    );
+    metaY += 12;
+  }
+
   pdf.setTextColor(48, 60, 67);
   pdf.setFont(font, "normal");
   pdf.setFontSize(9);
+  const clientLabel = `${isQuote ? "Prepared for" : "Bill to"}: ${form.client || "Client name"}`;
+  const clientLines = pdf.splitTextToSize(clientLabel, 96);
+  pdf.text(clientLines, left, metaY);
+  let leftMetaBottom = metaY + clientLines.length * 4.5;
+  if (form.clientAddress) {
+    const addressLines = pdf.splitTextToSize(form.clientAddress, 96);
+    pdf.text(addressLines, left, leftMetaBottom + 1);
+    leftMetaBottom += addressLines.length * 4.5 + 1;
+  }
+  if (form.clientEmail) {
+    const emailLines = pdf.splitTextToSize(form.clientEmail, 96);
+    pdf.text(emailLines, left, leftMetaBottom + 1);
+    leftMetaBottom += emailLines.length * 4.5 + 1;
+  }
+
+  let rightMetaY = metaY;
   pdf.text(
-    `${isQuote ? "Prepared for" : "Bill to"}: ${form.client}`,
-    left,
-    58,
-  );
-  if (form.clientAddress) pdf.text(form.clientAddress, left, 63);
-  pdf.text(
-    `${isQuote ? "Quote" : "Invoice"} no: ${form.number}`,
+    `${isQuote ? "Quote" : "Invoice"} no: ${form.number || "001"}`,
     right,
-    52,
+    rightMetaY,
     { align: "right" },
   );
-  pdf.text(`Issue date: ${form.date}`, right, 58, { align: "right" });
-  if (kind === "Invoice" && form.dueDate)
-    pdf.text(`Due date: ${form.dueDate}`, right, 64, { align: "right" });
-  if (kind === "Quotation" && form.validUntil)
-    pdf.text(`Valid until: ${form.validUntil}`, right, 64, { align: "right" });
+  rightMetaY += 6;
+  pdf.text(`Issue date: ${form.date || "—"}`, right, rightMetaY, {
+    align: "right",
+  });
+  rightMetaY += 6;
+  if (kind === "Invoice" && form.dueDate) {
+    pdf.text(`Due date: ${form.dueDate}`, right, rightMetaY, { align: "right" });
+    rightMetaY += 6;
+  }
+  if (kind === "Quotation" && form.validUntil) {
+    pdf.text(`Valid until: ${form.validUntil}`, right, rightMetaY, {
+      align: "right",
+    });
+    rightMetaY += 6;
+  }
+
+  const tableTop = Math.max(leftMetaBottom, rightMetaY) + 8;
   const drawTableHead = (top) => {
     setColour(pdf, accent, true);
     pdf.rect(left, top, right - left, 10, "F");
@@ -581,32 +954,33 @@ export const renderBusinessPdf = ({
     pdf.text("PRICE", 158, top + 6.5);
     pdf.text("AMOUNT", right, top + 6.5, { align: "right" });
   };
-  drawTableHead(70);
-  let y = 91;
+  drawTableHead(tableTop);
+  let y = tableTop + 21;
   pdf.setFont(font, "normal");
+  pdf.setTextColor(48, 60, 67);
+  pdf.setFontSize(9);
   const itemCount = Math.max(items.length, 1);
-  const rowFillScale = pageFillScale(
-    y,
-    itemCount * rowHeight + 48,
-    250,
-  );
+  const rowFillScale = pageFillScale(y, itemCount * rowHeight + 48, 250);
   const filledRowHeight = rowHeight * Math.max(rowFillScale, 1);
   items.forEach((item) => {
-    if (y > 250) {
+    const descLines = pdf.splitTextToSize(item.description || "", 82);
+    const rowH = Math.max(filledRowHeight, descLines.length * 4.5 + 4);
+    if (y + rowH > 250) {
       pdf.addPage();
       drawTableHead(20);
       pdf.setFont(font, "normal");
+      pdf.setTextColor(48, 60, 67);
       y = 36;
     }
-    pdf.text(pdf.splitTextToSize(item.description, 82)[0], left + 4, y);
+    pdf.text(descLines, left + 4, y);
     pdf.text(String(item.qty), 139, y);
     pdf.text(amount(item.price), 158, y);
     pdf.text(amount(Number(item.qty) * Number(item.price)), right, y, {
       align: "right",
     });
     pdf.setDrawColor(222, 228, 231);
-    pdf.line(left, y + 4, right, y + 4);
-    y += filledRowHeight;
+    pdf.line(left, y + rowH - 4, right, y + rowH - 4);
+    y += rowH;
   });
   y += 12;
   if (y > 252) {
@@ -632,17 +1006,14 @@ export const renderBusinessPdf = ({
   pdf.setFont(font, "normal");
   pdf.setFontSize(8.2);
   pdf.setTextColor(75, 87, 94);
-  pdf.text(
-    pdf.splitTextToSize(
-      form.notes ||
-        (isQuote
-          ? "This quotation is valid until the date shown. Acceptance confirms the scope and pricing above."
-          : "Bank transfer · Include document number as reference · Payment due within stated terms."),
-      Math.min(110, right - left - 60),
-    ),
-    left,
-    notesY + 5,
+  const noteLines = pdf.splitTextToSize(
+    form.notes ||
+      (isQuote
+        ? "This quotation is valid until the date shown. Acceptance confirms the scope and pricing above."
+        : "Bank transfer · Include document number as reference · Payment due within stated terms."),
+    right - left - 8,
   );
+  pdf.text(noteLines, left, notesY + 5);
   pdf.save(
     `${kind.toLowerCase()}-${safeName(form.number, "document")}-${safeName(template.name, "template")}.pdf`,
   );

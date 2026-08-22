@@ -5,18 +5,24 @@ import {
   FilePlus2,
   GripVertical,
   Image,
+  Loader2,
   Merge,
   Trash2,
   UploadCloud,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { jsPDF } from "jspdf";
 import { PDFDocument } from "pdf-lib";
-import mammoth from "mammoth";
-import html2canvas from "html2canvas";
 import ToolShell from "../components/ToolShell";
 import { authorizeGeneration } from "../lib/generation";
+import {
+  beginProcessing,
+  endProcessing,
+  yieldToMain,
+} from "../lib/processingLock";
 import { useToast } from "../lib/toast";
+import { convertDocxToPdf } from "../lib/wordToPdf";
 
 const saveBlob = (blob, name) => {
   const url = URL.createObjectURL(blob);
@@ -55,6 +61,7 @@ export default function Converter() {
   const [mode, setMode] = useState("images");
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
   const [inputKey, setInputKey] = useState(0);
   const resetTimer = useRef(null);
@@ -120,47 +127,6 @@ export default function Converter() {
     });
   const move = (index, direction) => reorder(index, index + direction);
 
-  const convertWordExact = async (file) => {
-    const bytes = await cloneBytes(file);
-    const { value: html } = await mammoth.convertToHtml(
-      { arrayBuffer: bytes },
-      {
-        includeDefaultStyleMap: true,
-        convertImage: mammoth.images.imgElement((image) =>
-          image.read("base64").then((imageBuffer) => ({
-            src: `data:${image.contentType};base64,${imageBuffer}`,
-          })),
-        ),
-      },
-    );
-    const host = document.createElement("div");
-    host.style.cssText =
-      "position:fixed;left:-10000px;top:0;width:794px;padding:48px;background:#fff;color:#111;font:16px/1.5 'Times New Roman',Times,serif;";
-    host.innerHTML = html || "<p></p>";
-    document.body.appendChild(host);
-    try {
-      const pdf = new jsPDF({ unit: "pt", format: "a4" });
-      await pdf.html(host, {
-        margin: [36, 36, 36, 36],
-        autoPaging: "text",
-        width: 523,
-        windowWidth: 794,
-        html2canvas: {
-          scale: 0.75,
-          useCORS: true,
-          backgroundColor: "#ffffff",
-          // Ensure the dependency is retained in the production bundle.
-          logging: false,
-        },
-      });
-      // Touch import so bundlers keep html2canvas available to jsPDF.html.
-      if (!html2canvas) throw new Error("PDF renderer unavailable");
-      pdf.save(file.name.replace(/\.docx$/i, "") + ".pdf");
-    } finally {
-      host.remove();
-    }
-  };
-
   const convert = async () => {
     if (!files.length) {
       toast.error("Choose at least one file first.");
@@ -171,13 +137,26 @@ export default function Converter() {
       return;
     }
     setBusy(true);
-    toast.info("Processing your files…", { duration: 4000 });
+    setProgress({
+      label: "Starting…",
+      phase: "prepare",
+      current: 0,
+      total: 0,
+    });
+    beginProcessing();
     const queue = [...files];
     try {
       await authorizeGeneration(`converter_${mode}`);
       if (mode === "images") {
         const pdf = new jsPDF();
         for (let i = 0; i < queue.length; i++) {
+          setProgress({
+            label: `Adding image ${i + 1} of ${queue.length}`,
+            phase: "render",
+            current: i + 1,
+            total: queue.length,
+          });
+          await yieldToMain();
           const { img, data } = await readImage(queue[i]);
           if (i) pdf.addPage();
           const ratio = Math.min(180 / img.width, 260 / img.height),
@@ -191,20 +170,33 @@ export default function Converter() {
             w,
             h,
           );
+          await yieldToMain();
         }
+        setProgress({ label: "Saving PDF…", phase: "save" });
+        await yieldToMain();
         pdf.save(`baakanya-images-${Date.now()}.pdf`);
       }
       if (mode === "merge") {
         const merged = await PDFDocument.create();
-        for (const file of queue) {
-          const bytes = await cloneBytes(file);
+        for (let i = 0; i < queue.length; i++) {
+          setProgress({
+            label: `Merging file ${i + 1} of ${queue.length}`,
+            phase: "render",
+            current: i + 1,
+            total: queue.length,
+          });
+          await yieldToMain();
+          const bytes = await cloneBytes(queue[i]);
           const source = await PDFDocument.load(bytes, {
             ignoreEncryption: true,
           });
           const indices = source.getPageIndices();
           const pages = await merged.copyPages(source, indices);
           pages.forEach((page) => merged.addPage(page));
+          await yieldToMain();
         }
+        setProgress({ label: "Saving merged PDF…", phase: "save" });
+        await yieldToMain();
         const output = await merged.save();
         saveBlob(
           new Blob([output], { type: "application/pdf" }),
@@ -212,7 +204,7 @@ export default function Converter() {
         );
       }
       if (mode === "word") {
-        await convertWordExact(queue[0]);
+        await convertDocxToPdf(queue[0], { onProgress: setProgress });
       }
       toast.success("Done — your PDF has been downloaded.");
       setFiles([]);
@@ -221,14 +213,41 @@ export default function Converter() {
     } catch (error) {
       toast.error(`We couldn't process that file: ${error.message}`);
     } finally {
+      setProgress(null);
+      endProcessing();
       setBusy(false);
     }
   };
 
+  const progressPercent =
+    progress?.total > 0
+      ? Math.round((progress.current / progress.total) * 100)
+      : null;
+
+  const processingOverlay =
+    busy &&
+    createPortal(
+      <div className="processing-overlay" role="status" aria-live="polite">
+        <div className="processing-card">
+          <Loader2 className="spin" size={28} aria-hidden="true" />
+          <b>{progress?.label || "Processing your files…"}</b>
+          <small>Keep this tab open. The page stays responsive while we work.</small>
+          {progressPercent != null && (
+            <div className="processing-bar" aria-hidden="true">
+              <span style={{ width: `${progressPercent}%` }} />
+            </div>
+          )}
+        </div>
+      </div>,
+      document.body,
+    );
+
   const accepts =
     mode === "images" ? ".jpg,.jpeg,.png" : mode === "merge" ? ".pdf" : ".docx";
   return (
-    <ToolShell
+    <>
+      {processingOverlay}
+      <ToolShell
       eyebrow="FILE CONVERTER"
       title="Convert and combine files."
       description="Make one clean PDF from Word documents, images or several existing PDFs."
@@ -365,5 +384,6 @@ export default function Converter() {
         </div>
       </div>
     </ToolShell>
+    </>
   );
 }

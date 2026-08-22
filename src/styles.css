@@ -84,6 +84,19 @@ body {
   .custom-cursor.pressed {
     opacity: 0.72;
   }
+  html.is-processing .custom-cursor {
+    display: none !important;
+  }
+  html.is-processing,
+  html.is-processing body,
+  html.is-processing a,
+  html.is-processing button,
+  html.is-processing input,
+  html.is-processing textarea,
+  html.is-processing select,
+  html.is-processing label {
+    cursor: progress !important;
+  }
 }
 button,
 input,
@@ -3920,6 +3933,55 @@ footer {
   to {
     transform: rotate(360deg);
   }
+}
+
+.processing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(251, 252, 250, 0.72);
+  backdrop-filter: blur(2px);
+  pointer-events: all;
+}
+.processing-card {
+  width: min(420px, 100%);
+  padding: 22px 24px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(16, 27, 34, 0.12);
+  text-align: center;
+}
+.processing-card b {
+  display: block;
+  margin-top: 12px;
+  font-size: 1.05rem;
+}
+.processing-card .spin {
+  animation: spin 0.85s linear infinite;
+  color: var(--blue-deep);
+}
+.processing-card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+.processing-bar {
+  margin-top: 14px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e8eef1;
+  overflow: hidden;
+}
+.processing-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue-deep), var(--blue));
+  transition: width 0.2s ease;
 }
 
 @media (max-width: 900px) {

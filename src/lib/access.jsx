@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useAuth } from "./auth";
 import { supabase } from "./supabase";
 import { checkTrialEligible } from "./trialEligibility";
@@ -66,7 +73,9 @@ const emptyState = (overrides = {}) => ({
   ...overrides,
 });
 
-export function useAccess() {
+const AccessContext = createContext(null);
+
+export function AccessProvider({ children }) {
   const { configured, user, loading: authLoading } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState(() =>
@@ -394,5 +403,17 @@ export function useAccess() {
     };
   }, [configured, user, authLoading, refreshKey]);
 
-  return { ...state, refresh };
+  const value = { ...state, refresh };
+
+  return (
+    <AccessContext.Provider value={value}>{children}</AccessContext.Provider>
+  );
+}
+
+export function useAccess() {
+  const context = useContext(AccessContext);
+  if (!context) {
+    throw new Error("useAccess must be used within AccessProvider");
+  }
+  return context;
 }

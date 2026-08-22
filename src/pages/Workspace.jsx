@@ -37,7 +37,15 @@ function WorkspaceBody() {
   const { user } = useAuth();
   const access = useAccess();
 
-  if (!access.loading && !access.allowed) {
+  if (access.loading) {
+    return (
+      <Layout>
+        <div className="empty-state container">Opening your workspace…</div>
+      </Layout>
+    );
+  }
+
+  if (!access.allowed) {
     const destination = getAccessDestination(access);
     return <Navigate to={destination || "/access"} replace />;
   }
