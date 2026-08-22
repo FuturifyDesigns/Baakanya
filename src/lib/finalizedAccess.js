@@ -67,6 +67,20 @@ export async function canDownloadHistoryRecord(access, record) {
   return verifyFinalizedOnServer(draftKey, { strict: true });
 }
 
+/** History editing requires active credits or monthly subscription (not trial-only or exhausted). */
+export function canEditFromHistory(access) {
+  if (!access || access.loading) return false;
+  return (
+    access.status === "subscription_active" ||
+    access.status === "credits_available"
+  );
+}
+
+export async function canOpenHistoryInEditor(access, record) {
+  if (!canEditFromHistory(access)) return false;
+  return canDownloadHistoryRecord(access, record);
+}
+
 export function renewalDestination(access) {
   if (!access || access.loading || access.allowed) return null;
   if (access.status === "trial_expired") return "/access?reason=trial_ended";
