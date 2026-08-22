@@ -282,7 +282,7 @@ export default function Converter() {
       sessionGraceDraftKey={graceDraftKey}
       privacyNote={
         mode === "word"
-          ? "Word files use the same professional conversion engine as iLovePDF when available."
+          ? "Word formatting is preserved as closely as possible."
           : "Files are processed on your device"
       }
     >

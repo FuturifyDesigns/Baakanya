@@ -341,7 +341,7 @@ export default function AdminControl() {
                 <b>{metrics.monthlyRenewals}</b>
               </article>
               <article>
-                <span>iLovePDF credits left</span>
+                <span>Word PDF credits left</span>
                 <b>{creditsRemaining ?? "—"}</b>
               </article>
               <article>
@@ -349,18 +349,18 @@ export default function AdminControl() {
                 <b>{conversionStats?.ilovepdf_this_month ?? 0}</b>
               </article>
               <article>
-                <span>Browser fallbacks (month)</span>
+                <span>On-device fallbacks (month)</span>
                 <b>{conversionStats?.browser_this_month ?? 0}</b>
               </article>
             </div>
             <div className="admin-toolbar">
               <div>
                 <span className="kicker">WORD TO PDF</span>
-                <h2>iLovePDF credit monitor</h2>
+                <h2>Conversion credit monitor</h2>
                 <p className="admin-note">
-                  Professional Word conversions use your iLovePDF API credits (1
-                  per file). Below 50 credits, Baakanya switches to free
-                  on-device conversion to protect your balance.
+                  Professional Word conversions use 1 API credit per file.
+                  Below 50 credits, Baakanya switches to free on-device
+                  conversion to protect your balance.
                 </p>
                 <small>Last synced: {creditsUpdated}</small>
               </div>

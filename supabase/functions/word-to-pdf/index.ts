@@ -220,7 +220,7 @@ Deno.serve(async (request) => {
       }
       if (!publicKey) {
         return Response.json(
-          { error: "iLovePDF is not configured." },
+          { error: "Word conversion service is not configured." },
           { status: 503, headers: corsHeaders },
         );
       }
