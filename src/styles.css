@@ -3751,7 +3751,24 @@ footer {
     flex-direction: column;
   }
   .template-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .template-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .template-card {
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
   }
   .media-adjuster {
     grid-template-columns: 1fr;
@@ -4109,10 +4126,6 @@ footer {
   .template-section-head {
     align-items: flex-start;
     flex-direction: column;
-  }
-  .template-grid {
-    grid-template-columns: 1fr;
-    max-height: 620px;
   }
   .media-adjuster {
     padding: 25px;
@@ -4766,6 +4779,12 @@ footer {
 
 @media (max-width: 900px) {
   .document-workflow { grid-template-columns: 1fr; }
+  .template-section-head > b {
+    font-size: 12px;
+  }
+  .template-section-head > b::before {
+    content: "Swipe to browse · ";
+  }
   .template-card { min-height: 290px; }
   .automation-admin-list article { grid-template-columns: 1fr; }
   .admin-actions { justify-content: flex-start; }
@@ -6181,7 +6200,8 @@ video {
   }
   .template-grid {
     max-height: none;
-    overflow: visible;
+    margin-inline: -4px;
+    padding-inline: 4px;
   }
   .doc-band {
     margin-left: -16px;
