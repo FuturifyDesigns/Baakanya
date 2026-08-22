@@ -29,8 +29,8 @@ export async function checkGenerationAccess(toolName) {
 
 /**
  * Consume access when the document is finalized (confirm / first download).
- * Pass a stable draftKey so re-confirm / PDF+Word do not double-charge.
- * Converter calls without draftKey and is charged every run.
+ * Pass a stable draftKey so re-download / repeat export does not double-charge.
+ * Converter finalizes after a successful download, same as CV confirm.
  */
 export async function finalizeGeneration(toolName, draftKey = null) {
   return invokeGenerationGate({

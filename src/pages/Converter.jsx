@@ -15,7 +15,9 @@ import { createPortal } from "react-dom";
 import { jsPDF } from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import ToolShell from "../components/ToolShell";
-import { authorizeGeneration } from "../lib/generation";
+import { checkGenerationAccess, finalizeGeneration } from "../lib/generation";
+import { registerFinalizedDraft } from "../lib/finalizedAccess";
+import { useAccess } from "../lib/access";
 import {
   beginProcessing,
   endProcessing,
@@ -58,12 +60,14 @@ const defaultPrompt = (mode) =>
 
 export default function Converter() {
   const toast = useToast();
+  const access = useAccess();
   const [mode, setMode] = useState("images");
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
   const [inputKey, setInputKey] = useState(0);
+  const [graceDraftKey, setGraceDraftKey] = useState(null);
   const resetTimer = useRef(null);
 
   useEffect(
@@ -145,8 +149,10 @@ export default function Converter() {
     });
     beginProcessing();
     const queue = [...files];
+    const toolName = `converter_${mode}`;
+    const draftKey = crypto.randomUUID();
     try {
-      await authorizeGeneration(`converter_${mode}`);
+      await checkGenerationAccess(toolName);
       if (mode === "images") {
         const pdf = new jsPDF();
         for (let i = 0; i < queue.length; i++) {
@@ -206,7 +212,29 @@ export default function Converter() {
       if (mode === "word") {
         await convertDocxToPdf(queue[0], { onProgress: setProgress });
       }
-      toast.success("Done — your PDF has been downloaded.");
+
+      const result = await finalizeGeneration(toolName, draftKey);
+      registerFinalizedDraft(draftKey);
+      setGraceDraftKey(draftKey);
+      access.refresh?.();
+
+      if (result?.accessType === "credits" && result?.charged) {
+        const creditsLeft =
+          typeof result.remainingCredits === "number"
+            ? result.remainingCredits
+            : null;
+        if (creditsLeft === 0) {
+          toast.success(
+            "Done — your PDF downloaded. That was your last credit. Renew access to convert more files.",
+          );
+        } else {
+          toast.success(
+            `Done — your PDF downloaded.${creditsLeft !== null ? ` ${creditsLeft} credit${creditsLeft === 1 ? "" : "s"} left.` : ""}`,
+          );
+        }
+      } else {
+        toast.success("Done — your PDF has been downloaded.");
+      }
       setFiles([]);
       setInputKey((value) => value + 1);
       scheduleReset();
@@ -251,6 +279,7 @@ export default function Converter() {
       eyebrow="FILE CONVERTER"
       title="Convert and combine files."
       description="Make one clean PDF from Word documents, images or several existing PDFs."
+      sessionGraceDraftKey={graceDraftKey}
       privacyNote={
         mode === "word"
           ? "Word files use the same professional conversion engine as iLovePDF when available."
@@ -258,6 +287,12 @@ export default function Converter() {
       }
     >
       <div className="tool-panel">
+        {graceDraftKey && !access.allowed && (
+          <div className="renewal-banner" role="status">
+            Your last credit was used for the download above. Renew access to
+            convert more files.
+          </div>
+        )}
         <div className="tabs">
           <button
             className={mode === "images" ? "active" : ""}

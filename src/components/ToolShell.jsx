@@ -2,6 +2,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useAccess } from "../lib/access";
 import { getAccessDestination, isRenewalStatus } from "../lib/accessRoutes";
+import { hasFinalizedGrace } from "../lib/finalizedAccess";
 import { useAuth } from "../lib/auth";
 import Layout from "./Layout";
 
@@ -10,12 +11,16 @@ export default function ToolShell({
   title,
   description,
   privacyNote = "Files are processed on your device",
+  sessionGraceDraftKey = null,
   children,
 }) {
   const { user, loading: authLoading } = useAuth();
   const access = useAccess();
+  const graceActive =
+    sessionGraceDraftKey && hasFinalizedGrace(sessionGraceDraftKey);
+  const canUseTool = access.allowed || graceActive;
 
-  if (!authLoading && !access.loading && user && !access.allowed) {
+  if (!authLoading && !access.loading && user && !canUseTool) {
     return <Navigate to={getAccessDestination(access) || "/access"} replace />;
   }
 
@@ -79,7 +84,7 @@ export default function ToolShell({
               </Link>
             </div>
           </div>
-        ) : access.allowed ? (
+        ) : canUseTool ? (
           children
         ) : access.status === "awaiting_mode" ? (
           <div className="locked-card">
