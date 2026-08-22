@@ -12,16 +12,6 @@ type AuthContext = {
   admin: ReturnType<typeof createClient>;
 };
 
-const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
-};
-
 const getIloveToken = async (publicKey: string) => {
   const response = await fetch("https://api.ilovepdf.com/v1/auth", {
     method: "POST",
@@ -342,20 +332,31 @@ Deno.serve(async (request) => {
       creditsRemaining,
     });
 
-    if (pdfBytes.byteLength > 4.5 * 1024 * 1024) {
-      return Response.json(
-        {
-          error:
-            "Converted PDF is too large to return. Try a smaller Word file.",
-        },
-        { status: 413, headers: corsHeaders },
-      );
+    const outputName = fileName.replace(/\.docx$/i, "") + ".pdf";
+    const pdfStoragePath = `${userId}/${crypto.randomUUID()}.pdf`;
+
+    const { error: pdfUploadError } = await admin.storage
+      .from("converter-temp")
+      .upload(pdfStoragePath, new Blob([pdfBytes], { type: "application/pdf" }), {
+        contentType: "application/pdf",
+        upsert: false,
+      });
+    if (pdfUploadError) {
+      throw new Error("Could not store the converted PDF.");
     }
 
-    const outputName = fileName.replace(/\.docx$/i, "") + ".pdf";
+    const { data: signed, error: signError } = await admin.storage
+      .from("converter-temp")
+      .createSignedUrl(pdfStoragePath, 300);
+    if (signError || !signed?.signedUrl) {
+      await admin.storage.from("converter-temp").remove([pdfStoragePath]);
+      throw new Error("Could not prepare the converted PDF for download.");
+    }
+
     return Response.json(
       {
-        pdfBase64: arrayBufferToBase64(pdfBytes),
+        signedUrl: signed.signedUrl,
+        pdfStoragePath,
         fileName: outputName,
         engine: "ilovepdf",
         remainingCredits: creditsRemaining,

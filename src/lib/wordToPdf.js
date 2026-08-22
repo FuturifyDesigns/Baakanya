@@ -200,6 +200,7 @@ const convertViaServer = async (file, onProgress) => {
   if (!user) return null;
 
   const storagePath = `${user.id}/${crypto.randomUUID()}.docx`;
+  let pdfStoragePath = null;
 
   onProgress?.({ label: "Uploading Word document…", phase: "prepare" });
   await yieldToMain();
@@ -226,22 +227,39 @@ const convertViaServer = async (file, onProgress) => {
       body: { storagePath, fileName: file.name },
     });
 
-    if (error) throw new Error(error.message || "Server conversion failed.");
     if (data?.fallback) return null;
     if (data?.error) throw new Error(data.error);
-    if (!data?.pdfBase64) {
-      throw new Error("Conversion completed but no PDF was returned.");
+
+    if (error) {
+      const status = error.context?.status ?? error.status;
+      if (status === 413 || status === 502 || status === 504) return null;
+      throw new Error(error.message || "Server conversion failed.");
     }
+
+    pdfStoragePath = data?.pdfStoragePath || null;
+    const outputName =
+      data?.fileName || file.name.replace(/\.docx$/i, "") + ".pdf";
 
     onProgress?.({ label: "Saving PDF…", phase: "save" });
     await yieldToMain();
 
-    const outputName =
-      data.fileName || file.name.replace(/\.docx$/i, "") + ".pdf";
-    savePdfBlob(base64ToBlob(data.pdfBase64), outputName);
+    if (data?.signedUrl) {
+      const pdfResponse = await fetch(data.signedUrl);
+      if (!pdfResponse.ok) {
+        throw new Error("Could not download the converted PDF.");
+      }
+      savePdfBlob(await pdfResponse.blob(), outputName);
+    } else if (data?.pdfBase64) {
+      savePdfBlob(base64ToBlob(data.pdfBase64), outputName);
+    } else {
+      throw new Error("Conversion completed but no PDF was returned.");
+    }
+
     return { engine: "ilovepdf", remainingCredits: data.remainingCredits ?? null };
   } finally {
-    await supabase.storage.from("converter-temp").remove([storagePath]);
+    const paths = [storagePath];
+    if (pdfStoragePath) paths.push(pdfStoragePath);
+    await supabase.storage.from("converter-temp").remove(paths);
   }
 };
 
@@ -355,7 +373,8 @@ export async function convertDocxToPdf(file, { onProgress } = {}) {
     if (serverResult) return;
   } catch (error) {
     console.error("Server Word to PDF failed:", error);
-    throw error;
+    report({ label: "Trying on-device conversion…", phase: "layout" });
+    await yieldToMain();
   }
 
   report({ label: "Using on-device preview conversion…", phase: "layout" });
