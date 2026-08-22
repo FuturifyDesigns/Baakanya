@@ -49,17 +49,25 @@ export default function AdminControl() {
       supabase.rpc("admin_word_conversion_stats"),
     ]);
     const error =
-      paymentResult.error ||
-      requestResult.error ||
-      userResult.error ||
-      conversionResult.error;
+      paymentResult.error || requestResult.error || userResult.error;
     if (error) setMessage(error.message);
     else {
       setPayments(paymentResult.data || []);
       setRequests(requestResult.data || []);
       setUsers(userResult.data || []);
-      setConversionStats(conversionResult.data || null);
       setMessage("");
+    }
+    if (conversionResult.error) {
+      setConversionStats(null);
+      if (!error) {
+        setMessage(
+          (current) =>
+            current ||
+            `Word conversion stats unavailable: ${conversionResult.error.message}`,
+        );
+      }
+    } else {
+      setConversionStats(conversionResult.data || null);
     }
     setLoading(false);
   }, [isAdmin]);
