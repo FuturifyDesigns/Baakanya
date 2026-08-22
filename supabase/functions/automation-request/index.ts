@@ -25,6 +25,18 @@ const clean = (value: unknown) =>
     ? value.replace(/[<>]/g, "").replace(/\s+/g, " ").trim()
     : "";
 
+const looksSpammy = (tool: string, details: string) => {
+  const text = `${tool} ${details}`.toLowerCase();
+  if (/(https?:\/\/|www\.|bit\.ly|t\.me\/)/i.test(text)) return true;
+  if (/(viagra|crypto\s*giveaway|casino|porn|xxx)/i.test(text)) return true;
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length >= 8) {
+    const unique = new Set(words);
+    if (unique.size / words.length < 0.35) return true;
+  }
+  return false;
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
@@ -40,8 +52,11 @@ Deno.serve(async (request) => {
     const email = clean(body.email).toLowerCase();
     const tool = clean(body.tool);
     const details = clean(body.reason);
+
+    // Honeypot — pretend success so bots do not retry differently.
     if (clean(body.website))
       return Response.json({ ok: true }, { headers: corsHeaders });
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       return Response.json(
         { error: "Enter a valid email address." },
@@ -57,11 +72,22 @@ Deno.serve(async (request) => {
         { error: "Add a short tool name and a useful description." },
         { status: 400, headers: corsHeaders },
       );
+    if (looksSpammy(tool, details))
+      return Response.json(
+        { error: "That request looks invalid. Please rewrite it clearly." },
+        { status: 400, headers: corsHeaders },
+      );
 
     const url = Deno.env.get("SUPABASE_URL") || "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const secret = Deno.env.get("TRIAL_FINGERPRINT_SECRET") || "";
+    if (!url || !serviceKey || !secret)
+      return Response.json(
+        { error: "Your request could not be sent right now." },
+        { status: 500, headers: corsHeaders },
+      );
+
     const forwarded = request.headers.get("x-forwarded-for") || "";
     const ip =
       forwarded.split(",")[0].trim() ||
@@ -69,11 +95,28 @@ Deno.serve(async (request) => {
       "unknown";
     const emailHash = await hmac(secret, `automation-email:${email}`);
     const ipHash = await hmac(secret, `automation-ip:${ip}`);
+    const contentHash = await hmac(
+      secret,
+      `automation-content:${email}:${tool.toLowerCase()}:${details.toLowerCase()}`,
+    );
     const admin = createClient(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const dayAgo = new Date(Date.now() - 86400000).toISOString();
-    const [emailRequests, ipRequests] = await Promise.all([
+
+    const now = Date.now();
+    const dayAgo = new Date(now - 86400000).toISOString();
+    const hourAgo = new Date(now - 3600000).toISOString();
+    const coolDownAgo = new Date(now - 5 * 60 * 1000).toISOString();
+
+    const [
+      emailDay,
+      ipDay,
+      emailHour,
+      ipHour,
+      emailRecent,
+      ipRecent,
+      duplicate,
+    ] = await Promise.all([
       admin
         .from("automation_requests")
         .select("id", { count: "exact", head: true })
@@ -84,10 +127,59 @@ Deno.serve(async (request) => {
         .select("id", { count: "exact", head: true })
         .eq("ip_fingerprint_hash", ipHash)
         .gte("created_at", dayAgo),
+      admin
+        .from("automation_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("email_fingerprint_hash", emailHash)
+        .gte("created_at", hourAgo),
+      admin
+        .from("automation_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("ip_fingerprint_hash", ipHash)
+        .gte("created_at", hourAgo),
+      admin
+        .from("automation_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("email_fingerprint_hash", emailHash)
+        .gte("created_at", coolDownAgo),
+      admin
+        .from("automation_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("ip_fingerprint_hash", ipHash)
+        .gte("created_at", coolDownAgo),
+      admin
+        .from("automation_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("email_fingerprint_hash", emailHash)
+        .eq("tool_name", tool)
+        .eq("details", details)
+        .gte("created_at", dayAgo),
     ]);
-    if ((emailRequests.count || 0) >= 3 || (ipRequests.count || 0) >= 5)
+
+    if ((emailRecent.count || 0) > 0 || (ipRecent.count || 0) > 0)
       return Response.json(
-        { error: "Request limit reached. Please try again tomorrow." },
+        {
+          error:
+            "Please wait at least 5 minutes before sending another recommendation.",
+        },
+        { status: 429, headers: corsHeaders },
+      );
+    if ((emailHour.count || 0) >= 2 || (ipHour.count || 0) >= 3)
+      return Response.json(
+        { error: "Too many recommendations this hour. Try again later." },
+        { status: 429, headers: corsHeaders },
+      );
+    if ((emailDay.count || 0) >= 3 || (ipDay.count || 0) >= 5)
+      return Response.json(
+        { error: "Daily recommendation limit reached. Try again tomorrow." },
+        { status: 429, headers: corsHeaders },
+      );
+    if ((duplicate.count || 0) > 0)
+      return Response.json(
+        {
+          error:
+            "You already sent this recommendation today. Try a different idea.",
+        },
         { status: 429, headers: corsHeaders },
       );
 
@@ -102,6 +194,7 @@ Deno.serve(async (request) => {
       const { data } = await authClient.auth.getUser(token);
       userId = data.user?.id || null;
     }
+
     const { error } = await admin.from("automation_requests").insert({
       user_id: userId,
       email,
@@ -111,6 +204,21 @@ Deno.serve(async (request) => {
       ip_fingerprint_hash: ipHash,
     });
     if (error) throw error;
+
+    // Best-effort abuse log for admin monitoring.
+    try {
+      await admin.from("abuse_events").insert({
+        event_type: "automation_request",
+        email_fingerprint_hash: emailHash,
+        ip_fingerprint_hash: ipHash,
+        allowed: true,
+        reason: `content:${contentHash.slice(0, 16)}`,
+        user_id: userId,
+      });
+    } catch (_) {
+      // ignore if schema differs
+    }
+
     return Response.json({ ok: true }, { headers: corsHeaders });
   } catch (error) {
     console.error(error);

@@ -3281,8 +3281,21 @@ footer {
 }
 .automation-request-card .form-message {
   margin: 0;
-  color: #d7f0c8;
-  font-size: 13px;
+  border-radius: 10px;
+  border-left: 3px solid #3a9a5c;
+  background: #e8f6ec;
+  color: #1f5c35;
+  font-weight: 600;
+}
+.automation-request-card .form-message.is-error {
+  border-left-color: #c45a5a;
+  background: #fdeeee;
+  color: #8a2929;
+}
+.automation-request-card .form-message.is-success {
+  border-left-color: #3a9a5c;
+  background: #e8f6ec;
+  color: #1f5c35;
 }
 .automation-request-card .kicker.light {
   color: #7ec8ea;
@@ -4176,10 +4189,15 @@ footer {
     padding: 80px 0;
   }
   .automation-future-grid {
-    gap: 45px;
+    grid-template-columns: 1fr;
+    gap: 36px;
   }
   .automation-request-card {
-    padding: 24px;
+    padding: 22px;
+  }
+  .automation-request-closed .btn,
+  .automation-request-form .btn {
+    width: 100%;
   }
   .automation-admin-list article {
     grid-template-columns: 1fr;

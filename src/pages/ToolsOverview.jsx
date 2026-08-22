@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   BusinessMark,
@@ -48,14 +48,35 @@ export default function ToolsOverview() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState("success");
+  const [cooldownUntil, setCooldownUntil] = useState(0);
   const [request, setRequest] = useState({
     email: user?.email || "",
     tool: "",
     reason: "",
     website: "",
   });
+
+  useEffect(() => {
+    if (!cooldownUntil) return undefined;
+    const wait = cooldownUntil - Date.now();
+    if (wait <= 0) {
+      setCooldownUntil(0);
+      return undefined;
+    }
+    const timer = setTimeout(() => setCooldownUntil(0), wait);
+    return () => clearTimeout(timer);
+  }, [cooldownUntil]);
+
+  const coolingDown = cooldownUntil > Date.now();
+
   const submitRequest = async (event) => {
     event.preventDefault();
+    if (coolingDown) {
+      setMessageTone("error");
+      setMessage("Please wait a few minutes before sending another idea.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     const { data, error } = await supabase.functions.invoke(
@@ -64,11 +85,14 @@ export default function ToolsOverview() {
     );
     setBusy(false);
     if (error || !data?.ok) {
+      setMessageTone("error");
       setMessage(data?.error || "Your request could not be sent right now.");
       return;
     }
+    setMessageTone("success");
     setMessage("Thank you. Your automation idea has been sent to the admin.");
     setRequest((current) => ({ ...current, tool: "", reason: "" }));
+    setCooldownUntil(Date.now() + 5 * 60 * 1000);
   };
   return (
     <Layout>
@@ -184,11 +208,25 @@ export default function ToolsOverview() {
                     placeholder="Describe the repetitive work and the result you need."
                   />
                 </label>
-                <button className="btn btn-white" disabled={busy}>
-                  {busy ? "Sending…" : "Send recommendation"}
-                  {!busy && <ArrowRight />}
+                <button
+                  className="btn btn-white"
+                  disabled={busy || coolingDown}
+                >
+                  {busy
+                    ? "Sending…"
+                    : coolingDown
+                      ? "Please wait…"
+                      : "Send recommendation"}
+                  {!busy && !coolingDown && <ArrowRight />}
                 </button>
-                {message && <div className="form-message">{message}</div>}
+                {message && (
+                  <div
+                    className={`form-message ${messageTone === "error" ? "is-error" : "is-success"}`}
+                    role="status"
+                  >
+                    {message}
+                  </div>
+                )}
               </form>
             )}
           </div>
