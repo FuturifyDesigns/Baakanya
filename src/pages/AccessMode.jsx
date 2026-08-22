@@ -257,19 +257,14 @@ function AccessModeBody() {
     }
   };
 
-  const visibleModes =
-    renewing ||
-    isRenewalStatus(access.status) ||
-    access.hasUsedTrial ||
-    access.trialEligible === false
-      ? modes.filter((mode) => mode.id !== "trial")
-      : modes;
+  const visibleModes = modes.filter(
+    (mode) => mode.id !== "trial" || access.trialEligible === true,
+  );
 
   const returningPicker =
-    access.isReturningUser &&
+    access.trialEligible === false &&
     !renewTitle &&
-    !showPay &&
-    visibleModes.length < modes.length;
+    !showPay;
 
   const renewTitle =
     reason === "trial_ended" || access.status === "trial_expired"

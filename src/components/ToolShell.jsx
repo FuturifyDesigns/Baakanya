@@ -79,7 +79,11 @@ export default function ToolShell({ eyebrow, title, description, children }) {
           <div className="locked-card">
             <ShieldCheck />
             <span className="kicker">CHOOSE ACCESS</span>
-            <h2>Select free trial or paid access</h2>
+            <h2>
+              {access.trialEligible === true
+                ? "Select free trial or paid access"
+                : "Choose credits or monthly access"}
+            </h2>
             <p>Finish setup before using the tools.</p>
             <div>
               <Link className="btn btn-blue" to="/access">

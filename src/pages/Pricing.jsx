@@ -21,11 +21,8 @@ export default function Pricing() {
     (isRenewalStatus(access.status) ||
       access.status === "credits_available" ||
       access.isReturningUser);
-  const showTrial =
-    !signedIn ||
-    (!access.hasUsedTrial &&
-      access.trialEligible !== false &&
-      !isRenewalStatus(access.status));
+  const showTrial = !signedIn || access.trialEligible === true;
+  const showTrialUsed = signedIn && access.trialEligible === false;
   const renewHref =
     signedIn && getAccessDestination(access)
       ? getAccessDestination(access)
@@ -85,7 +82,7 @@ export default function Pricing() {
               Create account <ArrowRight />
             </Link>
           </div>
-        ) : signedIn ? (
+        ) : showTrialUsed ? (
           <div className="trial-banner returning-pricing-banner">
             <div>
               <span>RETURNING USER</span>

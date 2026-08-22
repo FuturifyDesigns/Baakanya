@@ -258,22 +258,6 @@ export function useAccess() {
           hadCredits,
       );
 
-      let trialEligible = null;
-      if (hasUsedTrial) {
-        trialEligible = false;
-      } else if (user.email) {
-        try {
-          const check = await checkTrialEligible(user.email);
-          if (active) trialEligible = check.eligible;
-        } catch {
-          if (active) trialEligible = false;
-        }
-      } else {
-        trialEligible = false;
-      }
-
-      if (!active) return;
-
       snapshot.current = {
         trialEnd,
         subscriptionEnd,
@@ -286,6 +270,26 @@ export function useAccess() {
         hadCredits,
         hasUsedTrial,
         isReturningUser,
+        trialEligible: hasUsedTrial ? false : null,
+      };
+      publish();
+
+      let trialEligible = hasUsedTrial ? false : null;
+      if (!hasUsedTrial && user.email) {
+        try {
+          const check = await checkTrialEligible(user.email);
+          if (active) trialEligible = check.eligible;
+        } catch {
+          if (active) trialEligible = false;
+        }
+      } else if (!hasUsedTrial) {
+        trialEligible = false;
+      }
+
+      if (!active) return;
+
+      snapshot.current = {
+        ...snapshot.current,
         trialEligible,
       };
       publish();
