@@ -5,6 +5,7 @@ import {
   CareerMark,
   FilesMark,
 } from "../components/BrandIllustrations";
+import WorkspaceTabs from "../components/WorkspaceTabs";
 import Layout from "../components/Layout";
 import RequireAuth from "../components/RequireAuth";
 import { useAccess } from "../lib/access";
@@ -83,6 +84,8 @@ function WorkspaceBody() {
             </span>
           </div>
         </div>
+
+        <WorkspaceTabs />
 
         {access.status === "trial_active" && (
           <div className="trial-countdown-banner" role="status">

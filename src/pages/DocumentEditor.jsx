@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Check,
@@ -26,18 +26,15 @@ import {
 } from "../lib/documentEditorStore";
 import { defaultCustomization, defaultSectionTitles, densityOptionsFor, lineSpacingOptionsFor, typographyByKind, visibleDocumentFonts } from "../lib/customization";
 import {
-  coverLetterTemplates,
-  cvTemplates,
-  invoiceTemplates,
-  quotationTemplates,
-} from "../lib/documentTemplates";
+  downloadDraftPdf,
+  downloadDraftWord,
+  findDocumentTemplate,
+} from "../lib/documentDownloads";
+import { upsertDocumentHistory } from "../lib/documentHistory";
 import { finalizeGeneration } from "../lib/generation";
 import { useAccess } from "../lib/access";
 import { getAccessDestination } from "../lib/accessRoutes";
 import { useAutoSave } from "../lib/draftStore";
-import { renderBusinessPdf, renderCoverLetterPdf, renderCvPdf } from "../lib/pdfTemplates";
-import { exportBusinessWord, exportCoverWord, exportCvWord } from "../lib/wordExport";
-import { normalizeWebsite } from "../lib/urls";
 
 const money = (n) =>
   Number(n || 0).toLocaleString("en-BW", {
@@ -45,17 +42,7 @@ const money = (n) =>
     maximumFractionDigits: 2,
   });
 
-const findTemplate = (kind, templateId) => {
-  const list =
-    kind === "cv"
-      ? cvTemplates
-      : kind === "cover"
-        ? coverLetterTemplates
-        : kind === "quotation"
-          ? quotationTemplates
-          : invoiceTemplates;
-  return list.find((row) => row.id === templateId) || list[0];
-};
+const findTemplate = findDocumentTemplate;
 
 const kindLabel = (kind) => {
   if (kind === "cv") return "CV";
@@ -90,6 +77,7 @@ function EditorColorInput({ label, value, onLiveChange, onCommit }) {
 
 function EditorBody() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const access = useAccess();
   const [draft, setDraft] = useState(() => loadEditorDocument());
   const [step, setStep] = useState("edit");
@@ -108,6 +96,13 @@ function EditorBody() {
     const timer = window.setTimeout(() => saveEditorDocument(draft), 350);
     return () => window.clearTimeout(timer);
   }, [draft]);
+
+  useEffect(() => {
+    if (!draft?.billed) return;
+    if (searchParams.get("step") !== "download") return;
+    setConfirmed(true);
+    setStep("download");
+  }, [draft?.billed, searchParams]);
 
   const autosaveStatus = useAutoSave(
     draft ? "baakanya-document-editor" : "",
@@ -199,7 +194,9 @@ function EditorBody() {
   };
 
   const ensureFinalized = async () => {
-    if (draft.billed) return { charged: false, alreadyFinalized: true };
+    if (draft.billed) {
+      return { charged: false, alreadyFinalized: true, draftKey: draft.draftKey };
+    }
     const draftKey = draft.draftKey || crypto.randomUUID();
     const result = await finalizeGeneration(toolNameFor(draft), draftKey);
     setDraft((current) => ({
@@ -208,7 +205,7 @@ function EditorBody() {
       billed: true,
     }));
     access.refresh?.();
-    return result;
+    return { ...result, draftKey };
   };
 
   const markDocumentComplete = () => {
@@ -223,20 +220,30 @@ function EditorBody() {
     setMessage("Confirming final version…");
     try {
       const result = await ensureFinalized();
+      const finalizedDraft = {
+        ...draft,
+        draftKey: result.draftKey || draft.draftKey,
+        billed: true,
+      };
+      await upsertDocumentHistory(finalizedDraft, template.name);
       setConfirmed(true);
       setStep("download");
       if (result?.alreadyFinalized) {
-        setMessage("Already confirmed for this draft. PDF and Word are ready.");
+        setMessage(
+          "Already confirmed for this draft. PDF and Word are ready. Saved in History too.",
+        );
       } else if (result?.accessType === "credits" && result?.charged) {
         setMessage(
           `Final version confirmed. One credit used${
             typeof result.remainingCredits === "number"
               ? ` · ${result.remainingCredits} left`
               : ""
-          }.`,
+          }. Find it anytime under Workspace → History.`,
         );
       } else {
-        setMessage("Final version confirmed. You can download PDF or Word.");
+        setMessage(
+          "Final version confirmed. Download now or find it later in Workspace → History.",
+        );
       }
     } catch (error) {
       setConfirmed(false);
@@ -254,40 +261,17 @@ function EditorBody() {
     }
     setBusy(true);
     try {
-      await ensureFinalized();
+      const result = await ensureFinalized();
       setConfirmed(true);
-      if (draft.kind === "cv") {
-        renderCvPdf({
-          form: {
-            ...form,
-            role: form.expertise,
-            website: normalizeWebsite(form.website),
-            linkedin: normalizeWebsite(form.linkedin),
-          },
-          template: styledTemplate,
-          photoData: draft.photoData || null,
-          skills: split(form.skills || ""),
-        });
-      } else if (draft.kind === "cover") {
-        renderCoverLetterPdf({
-          form: {
-            ...form,
-            companyWebsite: normalizeWebsite(form.companyWebsite),
-          },
-          template: styledTemplate,
-          photoData: draft.photoData || null,
-          letter: draft.letter || "",
-        });
-      } else {
-        renderBusinessPdf({
-          kind: draft.kind === "quotation" ? "Quotation" : "Invoice",
-          form,
-          items: draft.items || [],
-          vat: Boolean(draft.vat),
-          template: styledTemplate,
-          logoData: draft.logoData || null,
-        });
-      }
+      downloadDraftPdf({
+        ...draft,
+        draftKey: result.draftKey || draft.draftKey,
+        billed: true,
+      });
+      await upsertDocumentHistory(
+        { ...draft, draftKey: result.draftKey || draft.draftKey, billed: true },
+        template.name,
+      );
       markDocumentComplete();
     } catch (error) {
       setMessage(error.message || "Download blocked until access is confirmed.");
@@ -304,43 +288,17 @@ function EditorBody() {
     }
     setBusy(true);
     try {
-      await ensureFinalized();
+      const result = await ensureFinalized();
       setConfirmed(true);
-      if (draft.kind === "cv") {
-        exportCvWord({
-          form: {
-            ...form,
-            role: form.expertise,
-            website: normalizeWebsite(form.website),
-            linkedin: normalizeWebsite(form.linkedin),
-          },
-          skills: split(form.skills || ""),
-          template: styledTemplate,
-          customization: activeCustomization,
-          photoData: draft.photoData || "",
-        });
-      } else if (draft.kind === "cover") {
-        exportCoverWord({
-          form: {
-            ...form,
-            companyWebsite: normalizeWebsite(form.companyWebsite),
-          },
-          letter: draft.letter || "",
-          template: styledTemplate,
-          customization: activeCustomization,
-          photoData: draft.photoData || "",
-        });
-      } else {
-        exportBusinessWord({
-          kind: draft.kind === "quotation" ? "Quotation" : "Invoice",
-          form,
-          items: draft.items || [],
-          vat: Boolean(draft.vat),
-          template: styledTemplate,
-          customization: activeCustomization,
-          logoData: draft.logoData || "",
-        });
-      }
+      downloadDraftWord({
+        ...draft,
+        draftKey: result.draftKey || draft.draftKey,
+        billed: true,
+      });
+      await upsertDocumentHistory(
+        { ...draft, draftKey: result.draftKey || draft.draftKey, billed: true },
+        template.name,
+      );
       markDocumentComplete();
     } catch (error) {
       setMessage(error.message || "Download blocked until access is confirmed.");
@@ -794,7 +752,8 @@ function EditorBody() {
             <p>
               Confirmed layout for <b>{template.name}</b>. PDF and Word use the
               same confirmed draft — no extra credit. After you download, the
-              form clears so you can pick a new template.
+              form clears so you can pick a new template. Missed a download?{" "}
+              <Link to="/workspace/history">Open History</Link>.
             </p>
             <div className="editor-actions">
               <button

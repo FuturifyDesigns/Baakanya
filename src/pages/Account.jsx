@@ -16,10 +16,13 @@ import { getAccessDestination, isRenewalStatus } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 
+import { LOCAL_DOCUMENT_HISTORY_KEY } from "../lib/documentHistory";
+
 const DRAFT_KEYS = [
   "baakanya-career-draft",
   "baakanya-business-draft",
   "baakanya-document-editor",
+  LOCAL_DOCUMENT_HISTORY_KEY,
 ];
 
 function accessLabel(access) {
