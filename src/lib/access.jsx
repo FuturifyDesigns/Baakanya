@@ -13,6 +13,35 @@ const formatRemaining = (ms) => {
   return `${days}d ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
+function deriveCustomerContext({
+  trialEnd,
+  planType,
+  subscriptionEnd,
+  creditBalance,
+  payments,
+}) {
+  const hasUsedTrial = Boolean(trialEnd);
+  const hadSubscription = Boolean(subscriptionEnd);
+  const hadCredits =
+    planType === "credits" ||
+    creditBalance > 0 ||
+    (payments || []).some(
+      (row) =>
+        row.plan_type === "credits" &&
+        (row.status === "approved" || row.status === "pending"),
+    );
+  const isReturningUser =
+    hasUsedTrial ||
+    hadSubscription ||
+    hadCredits ||
+    planType === "credits" ||
+    planType === "subscription" ||
+    planType === "trial" ||
+    (payments || []).some((row) => row.status === "approved");
+
+  return { hasUsedTrial, hadSubscription, hadCredits, isReturningUser };
+}
+
 const emptyState = (overrides = {}) => ({
   loading: false,
   allowed: false,
@@ -197,7 +226,7 @@ export function useAccess() {
         return;
       }
 
-      const [profileResult, subscriptionResult, creditResult, pendingResult, contextResult] =
+      const [profileResult, subscriptionResult, creditResult, pendingResult, paymentsResult] =
         await Promise.all([
           supabase
             .from("profiles")
@@ -224,7 +253,11 @@ export function useAccess() {
             .order("submitted_at", { ascending: false })
             .limit(1)
             .maybeSingle(),
-          supabase.rpc("get_user_access_context"),
+          supabase
+            .from("payment_submissions")
+            .select("plan_type,status")
+            .eq("user_id", user.id)
+            .in("status", ["approved", "pending"]),
         ]);
 
       if (!active) return;
@@ -238,25 +271,16 @@ export function useAccess() {
         : null;
       const creditBalance = creditResult.data?.balance || 0;
       const planType = profileResult.data?.plan_type || "none";
-      const subscriptionWasPurchased = Boolean(subscriptionEnd);
-      const accessContext = contextResult.error ? {} : contextResult.data || {};
-      const hasUsedTrial = Boolean(
-        accessContext.has_used_trial || trialEnd,
-      );
-      const hadSubscription = Boolean(
-        accessContext.had_subscription || subscriptionWasPurchased,
-      );
-      const hadCredits = Boolean(
-        accessContext.had_credits ||
-          planType === "credits" ||
-          creditBalance > 0,
-      );
-      const isReturningUser = Boolean(
-        accessContext.is_returning_user ||
-          hasUsedTrial ||
-          hadSubscription ||
-          hadCredits,
-      );
+      const payments = paymentsResult.data || [];
+      const customer = deriveCustomerContext({
+        trialEnd,
+        planType,
+        subscriptionEnd,
+        creditBalance,
+        payments,
+      });
+      const { hasUsedTrial, hadSubscription, hadCredits, isReturningUser } =
+        customer;
 
       snapshot.current = {
         trialEnd,

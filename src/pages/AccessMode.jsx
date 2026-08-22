@@ -257,15 +257,6 @@ function AccessModeBody() {
     }
   };
 
-  const visibleModes = modes.filter(
-    (mode) => mode.id !== "trial" || access.trialEligible === true,
-  );
-
-  const returningPicker =
-    access.trialEligible === false &&
-    !renewTitle &&
-    !showPay;
-
   const renewTitle =
     reason === "trial_ended" || access.status === "trial_expired"
       ? "Your free trial has ended"
@@ -277,6 +268,13 @@ function AccessModeBody() {
           : reason === "renew"
             ? "Renew your Baakanya access"
             : null;
+
+  const visibleModes = modes.filter(
+    (mode) => mode.id !== "trial" || access.trialEligible === true,
+  );
+
+  const returningPicker =
+    access.trialEligible === false && !renewTitle && !showPay;
 
   const renewCopy =
     reason === "trial_ended" || access.status === "trial_expired"
