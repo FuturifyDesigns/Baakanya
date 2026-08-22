@@ -26,6 +26,7 @@ export default function AdminControl() {
   const [payments, setPayments] = useState([]);
   const [requests, setRequests] = useState([]);
   const [users, setUsers] = useState([]);
+  const [conversionStats, setConversionStats] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState("");
@@ -34,7 +35,8 @@ export default function AdminControl() {
   const load = useCallback(async () => {
     if (!supabase || !isAdmin) return;
     setLoading(true);
-    const [paymentResult, requestResult, userResult] = await Promise.all([
+    const [paymentResult, requestResult, userResult, conversionResult] =
+      await Promise.all([
       supabase
         .from("payment_submissions")
         .select("*")
@@ -44,14 +46,19 @@ export default function AdminControl() {
         .select("*")
         .order("created_at", { ascending: false }),
       supabase.rpc("admin_user_statuses"),
+      supabase.rpc("admin_word_conversion_stats"),
     ]);
     const error =
-      paymentResult.error || requestResult.error || userResult.error;
+      paymentResult.error ||
+      requestResult.error ||
+      userResult.error ||
+      conversionResult.error;
     if (error) setMessage(error.message);
     else {
       setPayments(paymentResult.data || []);
       setRequests(requestResult.data || []);
       setUsers(userResult.data || []);
+      setConversionStats(conversionResult.data || null);
       setMessage("");
     }
     setLoading(false);
@@ -85,6 +92,16 @@ export default function AdminControl() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "subscriptions" },
+        load,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "word_conversion_logs" },
+        load,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "platform_settings" },
         load,
       )
       .subscribe((status) => setLive(status === "SUBSCRIBED"));
@@ -205,6 +222,32 @@ export default function AdminControl() {
     else window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
+  const refreshConversionCredits = async () => {
+    setBusyId("refresh-credits");
+    setMessage("");
+    const { data, error } = await supabase.functions.invoke("word-to-pdf", {
+      body: { mode: "refresh_credits" },
+    });
+    setBusyId("");
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    if (data?.error) {
+      setMessage(data.error);
+      return;
+    }
+    await load();
+  };
+
+  const creditsRemaining = conversionStats?.credits_remaining;
+  const creditsUpdated = conversionStats?.credits_updated_at
+    ? new Date(conversionStats.credits_updated_at).toLocaleString()
+    : "Not synced yet";
+  const recentConversions = Array.isArray(conversionStats?.recent)
+    ? conversionStats.recent
+    : [];
+
   return (
     <Layout>
       <section className="admin-page container">
@@ -289,6 +332,71 @@ export default function AdminControl() {
                 <span>Monthly renewals</span>
                 <b>{metrics.monthlyRenewals}</b>
               </article>
+              <article>
+                <span>iLovePDF credits left</span>
+                <b>{creditsRemaining ?? "—"}</b>
+              </article>
+              <article>
+                <span>Pro conversions (month)</span>
+                <b>{conversionStats?.ilovepdf_this_month ?? 0}</b>
+              </article>
+              <article>
+                <span>Browser fallbacks (month)</span>
+                <b>{conversionStats?.browser_this_month ?? 0}</b>
+              </article>
+            </div>
+            <div className="admin-toolbar">
+              <div>
+                <span className="kicker">WORD TO PDF</span>
+                <h2>iLovePDF credit monitor</h2>
+                <p className="admin-note">
+                  Professional Word conversions use your iLovePDF API credits (1
+                  per file). Below 50 credits, Baakanya switches to free
+                  on-device conversion to protect your balance.
+                </p>
+                <small>Last synced: {creditsUpdated}</small>
+              </div>
+              <button
+                className="btn btn-small btn-outline"
+                onClick={refreshConversionCredits}
+                disabled={busyId === "refresh-credits"}
+              >
+                <RefreshCw size={15} />{" "}
+                {busyId === "refresh-credits"
+                  ? "Syncing credits…"
+                  : "Sync credits"}
+              </button>
+            </div>
+            <div className="admin-list conversion-log-list">
+              {recentConversions.length === 0 ? (
+                <div className="empty-state">
+                  No Word conversions logged yet.
+                </div>
+              ) : (
+                recentConversions.map((row, index) => (
+                  <article key={`${row.created_at}-${index}`}>
+                    <div>
+                      <b>
+                        {row.engine === "ilovepdf"
+                          ? "Professional"
+                          : "Browser fallback"}{" "}
+                        · {row.file_name || "Word document"}
+                      </b>
+                      <small>
+                        {row.name || "User"} · {row.email || "—"} ·{" "}
+                        {row.created_at
+                          ? new Date(row.created_at).toLocaleString()
+                          : "—"}
+                      </small>
+                    </div>
+                    <span className="admin-tag">
+                      {row.credits_remaining != null
+                        ? `${row.credits_remaining} credits left`
+                        : "Credits n/a"}
+                    </span>
+                  </article>
+                ))
+              )}
             </div>
             <div className="admin-toolbar">
               <div>

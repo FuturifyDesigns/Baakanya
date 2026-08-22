@@ -251,6 +251,11 @@ export default function Converter() {
       eyebrow="FILE CONVERTER"
       title="Convert and combine files."
       description="Make one clean PDF from Word documents, images or several existing PDFs."
+      privacyNote={
+        mode === "word"
+          ? "Word files use the same professional conversion engine as iLovePDF when available."
+          : "Files are processed on your device"
+      }
     >
       <div className="tool-panel">
         <div className="tabs">

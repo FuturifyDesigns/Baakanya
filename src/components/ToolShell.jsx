@@ -5,7 +5,13 @@ import { getAccessDestination, isRenewalStatus } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 import Layout from "./Layout";
 
-export default function ToolShell({ eyebrow, title, description, children }) {
+export default function ToolShell({
+  eyebrow,
+  title,
+  description,
+  privacyNote = "Files are processed on your device",
+  children,
+}) {
   const { user, loading: authLoading } = useAuth();
   const access = useAccess();
 
@@ -30,7 +36,7 @@ export default function ToolShell({ eyebrow, title, description, children }) {
             <ShieldCheck />
             <span>
               <b>Private by design</b>
-              <small>Files are processed on your device</small>
+              <small>{privacyNote}</small>
             </span>
           </div>
         </div>
