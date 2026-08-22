@@ -13,6 +13,8 @@ window.addEventListener("vite:preloadError", (event) => {
   if (recoverFromOutdatedChunk(event.payload)) event.preventDefault();
 });
 
+sessionStorage.removeItem("baakanya-html-reload");
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
