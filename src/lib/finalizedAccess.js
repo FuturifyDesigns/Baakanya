@@ -62,7 +62,6 @@ export function canAccessPaidEditor(access, draft) {
 }
 
 export async function canDownloadHistoryRecord(access, record) {
-  if (access?.allowed) return true;
   const draftKey = record?.draft_key || record?.payload?.draftKey;
   if (!draftKey || !record?.payload?.billed) return false;
   return verifyFinalizedOnServer(draftKey, { strict: true });

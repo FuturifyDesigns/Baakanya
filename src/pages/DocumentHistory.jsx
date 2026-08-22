@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Download, Pencil, Trash2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import RequireAuth from "../components/RequireAuth";
 import WorkspaceTabs from "../components/WorkspaceTabs";
@@ -16,11 +16,9 @@ import {
   markDocumentHistoryDownloaded,
   updateDocumentHistoryTitle,
 } from "../lib/documentHistory";
-import { saveEditorDocument } from "../lib/documentEditorStore";
 import { useAccess } from "../lib/access";
 import {
   canDownloadHistoryRecord,
-  registerFinalizedDraft,
   renewalDestination,
 } from "../lib/finalizedAccess";
 import { useToast } from "../lib/toast";
@@ -37,7 +35,6 @@ function formatWhen(value) {
 }
 
 function HistoryBody() {
-  const navigate = useNavigate();
   const access = useAccess();
   const toast = useToast();
   const [items, setItems] = useState([]);
@@ -61,24 +58,6 @@ function HistoryBody() {
   useEffect(() => {
     refresh();
   }, []);
-
-  const openInEditor = async (record) => {
-    setBusyId(`${record.id}-open`);
-    try {
-      const allowed = await canDownloadHistoryRecord(access, record);
-      if (!allowed) {
-        toast.error(
-          "This document cannot be opened. Only confirmed, paid documents stay available after credits run out.",
-        );
-        return;
-      }
-      registerFinalizedDraft(record.draft_key);
-      saveEditorDocument(draftFromHistoryRecord(record));
-      navigate("/tools/editor?step=download");
-    } finally {
-      setBusyId("");
-    }
-  };
 
   const handleDownloadPdf = async (record) => {
     setBusyId(`${record.id}-pdf`);
@@ -168,7 +147,8 @@ function HistoryBody() {
             <h1>Document history</h1>
             <p>
               Confirmed documents are saved here so you can download them again
-              if you leave before saving a file.
+              if you leave before saving a file. History is download-only — to
+              change content, start a new document from the tools.
               {!access.allowed && renewalDestination(access) && (
                 <>
                   {" "}
@@ -264,14 +244,6 @@ function HistoryBody() {
                     onClick={() => handleDownloadWord(record)}
                   >
                     <Download size={14} /> Word
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-small btn-outline"
-                    disabled={Boolean(busyId)}
-                    onClick={() => openInEditor(record)}
-                  >
-                    Open
                   </button>
                   <button
                     type="button"
