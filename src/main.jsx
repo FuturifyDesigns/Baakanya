@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./lib/auth";
 import { LanguageProvider } from "./lib/i18n";
+import { ToastProvider } from "./lib/toast";
 import { recoverFromOutdatedChunk } from "./lib/lazyWithRefresh";
 import "./styles.css";
 
@@ -16,7 +17,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <LanguageProvider>
         <AuthProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>

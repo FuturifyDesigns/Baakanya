@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ToolShell from "../components/ToolShell";
@@ -14,6 +14,7 @@ import {
 } from "../lib/draftStore";
 import { saveEditorDocument } from "../lib/documentEditorStore";
 import { checkGenerationAccess } from "../lib/generation";
+import { useToast } from "../lib/toast";
 import { invoiceTemplates, quotationTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 
@@ -75,6 +76,8 @@ const freshBusinessNumbers = () => {
 export default function Invoice() {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
+  const [generating, setGenerating] = useState(false);
   const [kind, setKind] = useState("Invoice");
   const [vat, setVat] = useState(false);
   const [invoiceForm, setInvoiceForm] = useState(emptyInvoice);
@@ -95,7 +98,6 @@ export default function Invoice() {
   const [logo, setLogo] = useState(null);
   const [logoCrop, setLogoCrop] = useState({ zoom: 1, x: 0, y: 0 });
   const [customization, setCustomization] = useState(defaultCustomization);
-  const [studioMessage, setStudioMessage] = useState("");
   const [invoiceGenerated, setInvoiceGenerated] = useState(false);
   const [quotationGenerated, setQuotationGenerated] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
@@ -133,9 +135,7 @@ export default function Invoice() {
   useEffect(() => {
     if (location.state?.freshDocument) {
       resetBusinessWorkspace();
-      setStudioMessage(
-        "Ready for a new document. Pick a template and fill in the form.",
-      );
+      toast.success("Ready for a new document. Pick a template and fill in the form.");
       navigate(location.pathname, { replace: true, state: null });
       setDraftReady(true);
       return;
@@ -175,11 +175,11 @@ export default function Invoice() {
         setCustomization({ ...defaultCustomization, ...saved.customization });
       setInvoiceGenerated(Boolean(saved.invoiceGenerated));
       setQuotationGenerated(Boolean(saved.quotationGenerated));
-      setStudioMessage(
+      toast.info(
         "Your previous draft was restored. Logos are not stored — select again if needed.",
       );
     } catch {
-      setStudioMessage("A previous draft was found but could not be restored.");
+      toast.error("A previous draft was found but could not be restored.");
     } finally {
       setDraftReady(true);
     }
@@ -307,15 +307,24 @@ export default function Invoice() {
 
   const generate = async () => {
     const invalid = validateDocument();
-    if (invalid) return setValidation(invalid);
+    if (invalid) {
+      setValidation(invalid);
+      toast.error(invalid);
+      return;
+    }
     setValidation("");
+    setGenerating(true);
+    toast.info(`Preparing your ${kind.toLowerCase()}…`);
     try {
       await checkGenerationAccess(kind.toLowerCase());
       if (kind === "Invoice") setInvoiceGenerated(true);
       else setQuotationGenerated(true);
       await openEditor();
+      toast.success(`${kind} ready — opening the document editor.`);
     } catch (error) {
-      window.alert(error.message);
+      toast.error(error.message || `Could not open the ${kind.toLowerCase()} editor.`);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -623,9 +632,22 @@ export default function Invoice() {
             </div>
           )}
           <div className="form-downloads">
-            <button className="btn btn-blue" onClick={generate}>
-              <GenerateDocIcon />
-              Generate {kind.toLowerCase()}
+            <button
+              className={`btn btn-blue${generating ? " is-loading" : ""}`}
+              disabled={generating}
+              onClick={generate}
+            >
+              {generating ? (
+                <>
+                  <Loader2 size={18} className="spin" aria-hidden="true" />
+                  Preparing {kind.toLowerCase()}…
+                </>
+              ) : (
+                <>
+                  <GenerateDocIcon />
+                  Generate {kind.toLowerCase()}
+                </>
+              )}
             </button>
           </div>
           <p className="generate-hint">
@@ -633,11 +655,6 @@ export default function Invoice() {
             you confirm the final document before download. Your form autosaves
             on this device.
           </p>
-          {studioMessage && (
-            <div className="form-message" role="status">
-              {studioMessage}
-            </div>
-          )}
           {autosaveStatus && (
             <p className="autosave-status" role="status">
               {autosaveStatus}

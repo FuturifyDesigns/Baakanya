@@ -15,6 +15,7 @@ import { useAccess } from "../lib/access";
 import { getAccessDestination, isRenewalStatus } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
+import { useToast } from "../lib/toast";
 
 import { LOCAL_DOCUMENT_HISTORY_KEY } from "../lib/documentHistory";
 
@@ -81,10 +82,10 @@ function accessLabel(access) {
 function AccountBody() {
   const { user, signOut } = useAuth();
   const access = useAccess();
+  const toast = useToast();
   const navigate = useNavigate();
   const [confirmEmail, setConfirmEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
   const [showDelete, setShowDelete] = useState(false);
 
   const displayName =
@@ -114,13 +115,12 @@ function AccountBody() {
     );
     if (!confirmed) return;
     setBusy(true);
-    setMessage("");
     const { data, error } = await supabase.rpc("delete_own_account", {
       confirm_email: confirmEmail.trim(),
     });
     if (error) {
       setBusy(false);
-      setMessage(error.message);
+      toast.error(error.message);
       return;
     }
     wipeLocal();
@@ -128,7 +128,7 @@ function AccountBody() {
     setBusy(false);
     navigate("/?deleted=1", { replace: true });
     if (!data?.deleted) {
-      setMessage("Account deletion completed.");
+      toast.success("Account deletion completed.");
     }
   };
 
@@ -284,7 +284,6 @@ function AccountBody() {
                     onClick={() => {
                       setShowDelete(false);
                       setConfirmEmail("");
-                      setMessage("");
                     }}
                   >
                     Cancel
@@ -295,11 +294,6 @@ function AccountBody() {
                   </button>
                 </div>
               </form>
-              {message && (
-                <div className="form-message validation-error" role="alert">
-                  {message}
-                </div>
-              )}
             </div>
           )}
         </section>

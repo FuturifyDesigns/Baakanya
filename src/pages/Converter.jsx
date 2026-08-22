@@ -16,6 +16,7 @@ import mammoth from "mammoth";
 import html2canvas from "html2canvas";
 import ToolShell from "../components/ToolShell";
 import { authorizeGeneration } from "../lib/generation";
+import { useToast } from "../lib/toast";
 
 const saveBlob = (blob, name) => {
   const url = URL.createObjectURL(blob);
@@ -50,10 +51,10 @@ const defaultPrompt = (mode) =>
     : "Ready for another conversion when you are.";
 
 export default function Converter() {
+  const toast = useToast();
   const [mode, setMode] = useState("images");
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
   const [dragIndex, setDragIndex] = useState(null);
   const [inputKey, setInputKey] = useState(0);
   const resetTimer = useRef(null);
@@ -70,7 +71,7 @@ export default function Converter() {
     resetTimer.current = setTimeout(() => {
       setFiles([]);
       setInputKey((value) => value + 1);
-      setMessage(defaultPrompt(mode));
+      toast.info(defaultPrompt(mode));
     }, 5000);
   };
 
@@ -84,24 +85,20 @@ export default function Converter() {
           : /\.docx$/i;
     if (selected.length > 20) {
       setFiles([]);
-      setMessage("Choose no more than 20 files at a time.");
+      toast.error("Choose no more than 20 files at a time.");
       return;
     }
     if (selected.some((file) => !pattern.test(file.name))) {
       setFiles([]);
-      setMessage(
-        "One or more files do not match the selected conversion type.",
-      );
+      toast.error("One or more files do not match the selected conversion type.");
       return;
     }
     if (selected.some((file) => file.size > 20 * 1024 * 1024)) {
       setFiles([]);
-      setMessage("Each file must be smaller than 20 MB.");
+      toast.error("Each file must be smaller than 20 MB.");
       return;
     }
-    // Always replace the queue so previous merge selections cannot leak.
     setFiles(selected);
-    setMessage("");
   };
 
   const changeMode = (next) => {
@@ -109,7 +106,6 @@ export default function Converter() {
     setMode(next);
     setFiles([]);
     setInputKey((value) => value + 1);
-    setMessage("");
     setDragIndex(null);
   };
 
@@ -167,15 +163,15 @@ export default function Converter() {
 
   const convert = async () => {
     if (!files.length) {
-      setMessage("Choose at least one file first.");
+      toast.error("Choose at least one file first.");
       return;
     }
     if (mode === "merge" && files.length < 2) {
-      setMessage("Choose at least two PDF files to merge.");
+      toast.error("Choose at least two PDF files to merge.");
       return;
     }
     setBusy(true);
-    setMessage("");
+    toast.info("Processing your files…", { duration: 4000 });
     const queue = [...files];
     try {
       await authorizeGeneration(`converter_${mode}`);
@@ -218,12 +214,12 @@ export default function Converter() {
       if (mode === "word") {
         await convertWordExact(queue[0]);
       }
-      setMessage("Done — your PDF has been downloaded.");
+      toast.success("Done — your PDF has been downloaded.");
       setFiles([]);
       setInputKey((value) => value + 1);
       scheduleReset();
     } catch (error) {
-      setMessage(`We couldn't process that file: ${error.message}`);
+      toast.error(`We couldn't process that file: ${error.message}`);
     } finally {
       setBusy(false);
     }
@@ -353,9 +349,8 @@ export default function Converter() {
           </div>
         )}
         <div className="tool-actions">
-          <p>{message}</p>
           <button
-            className="btn btn-blue"
+            className={`btn btn-blue${busy ? " is-loading" : ""}`}
             disabled={
               !files.length || (mode === "merge" && files.length < 2) || busy
             }

@@ -41,6 +41,7 @@ import {
 import { finalizeGeneration } from "../lib/generation";
 import { useAccess } from "../lib/access";
 import { useAutoSave } from "../lib/draftStore";
+import { useToast } from "../lib/toast";
 
 const money = (n) =>
   Number(n || 0).toLocaleString("en-BW", {
@@ -85,15 +86,13 @@ function EditorBody() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const access = useAccess();
+  const toast = useToast();
   const [draft, setDraft] = useState(() => loadEditorDocument());
   const [step, setStep] = useState("edit");
   const [confirmed, setConfirmed] = useState(() =>
     Boolean(loadEditorDocument()?.billed),
   );
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState(
-    "Credits are only used when you confirm the final version — not when you open the editor.",
-  );
 
   const [liveStyle, setLiveStyle] = useState({});
   const [paidAccessReady, setPaidAccessReady] = useState(null);
@@ -234,14 +233,13 @@ function EditorBody() {
 
   const persist = () => {
     saveEditorDocument(draft);
-    setMessage("Edits saved on this device. Autosave is also on.");
   };
 
   const goPreview = () => {
     persist();
     if (!draft.billed) setConfirmed(false);
     setStep("preview");
-    setMessage(
+    toast.info(
       draft.billed
         ? "Review your document. Downloads stay unlocked for this draft."
         : "Review the final preview. Confirming uses one credit (or trial/subscription allowance).",
@@ -276,14 +274,14 @@ function EditorBody() {
 
   const markDocumentComplete = () => {
     clearToolFormDraft(draft.kind);
-    setMessage(
+    toast.success(
       "Download saved. The form is cleared — start a new document when you are ready.",
     );
   };
 
   const confirmPreview = async () => {
     setBusy(true);
-    setMessage("Confirming final version…");
+    toast.info("Confirming final version…", { duration: 3000 });
     try {
       const result = await ensureFinalized();
       const finalizedDraft = {
@@ -295,7 +293,7 @@ function EditorBody() {
       setConfirmed(true);
       setStep("download");
       if (result?.alreadyFinalized) {
-        setMessage(
+        toast.success(
           "Already confirmed for this draft. PDF and Word are ready. Saved in History too.",
         );
       } else if (result?.accessType === "credits" && result?.charged) {
@@ -303,7 +301,7 @@ function EditorBody() {
           typeof result.remainingCredits === "number"
             ? result.remainingCredits
             : null;
-        setMessage(
+        toast.success(
           creditsLeft === 0
             ? "Final version confirmed with your last credit. Download PDF or Word now — renew access after you leave this page."
             : `Final version confirmed. One credit used${
@@ -311,13 +309,13 @@ function EditorBody() {
               }. Find it anytime under Workspace → History.`,
         );
       } else {
-        setMessage(
+        toast.success(
           "Final version confirmed. Download now or find it later in Workspace → History.",
         );
       }
     } catch (error) {
       setConfirmed(false);
-      setMessage(error.message || "Could not confirm this document.");
+      toast.error(error.message || "Could not confirm this document.");
     } finally {
       setBusy(false);
     }
@@ -325,11 +323,12 @@ function EditorBody() {
 
   const downloadPdf = async () => {
     if (!confirmed && !draft.billed) {
-      setMessage("Confirm the final preview before downloading.");
+      toast.error("Confirm the final preview before downloading.");
       setStep("preview");
       return;
     }
     setBusy(true);
+    toast.info("Preparing PDF…", { duration: 3000 });
     try {
       const result = await ensureFinalized();
       setConfirmed(true);
@@ -344,7 +343,7 @@ function EditorBody() {
       );
       markDocumentComplete();
     } catch (error) {
-      setMessage(error.message || "Download blocked until access is confirmed.");
+      toast.error(error.message || "Download blocked until access is confirmed.");
     } finally {
       setBusy(false);
     }
@@ -352,11 +351,12 @@ function EditorBody() {
 
   const downloadWord = async () => {
     if (!confirmed && !draft.billed) {
-      setMessage("Confirm the final preview before downloading.");
+      toast.error("Confirm the final preview before downloading.");
       setStep("preview");
       return;
     }
     setBusy(true);
+    toast.info("Preparing Word file…", { duration: 3000 });
     try {
       const result = await ensureFinalized();
       setConfirmed(true);
@@ -371,7 +371,7 @@ function EditorBody() {
       );
       markDocumentComplete();
     } catch (error) {
-      setMessage(error.message || "Download blocked until access is confirmed.");
+      toast.error(error.message || "Download blocked until access is confirmed.");
     } finally {
       setBusy(false);
     }
@@ -561,7 +561,7 @@ function EditorBody() {
               disabled={busy}
               onClick={() => {
                 if (id === "download" && !confirmed && !draft.billed) {
-                  setMessage("Confirm the preview before opening downloads.");
+                  toast.error("Confirm the preview before opening downloads.");
                   setStep("preview");
                   return;
                 }
@@ -872,12 +872,6 @@ function EditorBody() {
               </button>
             </div>
             <div className="editor-preview-stage compact">{previewNode}</div>
-          </div>
-        )}
-
-        {message && (
-          <div className="form-message" role="status">
-            {message}
           </div>
         )}
       </section>

@@ -4,6 +4,7 @@ import { Landmark, Smartphone, UploadCloud } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useAccess } from "../lib/access";
 import { supabase } from "../lib/supabase";
+import { useToast } from "../lib/toast";
 
 const bank = {
   name: import.meta.env.VITE_BANK_NAME || "FNB Botswana",
@@ -61,10 +62,10 @@ export default function PaymentPanel({
   const [plan, setPlan] = useState(() => resolvePlan(initialPlan));
   const [receipt, setReceipt] = useState(null);
   const [method, setMethod] = useState("bank");
-  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const { user } = useAuth();
   const access = useAccess();
+  const toast = useToast();
 
   useEffect(() => {
     setPlan(resolvePlan(initialPlan));
@@ -84,7 +85,7 @@ export default function PaymentPanel({
   const updatePlan = (next) => {
     if (next === "credits" && !allowCredits) return;
     if (next === "subscription" && !allowSubscription) {
-      setMessage(
+      toast.error(
         "Your monthly access is still active. You can renew after it expires.",
       );
       return;
@@ -94,19 +95,18 @@ export default function PaymentPanel({
   };
 
   const chooseReceipt = (file) => {
-    setMessage("");
     if (!file) return setReceipt(null);
     const allowed = /^(image\/(jpeg|png|webp)|application\/pdf)$/i.test(
       file.type,
     );
     if (!allowed) {
       setReceipt(null);
-      setMessage("Upload a JPG, PNG, WebP or PDF receipt.");
+      toast.error("Upload a JPG, PNG, WebP or PDF receipt.");
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
       setReceipt(null);
-      setMessage("The receipt must be smaller than 8 MB.");
+      toast.error("The receipt must be smaller than 8 MB.");
       return;
     }
     setReceipt(file);
@@ -114,15 +114,14 @@ export default function PaymentPanel({
 
   const submit = async () => {
     if (!user || !supabase) {
-      setMessage("Sign in to submit a receipt.");
+      toast.error("Sign in to submit a receipt.");
       return;
     }
     if (!receipt) {
-      setMessage("Choose a receipt image first.");
+      toast.error("Choose a receipt image first.");
       return;
     }
     setBusy(true);
-    setMessage("");
     const extension = (receipt.name.split(".").pop() || "png").toLowerCase();
     const safeExt = ["png", "jpg", "jpeg", "webp", "pdf"].includes(extension)
       ? extension
@@ -135,7 +134,7 @@ export default function PaymentPanel({
         upsert: false,
       });
     if (upload.error) {
-      setMessage(upload.error.message);
+      toast.error(upload.error.message);
       setBusy(false);
       return;
     }
@@ -147,13 +146,14 @@ export default function PaymentPanel({
     });
 
     if (error) {
-      setMessage(error.message);
+      toast.error(error.message);
       setBusy(false);
       return;
     }
 
     setReceipt(null);
     access.refresh?.();
+    toast.success("Receipt submitted — we will review it and unlock your access.");
     onSubmitted?.(data);
     setBusy(false);
   };
@@ -270,11 +270,6 @@ export default function PaymentPanel({
         >
           {busy ? "Submitting…" : "Submit for review"}
         </button>
-        {message && (
-          <div className="form-message validation-error" role="alert">
-            {message}
-          </div>
-        )}
       </div>
       <aside className="payment-aside">
         <h2>What happens next?</h2>

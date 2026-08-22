@@ -1,4 +1,4 @@
-import { Search, Eye } from "lucide-react";
+import { Loader2, Search, Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ToolShell from "../components/ToolShell";
@@ -19,6 +19,7 @@ import {
 import { saveEditorDocument } from "../lib/documentEditorStore";
 import { supabase } from "../lib/supabase";
 import { checkGenerationAccess } from "../lib/generation";
+import { useToast } from "../lib/toast";
 import { coverLetterTemplates, cvTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 import { isValidWebsite, normalizeWebsite } from "../lib/urls";
@@ -55,6 +56,8 @@ const emptyCover = {
 export default function Career() {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
+  const [generating, setGenerating] = useState(false);
   const [activeDocument, setActiveDocument] = useState("cv");
   const [cvForm, setCvForm] = useState(emptyCv);
   const [coverForm, setCoverForm] = useState(emptyCover);
@@ -73,7 +76,6 @@ export default function Career() {
   const [photoCrop, setPhotoCrop] = useState({ zoom: 1, x: 0, y: 0 });
   const [validation, setValidation] = useState("");
   const [customization, setCustomization] = useState(defaultCustomization);
-  const [studioMessage, setStudioMessage] = useState("");
   const [cvGenerated, setCvGenerated] = useState(false);
   const [coverGenerated, setCoverGenerated] = useState(false);
   const [letterFinal, setLetterFinal] = useState("");
@@ -142,9 +144,7 @@ export default function Career() {
   useEffect(() => {
     if (location.state?.freshDocument) {
       resetCareerWorkspace();
-      setStudioMessage(
-        "Ready for a new document. Pick a template and fill in the form.",
-      );
+      toast.success("Ready for a new document. Pick a template and fill in the form.");
       navigate(location.pathname, { replace: true, state: null });
       setDraftReady(true);
       return;
@@ -208,11 +208,11 @@ export default function Career() {
       if (saved.activeDocument === "cover" || saved.activeDocument === "cv") {
         setActiveDocument(saved.activeDocument);
       }
-      setStudioMessage(
+      toast.info(
         "Your previous draft was restored. Photos are not stored — select again if needed.",
       );
     } catch {
-      setStudioMessage("A previous draft was found but could not be restored.");
+      toast.error("A previous draft was found but could not be restored.");
     } finally {
       setDraftReady(true);
     }
@@ -414,14 +414,20 @@ export default function Career() {
     const invalid = validateCv();
     if (invalid) {
       setValidation(invalid);
+      toast.error(invalid);
       return;
     }
+    setGenerating(true);
+    toast.info("Preparing your CV…");
     try {
       await checkGenerationAccess("cv");
       setCvGenerated(true);
       await openEditor("cv");
+      toast.success("CV ready — opening the document editor.");
     } catch (error) {
-      window.alert(error.message);
+      toast.error(error.message || "Could not open the CV editor.");
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -429,15 +435,21 @@ export default function Career() {
     const invalid = validateCover();
     if (invalid) {
       setValidation(invalid);
+      toast.error(invalid);
       return;
     }
+    setGenerating(true);
+    toast.info("Preparing your cover letter…");
     try {
       await checkGenerationAccess("cover_letter");
       setLetterFinal(letterDraft);
       setCoverGenerated(true);
       await openEditor("cover");
+      toast.success("Cover letter ready — opening the document editor.");
     } catch (error) {
-      window.alert(error.message);
+      toast.error(error.message || "Could not open the cover letter editor.");
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -894,11 +906,21 @@ export default function Career() {
           )}
           <div className="form-downloads">
             <button
-              className="btn btn-blue"
+              className={`btn btn-blue${generating ? " is-loading" : ""}`}
+              disabled={generating}
               onClick={activeDocument === "cv" ? generateCv : generateCover}
             >
-              <GenerateDocIcon />
-              Generate {activeDocument === "cv" ? "CV" : "cover letter"}
+              {generating ? (
+                <>
+                  <Loader2 size={18} className="spin" aria-hidden="true" />
+                  Preparing {activeDocument === "cv" ? "CV" : "cover letter"}…
+                </>
+              ) : (
+                <>
+                  <GenerateDocIcon />
+                  Generate {activeDocument === "cv" ? "CV" : "cover letter"}
+                </>
+              )}
             </button>
           </div>
           <p className="generate-hint">
@@ -906,11 +928,6 @@ export default function Career() {
             you confirm the final document before download. Your form autosaves
             on this device.
           </p>
-          {studioMessage && (
-            <div className="form-message" role="status">
-              {studioMessage}
-            </div>
-          )}
           {autosaveStatus && (
             <p className="autosave-status" role="status">
               {autosaveStatus}

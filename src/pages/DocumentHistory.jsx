@@ -23,6 +23,7 @@ import {
   registerFinalizedDraft,
   renewalDestination,
 } from "../lib/finalizedAccess";
+import { useToast } from "../lib/toast";
 
 function formatWhen(value) {
   if (!value) return "Unknown date";
@@ -38,10 +39,10 @@ function formatWhen(value) {
 function HistoryBody() {
   const navigate = useNavigate();
   const access = useAccess();
+  const toast = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState("");
-  const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState("");
   const [editTitle, setEditTitle] = useState("");
 
@@ -51,7 +52,7 @@ function HistoryBody() {
       const rows = await listDocumentHistory();
       setItems(rows);
     } catch (error) {
-      setMessage(error.message || "Could not load your document history.");
+      toast.error(error.message || "Could not load your document history.");
     } finally {
       setLoading(false);
     }
@@ -63,11 +64,10 @@ function HistoryBody() {
 
   const openInEditor = async (record) => {
     setBusyId(`${record.id}-open`);
-    setMessage("");
     try {
       const allowed = await canDownloadHistoryRecord(access, record);
       if (!allowed) {
-        setMessage(
+        toast.error(
           "This document cannot be opened. Only confirmed, paid documents stay available after credits run out.",
         );
         return;
@@ -82,11 +82,10 @@ function HistoryBody() {
 
   const handleDownloadPdf = async (record) => {
     setBusyId(`${record.id}-pdf`);
-    setMessage("");
     try {
       const allowed = await canDownloadHistoryRecord(access, record);
       if (!allowed) {
-        setMessage(
+        toast.error(
           "Download blocked. Only documents you already confirmed and paid for can be downloaded without credits.",
         );
         return;
@@ -94,9 +93,9 @@ function HistoryBody() {
       downloadDraftPdf(draftFromHistoryRecord(record));
       await markDocumentHistoryDownloaded(record.id);
       await refresh();
-      setMessage(`PDF downloaded for ${record.title}.`);
+      toast.success(`PDF downloaded for ${record.title}.`);
     } catch (error) {
-      setMessage(error.message || "Could not download PDF.");
+      toast.error(error.message || "Could not download PDF.");
     } finally {
       setBusyId("");
     }
@@ -104,11 +103,10 @@ function HistoryBody() {
 
   const handleDownloadWord = async (record) => {
     setBusyId(`${record.id}-word`);
-    setMessage("");
     try {
       const allowed = await canDownloadHistoryRecord(access, record);
       if (!allowed) {
-        setMessage(
+        toast.error(
           "Download blocked. Only documents you already confirmed and paid for can be downloaded without credits.",
         );
         return;
@@ -116,9 +114,9 @@ function HistoryBody() {
       downloadDraftWord(draftFromHistoryRecord(record));
       await markDocumentHistoryDownloaded(record.id);
       await refresh();
-      setMessage(`Word file downloaded for ${record.title}.`);
+      toast.success(`Word file downloaded for ${record.title}.`);
     } catch (error) {
-      setMessage(error.message || "Could not download Word file.");
+      toast.error(error.message || "Could not download Word file.");
     } finally {
       setBusyId("");
     }
@@ -127,7 +125,6 @@ function HistoryBody() {
   const startRename = (record) => {
     setEditingId(record.id);
     setEditTitle(record.title);
-    setMessage("");
   };
 
   const saveRename = async (record) => {
@@ -137,9 +134,9 @@ function HistoryBody() {
       setEditingId("");
       setEditTitle("");
       await refresh();
-      setMessage("Document name updated.");
+      toast.success("Document name updated.");
     } catch (error) {
-      setMessage(error.message || "Could not rename this document.");
+      toast.error(error.message || "Could not rename this document.");
     } finally {
       setBusyId("");
     }
@@ -151,13 +148,12 @@ function HistoryBody() {
     );
     if (!ok) return;
     setBusyId(`${record.id}-delete`);
-    setMessage("");
     try {
       await deleteDocumentHistory(record.id);
       await refresh();
-      setMessage("Document removed from history.");
+      toast.success("Document removed from history.");
     } catch (error) {
-      setMessage(error.message || "Could not delete this document.");
+      toast.error(error.message || "Could not delete this document.");
     } finally {
       setBusyId("");
     }
@@ -301,11 +297,6 @@ function HistoryBody() {
           </ul>
         )}
 
-        {message && (
-          <div className="form-message" role="status">
-            {message}
-          </div>
-        )}
       </section>
     </Layout>
   );

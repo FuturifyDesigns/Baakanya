@@ -14,6 +14,7 @@ import { isRenewalStatus } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 import { getDeviceFingerprint } from "../lib/fingerprint";
 import { supabase } from "../lib/supabase";
+import { useToast } from "../lib/toast";
 
 const modes = [
   {
@@ -69,10 +70,10 @@ const modes = [
 function AccessModeBody() {
   const { user } = useAuth();
   const access = useAccess();
+  const toast = useToast();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [busy, setBusy] = useState("");
-  const [message, setMessage] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [forceModes, setForceModes] = useState(false);
   const [hovered, setHovered] = useState("");
@@ -184,7 +185,6 @@ function AccessModeBody() {
   const choose = async (mode) => {
     if (!supabase || !user?.email || underReview) return;
     setBusy(mode);
-    setMessage("");
     try {
       let reservationToken = null;
       if (mode === "trial") {
@@ -216,6 +216,7 @@ function AccessModeBody() {
       access.refresh();
 
       if (mode === "trial" || data?.status === "trial_active") {
+        toast.success("Free trial started — opening your workspace.");
         navigate("/workspace", { replace: true });
         return;
       }
@@ -227,7 +228,7 @@ function AccessModeBody() {
         { replace: true },
       );
     } catch (error) {
-      setMessage(error.message || "Could not save your access choice.");
+      toast.error(error.message || "Could not save your access choice.");
     } finally {
       setBusy("");
     }
@@ -235,12 +236,11 @@ function AccessModeBody() {
 
   const backToModes = async () => {
     if (underReview) {
-      setMessage(
+      toast.error(
         "Your receipt is under review. You cannot change access mode until an admin verifies it.",
       );
       return;
     }
-    setMessage("");
     setBusy("reset");
     try {
       if (supabase && (access.status === "awaiting_payment" || step === "pay")) {
@@ -251,7 +251,7 @@ function AccessModeBody() {
       setParams({}, { replace: true });
       access.refresh();
     } catch (error) {
-      setMessage(error.message || "Could not return to mode selection.");
+      toast.error(error.message || "Could not return to mode selection.");
     } finally {
       setBusy("");
     }
@@ -432,7 +432,7 @@ function AccessModeBody() {
                   next === "subscription" &&
                   access.status === "subscription_active"
                 ) {
-                  setMessage(
+                  toast.error(
                     "Your monthly access is still active. Renew after it expires.",
                   );
                   return;
@@ -451,11 +451,6 @@ function AccessModeBody() {
           </div>
         )}
 
-        {message && (
-          <div className="form-message validation-error" role="alert">
-            {message}
-          </div>
-        )}
         {!underReview && !showPay && (
           <p className="access-mode-footnote">
             <Clock3 size={16} />{" "}
@@ -464,7 +459,7 @@ function AccessModeBody() {
               : "Workspace stays locked until payment is approved."}
           </p>
         )}
-        {!underReview && showPay && !message && (
+        {!underReview && showPay && (
           <p className="access-mode-footnote">
             <Clock3 size={16} /> After you submit, plan options lock until an
             admin verifies your receipt.
