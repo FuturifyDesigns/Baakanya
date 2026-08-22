@@ -1,33 +1,28 @@
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import mammoth from "mammoth";
+import { renderAsync } from "docx-preview";
 import { yieldToMain } from "./processingLock";
 
 const PAGE_WIDTH_PX = 794;
 const PAGE_HEIGHT_PX = 1123;
-const PAGE_PADDING = { top: 48, right: 56, bottom: 48, left: 56 };
-const BLOCK_TAGS = new Set([
-  "P",
-  "H1",
-  "H2",
-  "H3",
-  "H4",
-  "H5",
-  "H6",
-  "TABLE",
-  "UL",
-  "OL",
-  "BLOCKQUOTE",
-  "IMG",
-  "HR",
-  "PRE",
-  "FIGURE",
-  "DIV",
-]);
+const CAPTURE_SCALE = 1.5;
+const JPEG_QUALITY = 0.95;
 
-const CAPTURE_SCALE = 1.15;
+/** Only strip preview chrome (shadows/margins) — never override Word typography. */
+const CAPTURE_CHROME_FIX = `
+  .docx-wrapper > section.docx {
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  .docx-wrapper {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+`;
 
 const MAMMOTH_STYLE_MAP = [
+  "p[style-name='Heading 1'] => h1:fresh",
   "p[style-name='Heading 2'] => h2:fresh",
   "p[style-name='Heading 3'] => h3:fresh",
   "p[style-name='Heading 4'] => h4:fresh",
@@ -38,52 +33,6 @@ const MAMMOTH_STYLE_MAP = [
   "p[style-name='Intense Quote'] => blockquote.intense:fresh",
   "p[style-name='List Paragraph'] => p.list-paragraph:fresh",
 ];
-
-const CAPTURE_STYLES = `
-  .word-pdf-page {
-    box-sizing: border-box;
-    color: #111 !important;
-    font: 12pt/1.5 "Times New Roman", Times, serif;
-    word-wrap: break-word;
-    overflow-wrap: anywhere;
-    background: #fff !important;
-  }
-  .word-pdf-page * {
-    box-sizing: border-box;
-    color: inherit;
-  }
-  .word-pdf-page img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-  }
-  .word-pdf-page table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 10px 0;
-    table-layout: fixed;
-  }
-  .word-pdf-page td, .word-pdf-page th {
-    border: 1px solid #777;
-    padding: 4px 6px;
-    vertical-align: top;
-    word-break: break-word;
-  }
-  .word-pdf-page p { margin: 0 0 10px; }
-  .word-pdf-page h1 { font-size: 20pt; margin: 18px 0 10px; font-weight: bold; }
-  .word-pdf-page h2 { font-size: 16pt; margin: 16px 0 8px; font-weight: bold; }
-  .word-pdf-page h3 { font-size: 14pt; margin: 14px 0 8px; font-weight: bold; }
-  .word-pdf-page h4 { font-size: 12pt; margin: 12px 0 6px; font-weight: bold; }
-  .word-pdf-page ul, .word-pdf-page ol { margin: 0 0 10px 24px; padding: 0; }
-  .word-pdf-page li { margin-bottom: 4px; }
-  .word-pdf-page blockquote {
-    margin: 10px 0 10px 16px;
-    padding-left: 12px;
-    border-left: 3px solid #ccc;
-  }
-  .word-pdf-page strong, .word-pdf-page b { font-weight: bold; }
-  .word-pdf-page em, .word-pdf-page i { font-style: italic; }
-`;
 
 const waitForImages = (root) =>
   Promise.all(
@@ -104,126 +53,29 @@ const waitForLayout = () =>
     requestAnimationFrame(() => requestAnimationFrame(resolve));
   });
 
-const waitForFonts = () => document.fonts?.ready ?? Promise.resolve();
+const waitForFonts = (doc = document) => doc.fonts?.ready ?? Promise.resolve();
 
-const pageShellStyle = () =>
-  [
+const createHiddenMount = () => {
+  const mount = document.createElement("div");
+  mount.setAttribute("aria-hidden", "true");
+  mount.tabIndex = -1;
+  mount.style.cssText = [
+    "position:fixed",
+    "left:-10000px",
+    "top:0",
     `width:${PAGE_WIDTH_PX}px`,
-    `min-height:${PAGE_HEIGHT_PX}px`,
-    `padding:${PAGE_PADDING.top}px ${PAGE_PADDING.right}px ${PAGE_PADDING.bottom}px ${PAGE_PADDING.left}px`,
-    "background:#fff",
-    "box-sizing:border-box",
-    "overflow:visible",
+    "opacity:0",
+    "visibility:hidden",
+    "pointer-events:none",
+    "overflow:hidden",
+    "z-index:-1",
+    "contain:strict",
   ].join(";");
-
-const createPageShell = () => {
-  const page = document.createElement("div");
-  page.className = "word-pdf-page";
-  page.style.cssText = pageShellStyle();
-  return page;
-};
-
-const cloneBlock = (node) => {
-  if (node.nodeType === Node.TEXT_NODE) {
-    const text = node.textContent?.trim();
-    if (!text) return null;
-    const p = document.createElement("p");
-    p.textContent = text;
-    return p;
-  }
-  if (node.nodeType !== Node.ELEMENT_NODE) return null;
-  return node.cloneNode(true);
-};
-
-const flattenBlockNodes = (root) => {
-  const blocks = [];
-  const walk = (node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const block = cloneBlock(node);
-      if (block) blocks.push(block);
-      return;
-    }
-    if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-    const tag = node.tagName;
-    if (tag === "TABLE" || tag === "UL" || tag === "OL" || tag === "IMG" || tag === "HR") {
-      const block = cloneBlock(node);
-      if (block) blocks.push(block);
-      return;
-    }
-    if (["P", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE", "FIGURE"].includes(tag)) {
-      const block = cloneBlock(node);
-      if (block) blocks.push(block);
-      return;
-    }
-    if (tag === "DIV") {
-      const elementChildren = [...node.childNodes].filter(
-        (child) =>
-          child.nodeType === Node.ELEMENT_NODE ||
-          (child.nodeType === Node.TEXT_NODE && child.textContent.trim()),
-      );
-      if (!elementChildren.length) return;
-      const onlyBlocks = elementChildren.every(
-        (child) =>
-          child.nodeType === Node.ELEMENT_NODE &&
-          BLOCK_TAGS.has(child.tagName) &&
-          child.tagName !== "DIV",
-      );
-      if (onlyBlocks) {
-        elementChildren.forEach(walk);
-        return;
-      }
-      const block = cloneBlock(node);
-      if (block) blocks.push(block);
-      return;
-    }
-    [...node.childNodes].forEach(walk);
+  document.body.appendChild(mount);
+  return {
+    mount,
+    cleanup: () => mount.remove(),
   };
-
-  [...root.childNodes].forEach(walk);
-  return blocks;
-};
-
-const pageOverflows = (page) => page.scrollHeight > PAGE_HEIGHT_PX + 4;
-
-const buildPages = (blocks) => {
-  const staging = document.createElement("div");
-  staging.style.cssText =
-    "position:absolute;left:0;top:0;width:794px;visibility:hidden;pointer-events:none;";
-  document.body.appendChild(staging);
-
-  const pages = [];
-  let currentPage = createPageShell();
-  staging.appendChild(currentPage);
-
-  const pushPage = () => {
-    if (currentPage.childNodes.length) pages.push(currentPage);
-    currentPage.remove();
-    currentPage = createPageShell();
-    staging.appendChild(currentPage);
-  };
-
-  for (const block of blocks) {
-    currentPage.appendChild(block);
-    if (pageOverflows(currentPage)) {
-      const overflow = currentPage.lastChild;
-      if (overflow && currentPage.childNodes.length > 1) {
-        overflow.remove();
-        pushPage();
-        currentPage.appendChild(overflow);
-        if (pageOverflows(currentPage) && currentPage.childNodes.length === 1) {
-          pushPage();
-        }
-      } else {
-        pushPage();
-      }
-    }
-  }
-
-  currentPage.remove();
-  if (currentPage.childNodes.length) pages.push(currentPage);
-  staging.remove();
-  return pages.length ? pages : [createPageShell()];
 };
 
 const canvasHasInk = (canvas) => {
@@ -242,46 +94,27 @@ const canvasHasInk = (canvas) => {
   return false;
 };
 
-const capturePageCanvas = async (page, styleEl) => {
-  const mount = document.createElement("div");
-  mount.style.cssText = [
-    "position:absolute",
-    "left:0",
-    "top:0",
-    `width:${PAGE_WIDTH_PX}px`,
-    "background:#fff",
-    "z-index:2147483647",
-  ].join(";");
-  if (styleEl) mount.appendChild(styleEl.cloneNode(true));
-  mount.appendChild(page);
-  document.body.appendChild(mount);
+const captureElementCanvas = async (element) => {
+  await waitForLayout();
+  await waitForImages(element);
 
-  try {
-    await waitForLayout();
-    await waitForImages(page);
-    return await html2canvas(page, {
-      scale: CAPTURE_SCALE,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-      imageTimeout: 20000,
-      width: PAGE_WIDTH_PX,
-      height: Math.max(page.scrollHeight, PAGE_HEIGHT_PX),
-      windowWidth: PAGE_WIDTH_PX,
-      windowHeight: Math.max(page.scrollHeight, PAGE_HEIGHT_PX),
-      scrollX: 0,
-      scrollY: 0,
-      onclone: (_doc, element) => {
-        element.style.opacity = "1";
-        element.style.visibility = "visible";
-        element.style.color = "#111";
-        element.style.background = "#fff";
-      },
-    });
-  } finally {
-    mount.remove();
-  }
+  const width = Math.max(element.scrollWidth, element.offsetWidth, PAGE_WIDTH_PX);
+  const height = Math.max(element.scrollHeight, element.offsetHeight, PAGE_HEIGHT_PX);
+
+  return html2canvas(element, {
+    scale: CAPTURE_SCALE,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: "#ffffff",
+    logging: false,
+    imageTimeout: 20000,
+    width,
+    height,
+    windowWidth: width,
+    windowHeight: height,
+    scrollX: 0,
+    scrollY: 0,
+  });
 };
 
 const addCanvasToPdf = (pdf, canvas, isFirstPage) => {
@@ -293,7 +126,7 @@ const addCanvasToPdf = (pdf, canvas, isFirstPage) => {
   if (imgHeight <= pageHeight + 1) {
     if (!isFirstPage) pdf.addPage();
     pdf.addImage(
-      canvas.toDataURL("image/jpeg", 0.92),
+      canvas.toDataURL("image/jpeg", JPEG_QUALITY),
       "JPEG",
       0,
       0,
@@ -327,7 +160,7 @@ const addCanvasToPdf = (pdf, canvas, isFirstPage) => {
     );
     const sliceHeightPt = (sliceCanvas.height * imgWidth) / canvas.width;
     pdf.addImage(
-      sliceCanvas.toDataURL("image/jpeg", 0.92),
+      sliceCanvas.toDataURL("image/jpeg", JPEG_QUALITY),
       "JPEG",
       0,
       0,
@@ -395,7 +228,82 @@ const renderPlainTextPdf = async (file, text, onProgress) => {
   pdf.save(file.name.replace(/\.docx$/i, "") + ".pdf");
 };
 
-const convertDocx = async (bytes) => {
+const collectDocxPreviewPages = (bodyContainer) => {
+  const sections = [...bodyContainer.querySelectorAll("section.docx")];
+  if (sections.length) return sections;
+
+  const wrapper = bodyContainer.querySelector(".docx-wrapper");
+  if (wrapper) return [wrapper];
+
+  return bodyContainer.childElementCount ? [bodyContainer] : [];
+};
+
+const renderWithDocxPreview = async (bytes, onProgress) => {
+  const { mount, cleanup } = createHiddenMount();
+
+  try {
+    const styleContainer = document.createElement("div");
+    const bodyContainer = document.createElement("div");
+    const chromeFix = document.createElement("style");
+    chromeFix.textContent = CAPTURE_CHROME_FIX;
+
+    mount.appendChild(styleContainer);
+    mount.appendChild(chromeFix);
+    mount.appendChild(bodyContainer);
+
+    onProgress?.({ label: "Rendering Word layout…", phase: "layout" });
+    await yieldToMain();
+
+    await renderAsync(bytes, bodyContainer, styleContainer, {
+      className: "docx",
+      inWrapper: true,
+      breakPages: true,
+      ignoreFonts: false,
+      ignoreWidth: false,
+      ignoreHeight: false,
+      useBase64URL: true,
+      renderHeaders: true,
+      renderFooters: true,
+      renderFootnotes: true,
+      renderEndnotes: true,
+    });
+
+    await waitForFonts();
+    await waitForLayout();
+    await waitForImages(bodyContainer);
+    await yieldToMain();
+
+    const pages = collectDocxPreviewPages(bodyContainer);
+    if (!pages.length) return null;
+
+    const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
+    let capturedPages = 0;
+
+    for (let index = 0; index < pages.length; index++) {
+      onProgress?.({
+        label: `Rendering page ${index + 1} of ${pages.length}`,
+        phase: "render",
+        current: index + 1,
+        total: pages.length,
+      });
+      await yieldToMain();
+
+      const canvas = await captureElementCanvas(pages[index]);
+      await yieldToMain();
+
+      if (!canvasHasInk(canvas)) continue;
+      addCanvasToPdf(pdf, canvas, capturedPages === 0);
+      capturedPages += 1;
+      await yieldToMain();
+    }
+
+    return capturedPages > 0 ? pdf : null;
+  } finally {
+    cleanup();
+  }
+};
+
+const renderWithMammothFallback = async (bytes, plainText, onProgress) => {
   const options = {
     includeDefaultStyleMap: true,
     includeEmbeddedStyleMap: true,
@@ -406,11 +314,43 @@ const convertDocx = async (bytes) => {
       })),
     ),
   };
-  const [htmlResult, textResult] = await Promise.all([
-    mammoth.convertToHtml({ arrayBuffer: bytes.slice(0) }, options),
-    mammoth.extractRawText({ arrayBuffer: bytes.slice(0) }),
-  ]);
-  return { htmlResult, textResult };
+
+  const htmlResult = await mammoth.convertToHtml({ arrayBuffer: bytes.slice(0) }, options);
+  const html = (htmlResult.value || "").trim();
+  if (!html) return null;
+
+  const { mount, cleanup } = createHiddenMount();
+
+  try {
+    const styleContainer = document.createElement("div");
+    const bodyContainer = document.createElement("div");
+    bodyContainer.className = "docx-fallback-capture";
+    bodyContainer.style.cssText = `width:${PAGE_WIDTH_PX}px;background:#fff;`;
+    bodyContainer.innerHTML = html;
+
+    mount.appendChild(styleContainer);
+    mount.appendChild(bodyContainer);
+
+    await waitForFonts();
+    await waitForLayout();
+    await waitForImages(bodyContainer);
+    await yieldToMain();
+
+    onProgress?.({ label: "Rendering document…", phase: "render", current: 1, total: 1 });
+    const canvas = await captureElementCanvas(bodyContainer);
+    if (!canvasHasInk(canvas)) return null;
+
+    const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
+    addCanvasToPdf(pdf, canvas, true);
+    return pdf;
+  } finally {
+    cleanup();
+  }
+};
+
+const extractPlainText = async (bytes) => {
+  const textResult = await mammoth.extractRawText({ arrayBuffer: bytes.slice(0) });
+  return (textResult.value || "").trim();
 };
 
 export async function convertDocxToPdf(file, { onProgress } = {}) {
@@ -420,60 +360,37 @@ export async function convertDocxToPdf(file, { onProgress } = {}) {
   await yieldToMain();
 
   const bytes = await file.arrayBuffer();
-  const { htmlResult, textResult } = await convertDocx(bytes);
-  const plainText = (textResult.value || "").trim();
-  const htmlText = (htmlResult.value || "").replace(/<[^>]+>/g, "").trim();
 
-  if (!plainText && !htmlText) {
+  let pdf = null;
+  try {
+    pdf = await renderWithDocxPreview(bytes, report);
+  } catch {
+    pdf = null;
+  }
+
+  if (!pdf) {
+    report({ label: "Trying alternate renderer…", phase: "layout" });
+    await yieldToMain();
+    const plainText = await extractPlainText(bytes);
+    try {
+      pdf = await renderWithMammothFallback(bytes, plainText, report);
+    } catch {
+      pdf = null;
+    }
+
+    if (!pdf && plainText) {
+      await renderPlainTextPdf(file, plainText, report);
+      return;
+    }
+  }
+
+  if (!pdf) {
     throw new Error(
-      "This Word file has no readable content. Try saving it as .docx and upload again.",
+      "This Word file could not be converted. Try saving it as .docx and upload again.",
     );
   }
 
-  report({ label: "Preparing layout…", phase: "layout" });
+  report({ label: "Saving PDF…", phase: "save" });
   await yieldToMain();
-
-  const parser = document.createElement("div");
-  parser.innerHTML = htmlResult.value || `<p>${plainText}</p>`;
-  const blocks = flattenBlockNodes(parser);
-  if (!blocks.length && plainText) {
-    const p = document.createElement("p");
-    p.textContent = plainText;
-    blocks.push(p);
-  }
-
-  const styleEl = document.createElement("style");
-  styleEl.textContent = CAPTURE_STYLES;
-  const pages = buildPages(blocks);
-  const pdf = new jsPDF({ unit: "pt", format: "a4", compress: true });
-  let capturedPages = 0;
-  const totalPages = pages.length;
-
-  for (let index = 0; index < totalPages; index++) {
-    report({
-      label: `Rendering page ${index + 1} of ${totalPages}`,
-      phase: "render",
-      current: index + 1,
-      total: totalPages,
-    });
-    await yieldToMain();
-
-    const page = pages[index].cloneNode(true);
-    const canvas = await capturePageCanvas(page, styleEl);
-    await yieldToMain();
-
-    if (!canvasHasInk(canvas)) continue;
-    addCanvasToPdf(pdf, canvas, capturedPages === 0);
-    capturedPages += 1;
-    await yieldToMain();
-  }
-
-  if (capturedPages > 0) {
-    report({ label: "Saving PDF…", phase: "save" });
-    await yieldToMain();
-    pdf.save(file.name.replace(/\.docx$/i, "") + ".pdf");
-    return;
-  }
-
-  await renderPlainTextPdf(file, plainText || htmlText, report);
+  pdf.save(file.name.replace(/\.docx$/i, "") + ".pdf");
 }

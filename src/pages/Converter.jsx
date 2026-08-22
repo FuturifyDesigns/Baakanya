@@ -231,7 +231,7 @@ export default function Converter() {
         <div className="processing-card">
           <Loader2 className="spin" size={28} aria-hidden="true" />
           <b>{progress?.label || "Processing your files…"}</b>
-          <small>Keep this tab open. The page stays responsive while we work.</small>
+          <small>This may take a moment for larger files.</small>
           {progressPercent != null && (
             <div className="processing-bar" aria-hidden="true">
               <span style={{ width: `${progressPercent}%` }} />
