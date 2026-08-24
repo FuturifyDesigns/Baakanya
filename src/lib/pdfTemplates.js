@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { fontPdf, lineSpacingValue } from "./customization";
+import { fontPdf, lineSpacingValue } from "./customization.js";
 
 const rgb = (hex) => {
   const value = hex.replace("#", "");
@@ -178,7 +178,7 @@ const pageFillScale = (startY, estimatedHeight, pageBottom = PAGE_BOTTOM) => {
   if (available <= 0 || estimatedHeight <= 0) return 1;
   const ratio = estimatedHeight / available;
   if (ratio >= 0.82) return 1;
-  return Math.min(1.55, available / estimatedHeight);
+  return Math.min(1.8, available / estimatedHeight);
 };
 
 const writeSidebarSection = (pdf, title, body, options) => {
@@ -210,6 +210,7 @@ const writeSection = (pdf, title, body, options) => {
   const font = pdfFont(options.font);
   const lineHeight = options.lineHeight || bodyLineHeight(options);
   const sectionGap = options.sectionGap ?? 3;
+  const typeScale = options.typeScale || 1;
   if (!body) return y;
   if (y > 270) {
     pdf.addPage();
@@ -217,7 +218,7 @@ const writeSection = (pdf, title, body, options) => {
   }
   setColour(pdf, accent);
   pdf.setFont(font, "bold");
-  pdf.setFontSize(8.5);
+  pdf.setFontSize(8.5 * typeScale);
   pdf.text(String(title).toUpperCase(), x, y);
   y += 2.2;
   setColour(pdf, accent, true);
@@ -226,7 +227,7 @@ const writeSection = (pdf, title, body, options) => {
 
   pdf.setTextColor(38, 50, 57);
   pdf.setFont(font, "normal");
-  pdf.setFontSize(9.2);
+  pdf.setFontSize(9.2 * typeScale);
 
   const blocks = String(body)
     .split(/\n\s*\n/)
@@ -258,11 +259,11 @@ const writeSection = (pdf, title, body, options) => {
         .filter(Boolean);
       if (!lines.length) continue;
       pdf.setFont(font, "bold");
-      pdf.setFontSize(9.4);
+      pdf.setFontSize(9.4 * typeScale);
       const head = lines[0].replace(/^[-•*]\s*/, "");
       writeLines([head], false);
       pdf.setFont(font, "normal");
-      pdf.setFontSize(9);
+      pdf.setFontSize(9 * typeScale);
       writeLines(
         lines.slice(1).map((line) => line.replace(/^[-•*]\s*/, "")),
         true,
@@ -276,7 +277,7 @@ const writeSection = (pdf, title, body, options) => {
   return y + sectionGap;
 };
 
-export const renderCvPdf = ({ form, template, photoData, skills }) => {
+export const renderCvPdf = ({ form, template, photoData, skills, save = true }) => {
   const pdf = new jsPDF();
   const layout = template.layout || "minimal";
   const sidebar = layout === "sidebar";
@@ -557,8 +558,9 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     );
   }
   const fillScale = pageFillScale(y, estimatedHeight);
-  const filledLineHeight = lineHeight * fillScale;
-  const sectionGap = 3 * fillScale;
+  const typeScale = Math.min(1.22, 1 + (fillScale - 1) * 0.45);
+  const filledLineHeight = lineHeight * Math.min(fillScale, 1.65);
+  const sectionGap = 4 * fillScale;
   const sectionOptions = {
     x: contentX,
     width: contentWidth,
@@ -568,6 +570,7 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
     lineSpacing: template.lineSpacing,
     lineHeight: filledLineHeight,
     sectionGap,
+    typeScale,
   };
 
   for (const section of mainSections) {
@@ -577,9 +580,12 @@ export const renderCvPdf = ({ form, template, photoData, skills }) => {
       y,
     });
   }
-  pdf.save(
-    `${safeName(form.name, "baakanya")}-${safeName(template.name, "cv")}-cv.pdf`,
-  );
+  if (save) {
+    pdf.save(
+      `${safeName(form.name, "baakanya")}-${safeName(template.name, "cv")}-cv.pdf`,
+    );
+  }
+  return pdf;
 };
 
 export const renderCoverLetterPdf = ({ form, template, photoData, letter }) => {
@@ -853,10 +859,10 @@ export const renderBusinessPdf = ({
   pdf.setFontSize(logoData ? 15 : 22);
   pdf.setTextColor(...(lightHeader ? [255, 255, 255] : rgb(primary)));
   pdf.text(businessLines, brandX, showBand ? 18 : 21);
-  let brandEndY =
+  const brandEndY =
     (showBand ? 18 : 21) + businessLines.length * (logoData ? 5.5 : 7);
   if (contactLines.length) {
-    brandEndY = writeBusinessContact(
+    writeBusinessContact(
       pdf,
       form,
       brandX,

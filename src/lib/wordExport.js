@@ -1,4 +1,4 @@
-import { fontCss, lineSpacingValue } from "./customization";
+import { fontCss, lineSpacingValue } from "./customization.js";
 
 const escapeHtml = (value = "") =>
   String(value)
@@ -30,6 +30,38 @@ const photoTag = (photoData, shape = "square") => {
 const logoTag = (logoData) => {
   if (!logoData) return "";
   return `<img src="${logoData}" alt="" width="72" height="52" style="display:block;width:72px;height:52px;object-fit:contain;margin:0 0 8px;" />`;
+};
+
+const wrapBase64 = (value) => value.match(/.{1,76}/g)?.join("\r\n") || "";
+
+const utf8Base64 = (value) => {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+};
+
+const embedDataImages = (html) => {
+  const images = [];
+  const body = html.replace(
+    /src="data:(image\/(?:png|jpeg|jpg|gif|webp));base64,([^"]+)"/gi,
+    (_, rawType, rawData) => {
+      const contentType = rawType.toLowerCase().replace("image/jpg", "image/jpeg");
+      const extension = contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1];
+      const id = `baakanya-image-${images.length + 1}`;
+      images.push({
+        contentType,
+        data: rawData.replace(/\s/g, ""),
+        id,
+        location: `${id}.${extension}`,
+      });
+      return `src="cid:${id}"`;
+    },
+  );
+  return { body, images };
 };
 
 const sectionHeading = (title, accent) =>
@@ -79,9 +111,40 @@ const docStyles = (options = {}) => {
   `;
 };
 
+export const buildEmbeddedWordBlob = (title, body, options = {}) => {
+  const { body: embeddedBody, images } = embedDataImages(body);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${docStyles(options)}</style></head><body>${embeddedBody}</body></html>`;
+  const boundary = `----=_Baakanya_${crypto.randomUUID()}`;
+  const parts = [
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/related; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/html; charset="utf-8"',
+    "Content-Transfer-Encoding: base64",
+    "Content-Location: baakanya-document.html",
+    "",
+    wrapBase64(utf8Base64(html)),
+  ];
+  for (const image of images) {
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: ${image.contentType}`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Location: ${image.location}`,
+      `Content-ID: <${image.id}>`,
+      "",
+      wrapBase64(image.data),
+    );
+  }
+  parts.push(`--${boundary}--`, "");
+  return new Blob([parts.join("\r\n")], {
+    type: "application/msword",
+  });
+};
+
 const saveWord = (name, title, body, options = {}) => {
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${docStyles(options)}</style></head><body>${body}</body></html>`;
-  const blob = new Blob(["\ufeff", html], { type: "application/msword" });
+  const blob = buildEmbeddedWordBlob(title, body, options);
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
