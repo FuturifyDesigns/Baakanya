@@ -22,20 +22,30 @@ const cleanText = (value: string) =>
 const boilerplate =
   /\b(skip to|main content|cookie|privacy policy|terms (?:of|and)|download acrobat|sign in|log in|menu|navigation|all rights reserved|javascript|enable cookies|home\s*[|>]|contact us)\b/i;
 
+const englishSignals = new Set(
+  "a an and are as at be because by company customers delivers for from has have in into is its of on or our provides services that the their these this through to with work business customer people products solutions technology community financial banking healthcare energy retail growth quality innovation support operates leading focus purpose mission values".split(
+    " ",
+  ),
+);
+
+const foreignSignals = new Set(
+  "le la les des du une un et pour avec est sont dans notre votre vous nous qui que sur aux leurs entreprise société el los las una uno y para con del esta este son en nuestro nuestra empresa o os uma um e com da de do dos das não em sua seu società il lo gli della delle und der die das ein eine mit für ist sind auf unser unsere unternehmen".split(
+    " ",
+  ),
+);
+
 const likelyEnglish = (value: string) => {
   const words = value.toLowerCase().match(/[a-zà-ÿ']+/g) || [];
-  if (!words.length) return false;
-  const english = words.filter((word) =>
-    /^(the|and|with|for|from|that|this|its|our|your|company|business|provides|services|customers|people|through|across|about|into|their|where|which)$/.test(
-      word,
-    )
-  ).length;
-  const french = words.filter((word) =>
-    /^(le|la|les|des|du|une|un|et|pour|avec|est|sont|dans|notre|votre|vous|nous|qui|que|sur|aux|entreprise|société|leurs|plus)$/.test(
-      word,
-    )
-  ).length;
-  return french < 2 || english >= french;
+  if (words.length < 8) return false;
+  const english = words.filter((word) => englishSignals.has(word)).length;
+  const foreign = words.filter((word) => foreignSignals.has(word)).length;
+  if (foreign >= 2 && foreign >= english) return false;
+  return english >= 3;
+};
+
+const pageDeclaresEnglish = (html: string) => {
+  const language = html.match(/<html[^>]+lang=["']([^"']+)["']/i)?.[1];
+  return !language || /^en(?:-|$)/i.test(language);
 };
 
 const sentenceCandidates = (value: string) =>
@@ -52,6 +62,7 @@ const sentenceCandidates = (value: string) =>
     );
 
 const extractPageEvidence = (html: string) => {
+  if (!pageDeclaresEnglish(html)) return [];
   const evidence: string[] = [];
   const metaPatterns = [
     /<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)["']/gi,
@@ -98,6 +109,35 @@ const sameSiteResearchLinks = (html: string, base: URL) => {
   return [...new Map(links.map((url) => [url.href, url])).values()].slice(0, 2);
 };
 
+const decodeSearchUrl = (raw: string) => {
+  try {
+    const candidate = new URL(raw, "https://duckduckgo.com");
+    const redirected = candidate.searchParams.get("uddg");
+    return safeWebsite(redirected || candidate.href);
+  } catch {
+    return null;
+  }
+};
+
+const likelyCompanyWebsite = (url: URL, company: string) => {
+  if (
+    /\b(duckduckgo|bing|google|facebook|linkedin|instagram|wikipedia|indeed|glassdoor)\b/i.test(
+      url.hostname,
+    )
+  ) {
+    return false;
+  }
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  const nameWords = company.toLowerCase().match(/[a-z0-9]{2,}/g) || [];
+  const acronym = nameWords.length > 1
+    ? nameWords.map((word) => word[0]).join("")
+    : "";
+  const companyTokens = [...nameWords, acronym].filter(
+    (token) => token.length >= 3,
+  );
+  return companyTokens.some((token) => host.includes(token));
+};
+
 const tokenSet = (value: string) =>
   new Set(
     value
@@ -118,6 +158,22 @@ const sentenceScore = (sentence: string, company: string, role: string) => {
   return score;
 };
 
+const researchThemes = (sentences: string[]) => {
+  const text = sentences.join(" ").toLowerCase();
+  const themes = [
+    [/\b(customer|client|service|experience)\w*/i, "customer service and practical outcomes"],
+    [/\b(technology|digital|innovation|software|platform)\w*/i, "technology and innovation"],
+    [/\b(community|social|local|people|inclusion)\w*/i, "community impact and inclusion"],
+    [/\b(sustainab|environment|renewable|climate)\w*/i, "sustainable growth"],
+    [/\b(quality|reliable|excellence|standard)\w*/i, "quality and reliable delivery"],
+    [/\b(growth|expand|market|development)\w*/i, "growth and continuous development"],
+  ] as const;
+  return themes
+    .filter(([pattern]) => pattern.test(text))
+    .map(([, label]) => label)
+    .slice(0, 2);
+};
+
 const buildOverview = (evidence: string[], company: string, role: string) => {
   const unique = [...new Map(evidence.map((sentence) => [sentence.toLowerCase(), sentence])).values()];
   const ranked = unique.sort(
@@ -135,23 +191,29 @@ const buildOverview = (evidence: string[], company: string, role: string) => {
       selected.push(sentence);
       selectedTokens.push(tokens);
     }
-    if (selected.length === 2) break;
+    if (selected.length === 3) break;
   }
   if (!selected.length) return "";
   const combined = selected
     .map((sentence) => (/^[A-Z]/.test(sentence) ? sentence : `${company} ${sentence}`))
     .join(" ");
-  const factual = (combined.length > 620
-    ? `${combined.slice(0, 620).replace(/\s+\S*$/, "")}.`
+  const factual = (combined.length > 900
+    ? `${combined.slice(0, 900).replace(/\s+\S*$/, "")}.`
     : combined
   ).replace(/[,;:]$/, ".");
   const safeRole = role.replace(/[\r\n.!?]+/g, " ").trim().slice(0, 80);
+  const themes = researchThemes(selected);
+  const themeText = themes.length
+    ? themes.join(" and ")
+    : "purposeful work and dependable service";
   const roleFit = safeRole
     ? `That focus appeals to me because the ${safeRole} role calls for organised delivery, close collaboration and dependable outcomes.`
     : "";
+  const motivation = `${company}'s emphasis on ${themeText} makes the opportunity especially meaningful to me. I am motivated to apply because I would be contributing to priorities that create visible value for the organisation and the people it serves.`;
   return {
     overview: `${factual}${/[.!?]$/.test(factual) ? "" : "."}`,
     roleFit,
+    motivation,
   };
 };
 
@@ -263,6 +325,7 @@ Deno.serve(async (request) => {
         const response = await fetch(target, {
           headers: { "User-Agent": "Baakanya company research" },
           redirect: "follow",
+          signal: AbortSignal.timeout(6500),
         });
         if (response.ok) {
           sources.push(response.url);
@@ -274,6 +337,7 @@ Deno.serve(async (request) => {
               fetch(url, {
                 headers: { "User-Agent": "Baakanya company research" },
                 redirect: "follow",
+                signal: AbortSignal.timeout(6500),
               }),
             ),
           );
@@ -296,6 +360,7 @@ Deno.serve(async (request) => {
         `https://html.duckduckgo.com/html/?q=${query}&kl=us-en`,
         {
           headers: { "User-Agent": "Mozilla/5.0 (compatible; Baakanya/1.0)" },
+          signal: AbortSignal.timeout(6500),
         },
       );
       if (search.ok) {
@@ -308,35 +373,84 @@ Deno.serve(async (request) => {
           .filter(Boolean);
         evidence.push(...snippets.flatMap(sentenceCandidates));
         const links = [...html.matchAll(/result__a[^>]*href="([^"]+)"/gi)]
-          .slice(0, 4)
-          .map((match) => match[1]);
-        sources.push(...links);
+          .slice(0, 8)
+          .map((match) => decodeSearchUrl(match[1]))
+          .filter((url): url is URL => Boolean(url));
+        sources.push(...links.map((url) => url.href));
+        if (!target) {
+          const officialCandidates = links
+            .filter((url) => likelyCompanyWebsite(url, company))
+            .slice(0, 2);
+          const officialResponses = await Promise.allSettled(
+            officialCandidates.map((url) =>
+              fetch(url, {
+                headers: { "User-Agent": "Baakanya company research" },
+                redirect: "follow",
+                signal: AbortSignal.timeout(6500),
+              }),
+            ),
+          );
+          for (const result of officialResponses) {
+            if (result.status !== "fulfilled" || !result.value.ok) continue;
+            const officialHtml = await result.value.text();
+            if (!pageDeclaresEnglish(officialHtml)) continue;
+            sources.unshift(result.value.url);
+            evidence.unshift(...extractPageEvidence(officialHtml));
+            const detailPage = sameSiteResearchLinks(
+              officialHtml,
+              new URL(result.value.url),
+            )[0];
+            if (detailPage) {
+              try {
+                const detailResponse = await fetch(detailPage, {
+                  headers: { "User-Agent": "Baakanya company research" },
+                  redirect: "follow",
+                  signal: AbortSignal.timeout(6500),
+                });
+                if (detailResponse.ok) {
+                  const detailHtml = await detailResponse.text();
+                  if (pageDeclaresEnglish(detailHtml)) {
+                    sources.unshift(detailResponse.url);
+                    evidence.unshift(...extractPageEvidence(detailHtml));
+                  }
+                }
+              } catch {
+                // The official result still supplies usable evidence.
+              }
+            }
+          }
+        }
       }
     } catch {
       // Bing RSS below remains available as a separate fallback.
     }
 
-    if (evidence.filter(Boolean).length === 0) {
-      const bing = await fetch(
-        `https://www.bing.com/search?q=${query}&format=rss`,
-        {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; Baakanya/1.0)" },
-        },
-      );
-      if (bing.ok) {
-        const rss = await bing.text();
-        const items = [...rss.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(
-          0,
-          4,
+    if (evidence.filter(Boolean).length < 8) {
+      try {
+        const bing = await fetch(
+          `https://www.bing.com/search?q=${query}&format=rss`,
+          {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; Baakanya/1.0)" },
+            signal: AbortSignal.timeout(6500),
+          },
         );
-        for (const item of items) {
-          const description = item[1].match(
-            /<description>([\s\S]*?)<\/description>/i,
-          )?.[1];
-          const link = item[1].match(/<link>([\s\S]*?)<\/link>/i)?.[1];
-          if (description) evidence.push(...sentenceCandidates(description));
-          if (link) sources.push(cleanText(link));
+        if (bing.ok) {
+          const rss = await bing.text();
+          const items = [...rss.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(
+            0,
+            4,
+          );
+          for (const item of items) {
+            const description = item[1].match(
+              /<description>([\s\S]*?)<\/description>/i,
+            )?.[1];
+            const link = item[1].match(/<link>([\s\S]*?)<\/link>/i)?.[1];
+            if (description) evidence.push(...sentenceCandidates(description));
+            if (link) sources.push(cleanText(link));
+          }
         }
+      } catch {
+        // Keep any official-site or DuckDuckGo evidence already collected.
       }
     }
 
@@ -354,6 +468,7 @@ Deno.serve(async (request) => {
         found,
         overview,
         roleFit: insight?.roleFit || "",
+        motivation: insight?.motivation || "",
         sources: [...new Set(sources)].slice(0, 5),
       },
       { headers: corsHeaders },

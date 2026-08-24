@@ -23,6 +23,10 @@ import { useToast } from "../lib/toast";
 import { coverLetterTemplates, cvTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 import { isValidWebsite, normalizeWebsite } from "../lib/urls";
+import {
+  isReliableEnglishResearch,
+  researchMotivation,
+} from "../lib/companyResearch";
 
 const emptyCv = {
   name: "",
@@ -65,6 +69,7 @@ export default function Career() {
     loading: false,
     text: "",
     fit: "",
+    motivation: "",
     error: "",
   });
   const [manualCompany, setManualCompany] = useState("");
@@ -128,7 +133,13 @@ export default function Career() {
     setActiveDocument("cv");
     setCvForm(emptyCv);
     setCoverForm(emptyCover);
-    setResearch({ loading: false, text: "", fit: "", error: "" });
+    setResearch({
+      loading: false,
+      text: "",
+      fit: "",
+      motivation: "",
+      error: "",
+    });
     setManualCompany("");
     setShowCompanyFallback(false);
     setCvTemplateId(cvTemplates[0].id);
@@ -193,6 +204,7 @@ export default function Career() {
           error: "",
           text: saved.researchText,
           fit: saved.researchFit || "",
+          motivation: saved.researchMotivation || "",
         });
       if (cvTemplates.some(({ id }) => id === saved.cvTemplateId))
         setCvTemplateId(saved.cvTemplateId);
@@ -231,6 +243,7 @@ export default function Career() {
       coverForm,
       researchText: research.text,
       researchFit: research.fit,
+      researchMotivation: research.motivation,
       cvTemplateId,
       coverTemplateId,
       photoCrop,
@@ -245,6 +258,7 @@ export default function Career() {
       coverForm,
       research.text,
       research.fit,
+      research.motivation,
       cvTemplateId,
       coverTemplateId,
       photoCrop,
@@ -270,7 +284,13 @@ export default function Career() {
       ["company", "companyWebsite", "role"].includes(k) &&
       v !== coverForm[k]
     ) {
-      setResearch({ loading: false, text: "", fit: "", error: "" });
+      setResearch({
+        loading: false,
+        text: "",
+        fit: "",
+        motivation: "",
+        error: "",
+      });
       setShowCompanyFallback(false);
     }
     setCoverForm((x) => ({ ...x, [k]: v }));
@@ -325,11 +345,18 @@ export default function Career() {
         loading: false,
         text: "",
         fit: "",
+        motivation: "",
         error: "Add a company name first.",
       });
       return;
     }
-    setResearch({ loading: true, text: "", fit: "", error: "" });
+    setResearch({
+      loading: true,
+      text: "",
+      fit: "",
+      motivation: "",
+      error: "",
+    });
     setShowCompanyFallback(false);
     const { data, error } = await supabase.functions.invoke(
       "company-research",
@@ -341,17 +368,29 @@ export default function Career() {
         },
       },
     );
-    const notFound = !error && data?.found === false;
+    const overview = data?.overview?.trim() || "";
+    const englishResult = overview
+      ? isReliableEnglishResearch(overview)
+      : false;
+    const notFound = !error && (data?.found === false || !englishResult);
+    const fallbackMotivation = researchMotivation({
+      company: coverForm.company,
+      role: coverForm.role,
+      skills: split(coverForm.skills),
+    });
     setShowCompanyFallback(Boolean(error || data?.error || notFound));
     setResearch({
       loading: false,
-      text: notFound ? "" : data?.overview || "",
+      text: notFound ? "" : overview,
       fit: notFound ? "" : data?.roleFit || "",
+      motivation: notFound
+        ? ""
+        : data?.motivation || fallbackMotivation,
       error:
         error?.message ||
         data?.error ||
         (notFound
-          ? "We could not find enough reliable public information. Tell us about the company below."
+          ? "We could not find enough reliable English information about this company. Tell us about it below."
           : ""),
     });
   };
@@ -373,18 +412,20 @@ export default function Career() {
       fit: coverForm.role
         ? `That focus appeals to me because the ${coverForm.role} role calls for organised delivery, close collaboration and dependable outcomes.`
         : "",
+      motivation: researchMotivation({
+        company: coverForm.company,
+        role: coverForm.role,
+        skills: split(coverForm.skills),
+      }),
     });
     setShowCompanyFallback(false);
   };
 
   const letterDraft = useMemo(() => {
     const manager = coverForm.hiringManager.trim() || "Hiring Team";
-    const highlightedSkills = split(coverForm.skills).slice(0, 2);
-    const skillConnection = highlightedSkills.length
-      ? ` My experience in ${highlightedSkills.join(" and ")} would help me contribute to those priorities from the outset.`
-      : "";
-    return `Dear ${manager},\n\nI am writing to apply for the ${coverForm.role || "[role]"} position at ${coverForm.company || "[company]"}. ${coverForm.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` In researching ${coverForm.company || "the company"}, I was particularly interested in what I learned about the organisation. ${research.text}${research.fit ? ` ${research.fit}` : ""}${skillConnection}` : ""}\n\n${coverForm.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(coverForm.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${coverForm.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${coverForm.name || "[Your name]"}`;
-  }, [coverForm, research.fit, research.text]);
+    const motivation = research.motivation || research.fit;
+    return `Dear ${manager},\n\nI am writing to apply for the ${coverForm.role || "[role]"} position at ${coverForm.company || "[company]"}. ${coverForm.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` My research into ${coverForm.company || "the company"} showed that ${research.text}${motivation ? ` ${motivation}` : ""}` : ""}\n\n${coverForm.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(coverForm.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${coverForm.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${coverForm.name || "[Your name]"}`;
+  }, [coverForm, research.fit, research.motivation, research.text]);
 
   const letter = coverGenerated && letterFinal ? letterFinal : letterDraft;
 
@@ -857,7 +898,8 @@ export default function Career() {
                 </button>
                 {(research.text || research.error) && (
                   <p className={research.error ? "research-error" : ""}>
-                    {research.error || `${research.text} ${research.fit}`.trim()}
+                    {research.error ||
+                      `${research.text} ${research.motivation || research.fit}`.trim()}
                   </p>
                 )}
                 {showCompanyFallback && (
