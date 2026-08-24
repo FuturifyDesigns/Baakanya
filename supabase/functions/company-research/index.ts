@@ -22,6 +22,22 @@ const cleanText = (value: string) =>
 const boilerplate =
   /\b(skip to|main content|cookie|privacy policy|terms (?:of|and)|download acrobat|sign in|log in|menu|navigation|all rights reserved|javascript|enable cookies|home\s*[|>]|contact us)\b/i;
 
+const likelyEnglish = (value: string) => {
+  const words = value.toLowerCase().match(/[a-zà-ÿ']+/g) || [];
+  if (!words.length) return false;
+  const english = words.filter((word) =>
+    /^(the|and|with|for|from|that|this|its|our|your|company|business|provides|services|customers|people|through|across|about|into|their|where|which)$/.test(
+      word,
+    )
+  ).length;
+  const french = words.filter((word) =>
+    /^(le|la|les|des|du|une|un|et|pour|avec|est|sont|dans|notre|votre|vous|nous|qui|que|sur|aux|entreprise|société|leurs|plus)$/.test(
+      word,
+    )
+  ).length;
+  return french < 2 || english >= french;
+};
+
 const sentenceCandidates = (value: string) =>
   cleanText(value)
     .split(/(?<=[.!?])\s+|\s+[|•]\s+/)
@@ -31,7 +47,8 @@ const sentenceCandidates = (value: string) =>
         sentence.length >= 45 &&
         sentence.length <= 360 &&
         !boilerplate.test(sentence) &&
-        !/(?:https?:\/\/|www\.)/i.test(sentence),
+        !/(?:https?:\/\/|www\.)/i.test(sentence) &&
+        likelyEnglish(sentence),
     );
 
 const extractPageEvidence = (html: string) => {
@@ -130,9 +147,12 @@ const buildOverview = (evidence: string[], company: string, role: string) => {
   ).replace(/[,;:]$/, ".");
   const safeRole = role.replace(/[\r\n.!?]+/g, " ").trim().slice(0, 80);
   const roleFit = safeRole
-    ? ` These priorities are especially relevant to a ${safeRole} role, where organised delivery, collaboration and dependable customer outcomes matter.`
+    ? `That focus appeals to me because the ${safeRole} role calls for organised delivery, close collaboration and dependable outcomes.`
     : "";
-  return `${factual}${/[.!?]$/.test(factual) ? "" : "."}${roleFit}`;
+  return {
+    overview: `${factual}${/[.!?]$/.test(factual) ? "" : "."}`,
+    roleFit,
+  };
 };
 
 const safeWebsite = (raw?: string) => {
@@ -269,12 +289,15 @@ Deno.serve(async (request) => {
     }
 
     const query = encodeURIComponent(
-      `"${company}" ${role || "Botswana company"}`,
+      `"${company.trim()}" company official about services products customers`,
     );
     try {
-      const search = await fetch(`https://html.duckduckgo.com/html/?q=${query}`, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; Baakanya/1.0)" },
-      });
+      const search = await fetch(
+        `https://html.duckduckgo.com/html/?q=${query}&kl=us-en`,
+        {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; Baakanya/1.0)" },
+        },
+      );
       if (search.ok) {
         const html = await search.text();
         const snippets = [
@@ -317,7 +340,8 @@ Deno.serve(async (request) => {
       }
     }
 
-    const overview = buildOverview(evidence, company.trim(), String(role || ""));
+    const insight = buildOverview(evidence, company.trim(), String(role || ""));
+    const overview = insight?.overview || "";
     const found = overview.length >= 80;
     await admin.from("generations").insert({
       user_id: userId,
@@ -329,6 +353,7 @@ Deno.serve(async (request) => {
         company,
         found,
         overview,
+        roleFit: insight?.roleFit || "",
         sources: [...new Set(sources)].slice(0, 5),
       },
       { headers: corsHeaders },

@@ -57,6 +57,19 @@ export function LanguageProvider({ children }) {
     const dictionary = language === "tn" ? setswana : english;
     const translate = (root = document.body) => {
       if (!root) return;
+      if (root.nodeType === Node.TEXT_NODE) {
+        const trimmed = root.nodeValue.trim();
+        if (
+          trimmed &&
+          !["SCRIPT", "STYLE", "TEXTAREA"].includes(
+            root.parentElement?.tagName,
+          ) &&
+          dictionary[trimmed]
+        ) {
+          root.nodeValue = root.nodeValue.replace(trimmed, dictionary[trimmed]);
+        }
+        return;
+      }
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       const nodes = [];
       while (walker.nextNode()) nodes.push(walker.currentNode);
@@ -79,15 +92,38 @@ export function LanguageProvider({ children }) {
           });
         });
     };
-    const run = () => requestAnimationFrame(() => translate());
-    run();
-    const observer = new MutationObserver(run);
+    let frame = 0;
+    const pendingRoots = new Set();
+    const schedule = (root) => {
+      if (root) pendingRoots.add(root);
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const roots = [...pendingRoots];
+        pendingRoots.clear();
+        roots.forEach((pendingRoot) => translate(pendingRoot));
+      });
+    };
+    schedule(document.body);
+    const observer = new MutationObserver((records) => {
+      records.forEach((record) => {
+        if (record.type === "characterData") {
+          schedule(record.target);
+          return;
+        }
+        record.addedNodes.forEach((node) => schedule(node));
+      });
+    });
     observer.observe(document.body, {
       childList: true,
       subtree: true,
       characterData: true,
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      pendingRoots.clear();
+    };
   }, [language]);
   return (
     <LanguageContext.Provider value={value}>

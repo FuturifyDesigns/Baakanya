@@ -13,10 +13,9 @@ export default function CustomCursor() {
     let frame;
     const isDarkBackground = (target) => {
       let node = target instanceof Element ? target : target?.parentElement;
+      const themed = node?.closest?.("[data-cursor-theme]");
+      if (themed) return themed.dataset.cursorTheme === "dark";
       while (node && node !== document.documentElement) {
-        const theme = node.dataset?.cursorTheme;
-        if (theme) return theme === "dark";
-
         const color = window.getComputedStyle(node).backgroundColor;
         const values = color.match(/[\d.]+/g)?.map(Number);
         if (values?.length >= 3 && (values[3] ?? 1) > 0.15) {

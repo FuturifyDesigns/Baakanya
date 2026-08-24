@@ -64,6 +64,7 @@ export default function Career() {
   const [research, setResearch] = useState({
     loading: false,
     text: "",
+    fit: "",
     error: "",
   });
   const [manualCompany, setManualCompany] = useState("");
@@ -127,7 +128,7 @@ export default function Career() {
     setActiveDocument("cv");
     setCvForm(emptyCv);
     setCoverForm(emptyCover);
-    setResearch({ loading: false, text: "", error: "" });
+    setResearch({ loading: false, text: "", fit: "", error: "" });
     setManualCompany("");
     setShowCompanyFallback(false);
     setCvTemplateId(cvTemplates[0].id);
@@ -187,7 +188,12 @@ export default function Career() {
       if (saved.coverForm)
         setCoverForm((current) => ({ ...current, ...saved.coverForm }));
       if (saved.researchText)
-        setResearch({ loading: false, error: "", text: saved.researchText });
+        setResearch({
+          loading: false,
+          error: "",
+          text: saved.researchText,
+          fit: saved.researchFit || "",
+        });
       if (cvTemplates.some(({ id }) => id === saved.cvTemplateId))
         setCvTemplateId(saved.cvTemplateId);
       if (coverLetterTemplates.some(({ id }) => id === saved.coverTemplateId))
@@ -224,6 +230,7 @@ export default function Career() {
       cvForm,
       coverForm,
       researchText: research.text,
+      researchFit: research.fit,
       cvTemplateId,
       coverTemplateId,
       photoCrop,
@@ -237,6 +244,7 @@ export default function Career() {
       cvForm,
       coverForm,
       research.text,
+      research.fit,
       cvTemplateId,
       coverTemplateId,
       photoCrop,
@@ -258,6 +266,13 @@ export default function Career() {
   };
   const setCover = (k, v) => {
     setValidation("");
+    if (
+      ["company", "companyWebsite", "role"].includes(k) &&
+      v !== coverForm[k]
+    ) {
+      setResearch({ loading: false, text: "", fit: "", error: "" });
+      setShowCompanyFallback(false);
+    }
     setCoverForm((x) => ({ ...x, [k]: v }));
   };
 
@@ -309,11 +324,12 @@ export default function Career() {
       setResearch({
         loading: false,
         text: "",
+        fit: "",
         error: "Add a company name first.",
       });
       return;
     }
-    setResearch({ loading: true, text: "", error: "" });
+    setResearch({ loading: true, text: "", fit: "", error: "" });
     setShowCompanyFallback(false);
     const { data, error } = await supabase.functions.invoke(
       "company-research",
@@ -330,6 +346,7 @@ export default function Career() {
     setResearch({
       loading: false,
       text: notFound ? "" : data?.overview || "",
+      fit: notFound ? "" : data?.roleFit || "",
       error:
         error?.message ||
         data?.error ||
@@ -352,15 +369,22 @@ export default function Career() {
     setResearch({
       loading: false,
       error: "",
-      text: `${coverForm.company} is described as an organisation that ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)} This context has been shaped into a concise professional note for your application.`,
+      text: `${coverForm.company} ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`,
+      fit: coverForm.role
+        ? `That focus appeals to me because the ${coverForm.role} role calls for organised delivery, close collaboration and dependable outcomes.`
+        : "",
     });
     setShowCompanyFallback(false);
   };
 
   const letterDraft = useMemo(() => {
     const manager = coverForm.hiringManager.trim() || "Hiring Team";
-    return `Dear ${manager},\n\nI am writing to apply for the ${coverForm.role || "[role]"} position at ${coverForm.company || "[company]"}. ${coverForm.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` I was particularly drawn to your organisation's work: ${research.text}` : ""}\n\n${coverForm.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(coverForm.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${coverForm.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${coverForm.name || "[Your name]"}`;
-  }, [coverForm, research.text]);
+    const highlightedSkills = split(coverForm.skills).slice(0, 2);
+    const skillConnection = highlightedSkills.length
+      ? ` My experience in ${highlightedSkills.join(" and ")} would help me contribute to those priorities from the outset.`
+      : "";
+    return `Dear ${manager},\n\nI am writing to apply for the ${coverForm.role || "[role]"} position at ${coverForm.company || "[company]"}. ${coverForm.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` In researching ${coverForm.company || "the company"}, I was particularly interested in what I learned about the organisation. ${research.text}${research.fit ? ` ${research.fit}` : ""}${skillConnection}` : ""}\n\n${coverForm.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(coverForm.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${coverForm.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${coverForm.name || "[Your name]"}`;
+  }, [coverForm, research.fit, research.text]);
 
   const letter = coverGenerated && letterFinal ? letterFinal : letterDraft;
 
@@ -833,7 +857,7 @@ export default function Career() {
                 </button>
                 {(research.text || research.error) && (
                   <p className={research.error ? "research-error" : ""}>
-                    {research.error || research.text}
+                    {research.error || `${research.text} ${research.fit}`.trim()}
                   </p>
                 )}
                 {showCompanyFallback && (

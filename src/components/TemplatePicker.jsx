@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Check, ChevronsLeftRight } from "lucide-react";
 import {
   BusinessDocumentPreview,
@@ -86,7 +87,7 @@ function money(value) {
   });
 }
 
-function TemplatePreview({ template }) {
+const TemplatePreview = memo(function TemplatePreview({ template }) {
   const business = ["invoice", "quotation"].includes(template.type);
   const cover = template.type === "cover";
 
@@ -129,11 +130,34 @@ function TemplatePreview({ template }) {
       </span>
     </span>
   );
-}
+});
+
+const TemplateCard = memo(function TemplateCard({
+  template,
+  selected,
+  onChange,
+}) {
+  return (
+    <button
+      type="button"
+      className={`template-card ${selected ? "selected" : ""}`}
+      onClick={() => onChange(template.id)}
+      aria-pressed={selected}
+    >
+      <TemplatePreview template={template} />
+      <span className="template-card-copy">
+        <b>{template.name}</b>
+        <small>{template.description}</small>
+      </span>
+      {template.recommended && <mark>RECOMMENDED</mark>}
+      {selected && <Check className="template-check" />}
+    </button>
+  );
+});
 
 export default function TemplatePicker({ label, templates, value, onChange }) {
   return (
-    <section className="template-section">
+    <section className="template-section" data-cursor-theme="light">
       <div className="template-section-head">
         <div>
           <span className="kicker">CHOOSE A STYLE</span>
@@ -147,21 +171,12 @@ export default function TemplatePicker({ label, templates, value, onChange }) {
       </p>
       <div className="template-grid">
         {templates.map((template) => (
-          <button
-            type="button"
-            className={`template-card ${value === template.id ? "selected" : ""}`}
+          <TemplateCard
             key={template.id}
-            onClick={() => onChange(template.id)}
-            aria-pressed={value === template.id}
-          >
-            <TemplatePreview template={template} />
-            <span className="template-card-copy">
-              <b>{template.name}</b>
-              <small>{template.description}</small>
-            </span>
-            {template.recommended && <mark>RECOMMENDED</mark>}
-            {value === template.id && <Check className="template-check" />}
-          </button>
+            template={template}
+            selected={value === template.id}
+            onChange={onChange}
+          />
         ))}
       </div>
     </section>
