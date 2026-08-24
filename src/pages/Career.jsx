@@ -1,4 +1,4 @@
-import { Loader2, Search, Eye } from "lucide-react";
+import { Loader2, Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ToolShell from "../components/ToolShell";
@@ -17,16 +17,12 @@ import {
   useAutoSave,
 } from "../lib/draftStore";
 import { saveEditorDocument } from "../lib/documentEditorStore";
-import { supabase } from "../lib/supabase";
 import { checkGenerationAccess } from "../lib/generation";
 import { useToast } from "../lib/toast";
 import { coverLetterTemplates, cvTemplates } from "../lib/documentTemplates";
 import { cropImage } from "../lib/media";
 import { isValidWebsite, normalizeWebsite } from "../lib/urls";
-import {
-  isReliableEnglishResearch,
-  researchMotivation,
-} from "../lib/companyResearch";
+import { formatCompanyContext } from "../lib/companyContext";
 
 const emptyCv = {
   name: "",
@@ -66,14 +62,11 @@ export default function Career() {
   const [cvForm, setCvForm] = useState(emptyCv);
   const [coverForm, setCoverForm] = useState(emptyCover);
   const [research, setResearch] = useState({
-    loading: false,
     text: "",
-    fit: "",
     motivation: "",
     error: "",
   });
   const [manualCompany, setManualCompany] = useState("");
-  const [showCompanyFallback, setShowCompanyFallback] = useState(false);
   const [cvTemplateId, setCvTemplateId] = useState(cvTemplates[0].id);
   const [coverTemplateId, setCoverTemplateId] = useState(
     coverLetterTemplates[0].id,
@@ -134,14 +127,11 @@ export default function Career() {
     setCvForm(emptyCv);
     setCoverForm(emptyCover);
     setResearch({
-      loading: false,
       text: "",
-      fit: "",
       motivation: "",
       error: "",
     });
     setManualCompany("");
-    setShowCompanyFallback(false);
     setCvTemplateId(cvTemplates[0].id);
     setCoverTemplateId(coverLetterTemplates[0].id);
     setPhoto(null);
@@ -200,12 +190,11 @@ export default function Career() {
         setCoverForm((current) => ({ ...current, ...saved.coverForm }));
       if (saved.researchText)
         setResearch({
-          loading: false,
           error: "",
           text: saved.researchText,
-          fit: saved.researchFit || "",
-          motivation: saved.researchMotivation || "",
+          motivation: saved.researchMotivation || saved.researchFit || "",
         });
+      if (saved.manualCompany) setManualCompany(saved.manualCompany);
       if (cvTemplates.some(({ id }) => id === saved.cvTemplateId))
         setCvTemplateId(saved.cvTemplateId);
       if (coverLetterTemplates.some(({ id }) => id === saved.coverTemplateId))
@@ -242,8 +231,8 @@ export default function Career() {
       cvForm,
       coverForm,
       researchText: research.text,
-      researchFit: research.fit,
       researchMotivation: research.motivation,
+      manualCompany,
       cvTemplateId,
       coverTemplateId,
       photoCrop,
@@ -257,8 +246,8 @@ export default function Career() {
       cvForm,
       coverForm,
       research.text,
-      research.fit,
       research.motivation,
+      manualCompany,
       cvTemplateId,
       coverTemplateId,
       photoCrop,
@@ -281,17 +270,15 @@ export default function Career() {
   const setCover = (k, v) => {
     setValidation("");
     if (
-      ["company", "companyWebsite", "role"].includes(k) &&
+      ["company", "role"].includes(k) &&
       v !== coverForm[k]
     ) {
       setResearch({
-        loading: false,
         text: "",
-        fit: "",
         motivation: "",
         error: "",
       });
-      setShowCompanyFallback(false);
+      if (k === "company") setManualCompany("");
     }
     setCoverForm((x) => ({ ...x, [k]: v }));
   };
@@ -339,93 +326,22 @@ export default function Career() {
     return "";
   };
 
-  const researchCompany = async () => {
-    if (!coverForm.company.trim()) {
-      setResearch({
-        loading: false,
-        text: "",
-        fit: "",
-        motivation: "",
-        error: "Add a company name first.",
-      });
-      return;
-    }
-    setResearch({
-      loading: true,
-      text: "",
-      fit: "",
-      motivation: "",
-      error: "",
-    });
-    setShowCompanyFallback(false);
-    const { data, error } = await supabase.functions.invoke(
-      "company-research",
-      {
-        body: {
-          company: coverForm.company,
-          role: coverForm.role,
-          website: normalizeWebsite(coverForm.companyWebsite),
-        },
-      },
-    );
-    const overview = data?.overview?.trim() || "";
-    const englishResult = overview
-      ? isReliableEnglishResearch(overview)
-      : false;
-    const notFound = !error && (data?.found === false || !englishResult);
-    const fallbackMotivation = researchMotivation({
+  const useCompanyDescription = () => {
+    setResearch(formatCompanyContext({
       company: coverForm.company,
+      description: manualCompany,
       role: coverForm.role,
       skills: split(coverForm.skills),
-    });
-    setShowCompanyFallback(Boolean(error || data?.error || notFound));
-    setResearch({
-      loading: false,
-      text: notFound ? "" : overview,
-      fit: notFound ? "" : data?.roleFit || "",
-      motivation: notFound
-        ? ""
-        : data?.motivation || fallbackMotivation,
-      error:
-        error?.message ||
-        data?.error ||
-        (notFound
-          ? "We could not find enough reliable English information about this company. Tell us about it below."
-          : ""),
-    });
-  };
-
-  const useCompanyDescription = () => {
-    const detail = manualCompany.trim().replace(/\s+/g, " ");
-    if (detail.length < 30) {
-      setResearch((current) => ({
-        ...current,
-        error: "Add at least 30 characters about the company.",
-      }));
-      return;
-    }
-    const sentence = /[.!?]$/.test(detail) ? detail : `${detail}.`;
-    setResearch({
-      loading: false,
-      error: "",
-      text: `${coverForm.company} ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`,
-      fit: coverForm.role
-        ? `That focus appeals to me because the ${coverForm.role} role calls for organised delivery, close collaboration and dependable outcomes.`
-        : "",
-      motivation: researchMotivation({
-        company: coverForm.company,
-        role: coverForm.role,
-        skills: split(coverForm.skills),
-      }),
-    });
-    setShowCompanyFallback(false);
+    }));
   };
 
   const letterDraft = useMemo(() => {
     const manager = coverForm.hiringManager.trim() || "Hiring Team";
-    const motivation = research.motivation || research.fit;
-    return `Dear ${manager},\n\nI am writing to apply for the ${coverForm.role || "[role]"} position at ${coverForm.company || "[company]"}. ${coverForm.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${research.text ? ` My research into ${coverForm.company || "the company"} showed that ${research.text}${motivation ? ` ${motivation}` : ""}` : ""}\n\n${coverForm.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(coverForm.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${coverForm.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${coverForm.name || "[Your name]"}`;
-  }, [coverForm, research.fit, research.motivation, research.text]);
+    const companyParagraph = research.text
+      ? `\n\n${research.text} ${research.motivation}`.trimEnd()
+      : "";
+    return `Dear ${manager},\n\nI am writing to apply for the ${coverForm.role || "[role]"} position at ${coverForm.company || "[company]"}. ${coverForm.summary || "My background, practical experience and commitment to doing high-quality work make me a strong candidate for this opportunity."}${companyParagraph}\n\n${coverForm.experience || "I have developed relevant skills through my work, studies and personal projects."} I would bring ${split(coverForm.skills).slice(0, 3).join(", ") || "reliability, initiative and a willingness to learn"} to the team.\n\nI would welcome the opportunity to discuss how I can contribute to ${coverForm.company || "your organisation"}. Thank you for considering my application.\n\nYours sincerely,\n${coverForm.name || "[Your name]"}`;
+  }, [coverForm, research.motivation, research.text]);
 
   const letter = coverGenerated && letterFinal ? letterFinal : letterDraft;
 
@@ -881,50 +797,37 @@ export default function Career() {
               </div>
               <div className="research-box">
                 <div>
-                  <b>Company research</b>
+                  <b>Tell us about the company</b>
                   <span>
-                    Search public web information and add a relevant detail to
-                    your letter.
+                    Add what you know about its work, mission or services. We
+                    will shape it into professional wording for your letter.
                   </span>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  disabled={research.loading}
-                  onClick={researchCompany}
-                >
-                  <Search size={17} />{" "}
-                  {research.loading ? "Researching…" : "Research company"}
-                </button>
+                <div className="company-fallback">
+                  <label>
+                    Company description
+                    <textarea
+                      minLength="30"
+                      maxLength="900"
+                      rows="4"
+                      value={manualCompany}
+                      onChange={(event) => setManualCompany(event.target.value)}
+                      placeholder="For example: what the company does, who it serves, what it values, or work that interests you."
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={useCompanyDescription}
+                  >
+                    Format for my cover letter
+                  </button>
+                </div>
                 {(research.text || research.error) && (
                   <p className={research.error ? "research-error" : ""}>
                     {research.error ||
-                      `${research.text} ${research.motivation || research.fit}`.trim()}
+                      `${research.text} ${research.motivation}`.trim()}
                   </p>
-                )}
-                {showCompanyFallback && (
-                  <div className="company-fallback">
-                    <label>
-                      What does the company do?
-                      <textarea
-                        minLength="30"
-                        maxLength="900"
-                        rows="4"
-                        value={manualCompany}
-                        onChange={(event) =>
-                          setManualCompany(event.target.value)
-                        }
-                        placeholder="Describe its services, customers, mission or recent work in your own words."
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      onClick={useCompanyDescription}
-                    >
-                      Format company description
-                    </button>
-                  </div>
                 )}
               </div>
               <label>

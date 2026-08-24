@@ -3706,12 +3706,20 @@ footer {
   display: grid;
   gap: 12px;
   padding: 18px;
-  border: 1px solid #e1cda4;
-  background: #fffaf0;
+  border: 1px solid #cfe3ec;
+  border-radius: 10px;
+  background: #fff;
 }
 .company-fallback label {
   display: grid;
   gap: 8px;
+}
+.company-fallback textarea {
+  min-height: 112px;
+  line-height: 1.55;
+}
+.company-fallback .btn {
+  align-self: flex-start;
 }
 .document-studio {
   margin: 70px 0 20px;

@@ -31,7 +31,7 @@ const chapters = [
   {
     step: "03 / AUTOMATE",
     title: "Baakanya handles the repetitive work.",
-    body: "Guided inputs, public company research, calculations and document formatting turn your details into useful output.",
+    body: "Guided inputs, professional wording, calculations and document formatting turn your details into useful output.",
   },
   {
     step: "04 / DOWNLOAD",
@@ -121,7 +121,7 @@ function DemoAutomation() {
         <Search />
         <div>
           <b>Company context added</b>
-          <span>Public, relevant information only</span>
+          <span>Your notes, professionally worded</span>
         </div>
         <Check />
       </div>
@@ -329,10 +329,10 @@ export default function HowItWorks() {
             </div>
             <div>
               <Search />
-              <h3>Research is deliberate</h3>
+              <h3>Your details stay in your control</h3>
               <p>
-                Company search only runs when you choose it and only adds
-                public, relevant context.
+                Add the company details that matter to you and Baakanya formats
+                them naturally for your cover letter.
               </p>
             </div>
             <div>

@@ -163,8 +163,14 @@ export const setswana = {
     "Tlhopha ditokomane tsa tiro, tsa kgwebo kgotsa didirisiwa tsa difaele. Lefelo lengwe le lengwe le botsa fela dintlha tse di maleba.",
   "Baakanya handles the repetitive work.":
     "Baakanya e dira tiro e e boelediwang.",
-  "Guided inputs, public company research, calculations and document formatting turn your details into useful output.":
-    "Dintlha tse di kaelwang, patlisiso ya khampani, dipalo le popego di fetola tshedimosetso ya gago go nna tokomane e e mosola.",
+  "Guided inputs, professional wording, calculations and document formatting turn your details into useful output.":
+    "Dintlha tse di kaelwang, mafoko a seporofešenale, dipalo le popego di fetola tshedimosetso ya gago go nna tokomane e e mosola.",
+  "Your notes, professionally worded":
+    "Dintlha tsa gago, di kwadilwe ka seporofešenale",
+  "Your details stay in your control":
+    "Dintlha tsa gago di nna mo taolong ya gago",
+  "Add the company details that matter to you and Baakanya formats them naturally for your cover letter.":
+    "Tsenya dintlha tsa khampani tse di botlhokwa mo go wena mme Baakanya e di baakanyetse lekwalo la gago ka tlholego.",
   "Review, download and move forward.": "Sekaseka, kopolola mme o tswelele.",
   "Get a clean PDF ready to send, print or combine with other files. The result belongs to you.":
     "Bona PDF e e phepa e e siametseng go romelwa, go printiwa kgotsa go kopanngwa le difaele tse dingwe. Se se dirilweng ke sa gago.",
@@ -385,15 +391,17 @@ export const setswana = {
     "Draft ya tiro e butswe. O ka tswelela go e baakanya.",
   "Saved business draft loaded. You can continue editing.":
     "Draft ya kgwebo e butswe. O ka tswelela go e baakanya.",
-  "Describe its services, customers, mission or recent work in your own words.":
-    "Tlhalosa ditirelo, bareki, maikaelelo kgotsa tiro ya bosheng ka mafoko a gago.",
-  "We could not find enough reliable public information. Tell us about the company below.":
-    "Ga re a bona tshedimosetso e e lekaneng e e ikanyegang. Re bolelele ka khampani fa tlase.",
+  "Tell us about the company": "Re bolelele ka khampani",
+  "Add what you know about its work, mission or services. We will shape it into professional wording for your letter.":
+    "Tsenya se o se itseng ka tiro, maikaelelo kgotsa ditirelo tsa yone. Re tla se kwala ka mafoko a seporofešenale mo lekwalong la gago.",
+  "Company description": "Tlhaloso ya khampani",
+  "For example: what the company does, who it serves, what it values, or work that interests you.":
+    "Sekai: se khampani e se dirang, ba e ba direlang, se e se tseelang kwa godimo kgotsa tiro e e go kgatlhang.",
+  "Format for my cover letter": "E baakanyetse lekwalo la me la kopo",
   "Put your best work on paper.":
     "Bontsha tiro ya gago e e molemo mo pampiring.",
   "Company website": "Website ya khampani",
   Optional: "Ga go patelediwe",
-  "Company research": "Patlisiso ya khampani",
   "404 / PAGE NOT FOUND": "404 / TSEBE GA E A BONWA",
   "This page moved without leaving paperwork.":
     "Tsebe eno ga e tlhole e le teng.",
