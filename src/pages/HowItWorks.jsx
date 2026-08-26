@@ -9,13 +9,16 @@ import {
   ShieldCheck,
   UploadCloud,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Layout from "../components/Layout";
 
-gsap.registerPlugin(ScrollTrigger);
+const cursorStops = [
+  { left: "51%", top: "68%" },
+  { left: "76%", top: "48%" },
+  { left: "78%", top: "76%" },
+  { left: "68%", top: "88%" },
+];
 
 const chapters = [
   {
@@ -40,9 +43,11 @@ const chapters = [
   },
 ];
 
-function DemoSignup() {
+function DemoSignup({ active = false }) {
   return (
-    <div className="demo-signup-screen process-screen">
+    <div
+      className={`demo-signup-screen process-screen${active ? " is-active" : ""}`}
+    >
       <span className="demo-kicker">START FREE</span>
       <h3>Create your Baakanya account</h3>
       <div className="demo-real-field">
@@ -67,9 +72,11 @@ function DemoSignup() {
   );
 }
 
-function DemoTools() {
+function DemoTools({ active = false }) {
   return (
-    <div className="demo-tools-screen process-screen">
+    <div
+      className={`demo-tools-screen process-screen${active ? " is-active" : ""}`}
+    >
       <span className="demo-kicker">MY WORKSPACE</span>
       <h3>What do you need to finish?</h3>
       <div className="demo-tool-choice selected">
@@ -98,9 +105,11 @@ function DemoTools() {
   );
 }
 
-function DemoAutomation() {
+function DemoAutomation({ active = false }) {
   return (
-    <div className="demo-automation-screen process-screen">
+    <div
+      className={`demo-automation-screen process-screen${active ? " is-active" : ""}`}
+    >
       <span className="demo-kicker">CAREER AUTOMATION</span>
       <h3>Turn the job details into an application.</h3>
       <div className="automation-facts">
@@ -137,9 +146,11 @@ function DemoAutomation() {
   );
 }
 
-function DemoDownload() {
+function DemoDownload({ active = false }) {
   return (
-    <div className="demo-document-screen process-screen">
+    <div
+      className={`demo-document-screen process-screen${active ? " is-active" : ""}`}
+    >
       <div className="generated-page informative">
         <span>BAAKANYA / APPLICATION</span>
         <h3>Kagiso Botswana</h3>
@@ -170,7 +181,7 @@ function DemoDownload() {
 
 const demos = [DemoSignup, DemoTools, DemoAutomation, DemoDownload];
 
-function BrowserShell({ children, showCursor = false }) {
+function BrowserShell({ children }) {
   return (
     <div className="process-browser">
       <div className="browser-bar">
@@ -183,7 +194,6 @@ function BrowserShell({ children, showCursor = false }) {
       </div>
       <div className="browser-canvas">
         {children}
-        {showCursor ? <div className="process-cursor" /> : null}
       </div>
     </div>
   );
@@ -191,77 +201,36 @@ function BrowserShell({ children, showCursor = false }) {
 
 export default function HowItWorks() {
   const root = useRef(null);
+  const [activeChapter, setActiveChapter] = useState(0);
+
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      const mm = gsap.matchMedia();
-      mm.add("(min-width: 901px)", () => {
-        const chapterEls = gsap.utils.toArray(".process-desktop .process-chapter");
-        const panels = gsap.utils.toArray(".process-desktop .process-screen");
-        const cursorStops = [
-          { left: "51%", top: "68%" },
-          { left: "76%", top: "48%" },
-          { left: "78%", top: "76%" },
-          { left: "68%", top: "88%" },
-        ];
-        gsap.set(chapterEls.slice(1), { autoAlpha: 0, y: 24 });
-        gsap.set(panels.slice(1), { autoAlpha: 0, xPercent: 18 });
-        gsap.set(".process-desktop .process-cursor", cursorStops[0]);
-        let activeChapter = 0;
-        const showChapter = (index) => {
-          if (index === activeChapter) return;
-          activeChapter = index;
-          chapterEls.forEach((chapter, i) => {
-            if (i === index)
-              gsap.to(chapter, {
-                autoAlpha: 1,
-                y: 0,
-                duration: 0.32,
-                overwrite: true,
-              });
-            else
-              gsap.to(chapter, {
-                autoAlpha: 0,
-                y: -18,
-                duration: 0.25,
-                overwrite: true,
-              });
-          });
-          panels.forEach((panel, i) => {
-            gsap.to(panel, {
-              autoAlpha: i === index ? 1 : 0,
-              xPercent: i === index ? 0 : i < index ? -18 : 18,
-              duration: 0.42,
-              overwrite: true,
-            });
-          });
-          gsap.to(".process-desktop .process-cursor", {
-            ...cursorStops[index],
-            duration: 0.55,
-            ease: "power2.inOut",
-            overwrite: true,
-            onComplete: () =>
-              gsap.fromTo(
-                ".process-desktop .process-cursor",
-                { scale: 1 },
-                { scale: 0.72, yoyo: true, repeat: 1, duration: 0.12 },
-              ),
-          });
-        };
-        ScrollTrigger.create({
-          trigger: ".process-story",
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 0.7,
-          onUpdate: (self) =>
-            showChapter(Math.min(3, Math.floor(self.progress * 4))),
-        });
-        return () => {
-          chapterEls.forEach((el) => gsap.set(el, { clearProps: "all" }));
-          panels.forEach((el) => gsap.set(el, { clearProps: "all" }));
-        };
-      });
-    }, root);
-    return () => ctx.revert();
+    const story = root.current?.querySelector(".process-story");
+    if (!story) return undefined;
+
+    const updateActiveChapter = () => {
+      const rect = story.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || 1;
+      const totalScrollable = Math.max(story.offsetHeight - viewportHeight, 1);
+      const scrolled = Math.min(
+        Math.max(-rect.top, 0),
+        totalScrollable,
+      );
+      const progress = scrolled / totalScrollable;
+      const nextChapter = Math.min(
+        chapters.length - 1,
+        Math.floor(progress * chapters.length),
+      );
+      setActiveChapter(nextChapter);
+    };
+
+    updateActiveChapter();
+    window.addEventListener("scroll", updateActiveChapter, { passive: true });
+    window.addEventListener("resize", updateActiveChapter);
+
+    return () => {
+      window.removeEventListener("scroll", updateActiveChapter);
+      window.removeEventListener("resize", updateActiveChapter);
+    };
   }, []);
 
   return (
@@ -281,8 +250,11 @@ export default function HowItWorks() {
         <section className="process-story">
           <div className="process-stage process-desktop container">
             <div className="process-copy">
-              {chapters.map((chapter) => (
-                <article className="process-chapter" key={chapter.step}>
+              {chapters.map((chapter, index) => (
+                <article
+                  key={chapter.step}
+                  className={`process-chapter${index === activeChapter ? " is-active" : ""}`}
+                >
                   <span>{chapter.step}</span>
                   <h2>{chapter.title}</h2>
                   <p>{chapter.body}</p>
@@ -290,10 +262,17 @@ export default function HowItWorks() {
               ))}
             </div>
             <div className="process-visual">
-              <BrowserShell showCursor>
+              <BrowserShell>
                 {demos.map((Demo, index) => (
-                  <Demo key={chapters[index].step} />
+                  <Demo
+                    key={chapters[index].step}
+                    active={activeChapter === index}
+                  />
                 ))}
+                <div
+                  className="process-cursor"
+                  style={cursorStops[activeChapter]}
+                />
               </BrowserShell>
             </div>
           </div>
@@ -309,7 +288,7 @@ export default function HowItWorks() {
                     <p>{chapter.body}</p>
                   </div>
                   <BrowserShell>
-                    <Demo />
+                    <Demo active />
                   </BrowserShell>
                 </article>
               );

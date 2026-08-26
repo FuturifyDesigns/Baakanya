@@ -2372,6 +2372,18 @@ footer {
 .process-chapter {
   position: absolute;
   inset: 0;
+  opacity: 0;
+  transform: translateY(24px);
+  pointer-events: none;
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+}
+.process-chapter.is-active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  z-index: 1;
 }
 .process-chapter > span {
   color: var(--blue-deep);
@@ -2450,6 +2462,17 @@ footer {
   position: absolute;
   inset: 0;
   padding: 38px 48px;
+  opacity: 0;
+  transform: translateX(18px);
+  pointer-events: none;
+  transition:
+    opacity 0.42s ease,
+    transform 0.42s ease;
+}
+.process-screen.is-active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 .demo-signup-screen h3,
 .demo-tools-screen h3,
@@ -2766,6 +2789,15 @@ footer {
   border: 1px solid #fff;
   clip-path: polygon(0 0, 0 100%, 28% 72%, 50% 100%, 65% 90%, 45% 65%, 80% 65%);
   filter: drop-shadow(0 0 5px #5ec8ff) drop-shadow(0 0 13px #5ec8ff);
+  transform: translate(-50%, -50%);
+  transition:
+    left 0.55s ease,
+    top 0.55s ease,
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+.process-browser:hover .process-cursor {
+  transform: translate(-50%, -50%) scale(0.94);
 }
 .process-notes {
   padding: 130px 0;
