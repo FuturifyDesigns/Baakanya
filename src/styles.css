@@ -2346,24 +2346,40 @@ footer {
 
 /* Scroll process */
 .process-story {
-  height: 400vh;
+  position: relative;
   background: #f7f8f5;
 }
 .process-mobile {
   display: none;
 }
 .process-desktop {
-  display: grid;
+  position: relative;
 }
-.process-stage {
-  height: 100vh;
+.process-stage-wrap {
   position: sticky;
   top: 0;
+  height: 100vh;
+  display: grid;
+  align-items: center;
+}
+.process-steps {
+  position: relative;
+}
+.process-step-marker {
+  height: 78vh;
+}
+.process-step-marker:last-child {
+  height: 58vh;
+}
+.process-stage {
+  min-height: 100vh;
   display: grid;
   grid-template-columns: 0.78fr 1.22fr;
   gap: 70px;
   align-items: center;
-  overflow: hidden;
+}
+.process-visual {
+  min-width: 0;
 }
 .process-copy {
   position: relative;
@@ -4175,6 +4191,10 @@ footer {
   }
   .process-desktop {
     display: none !important;
+  }
+  .process-stage-wrap,
+  .process-steps {
+    display: none;
   }
   .process-mobile {
     display: grid;

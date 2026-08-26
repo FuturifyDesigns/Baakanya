@@ -204,32 +204,34 @@ export default function HowItWorks() {
   const [activeChapter, setActiveChapter] = useState(0);
 
   useEffect(() => {
-    const story = root.current?.querySelector(".process-story");
-    if (!story) return undefined;
+    const markers = Array.from(
+      root.current?.querySelectorAll(".process-step-marker") ?? [],
+    );
+    if (!markers.length) return undefined;
 
-    const updateActiveChapter = () => {
-      const rect = story.getBoundingClientRect();
-      const viewportHeight = window.innerHeight || 1;
-      const totalScrollable = Math.max(story.offsetHeight - viewportHeight, 1);
-      const scrolled = Math.min(
-        Math.max(-rect.top, 0),
-        totalScrollable,
-      );
-      const progress = scrolled / totalScrollable;
-      const nextChapter = Math.min(
-        chapters.length - 1,
-        Math.floor(progress * chapters.length),
-      );
-      setActiveChapter(nextChapter);
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
 
-    updateActiveChapter();
-    window.addEventListener("scroll", updateActiveChapter, { passive: true });
-    window.addEventListener("resize", updateActiveChapter);
+        if (!visibleEntries.length) return;
+
+        const nextChapter = Number(
+          visibleEntries[0].target.getAttribute("data-step-index") ?? 0,
+        );
+        setActiveChapter(nextChapter);
+      },
+      {
+        threshold: [0.35, 0.55, 0.75],
+        rootMargin: "-12% 0px -18% 0px",
+      },
+    );
+
+    markers.forEach((marker) => observer.observe(marker));
 
     return () => {
-      window.removeEventListener("scroll", updateActiveChapter);
-      window.removeEventListener("resize", updateActiveChapter);
+      observer.disconnect();
     };
   }, []);
 
@@ -248,32 +250,45 @@ export default function HowItWorks() {
         </section>
 
         <section className="process-story">
-          <div className="process-stage process-desktop container">
-            <div className="process-copy">
-              {chapters.map((chapter, index) => (
-                <article
-                  key={chapter.step}
-                  className={`process-chapter${index === activeChapter ? " is-active" : ""}`}
-                >
-                  <span>{chapter.step}</span>
-                  <h2>{chapter.title}</h2>
-                  <p>{chapter.body}</p>
-                </article>
-              ))}
+          <div className="process-desktop">
+            <div className="process-stage-wrap">
+              <div className="process-stage container">
+                <div className="process-copy">
+                  {chapters.map((chapter, index) => (
+                    <article
+                      key={chapter.step}
+                      className={`process-chapter${index === activeChapter ? " is-active" : ""}`}
+                    >
+                      <span>{chapter.step}</span>
+                      <h2>{chapter.title}</h2>
+                      <p>{chapter.body}</p>
+                    </article>
+                  ))}
+                </div>
+                <div className="process-visual">
+                  <BrowserShell>
+                    {demos.map((Demo, index) => (
+                      <Demo
+                        key={chapters[index].step}
+                        active={activeChapter === index}
+                      />
+                    ))}
+                    <div
+                      className="process-cursor"
+                      style={cursorStops[activeChapter]}
+                    />
+                  </BrowserShell>
+                </div>
+              </div>
             </div>
-            <div className="process-visual">
-              <BrowserShell>
-                {demos.map((Demo, index) => (
-                  <Demo
-                    key={chapters[index].step}
-                    active={activeChapter === index}
-                  />
-                ))}
+            <div className="process-steps" aria-hidden="true">
+              {chapters.map((chapter, index) => (
                 <div
-                  className="process-cursor"
-                  style={cursorStops[activeChapter]}
+                  key={chapter.step}
+                  className={`process-step-marker step-${index + 1}`}
+                  data-step-index={index}
                 />
-              </BrowserShell>
+              ))}
             </div>
           </div>
 
