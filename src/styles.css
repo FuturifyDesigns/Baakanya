@@ -2641,14 +2641,6 @@ footer {
 .demo-form-screen button svg {
   width: 15px;
 }
-.demo-research-screen,
-.demo-document-screen {
-  opacity: 0;
-}
-.process-desktop .demo-research-screen,
-.process-desktop .demo-document-screen {
-  opacity: 0;
-}
 .process-mobile .demo-document-screen,
 .process-mobile .process-screen {
   opacity: 1;
