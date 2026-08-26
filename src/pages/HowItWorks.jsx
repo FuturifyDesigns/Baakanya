@@ -204,34 +204,38 @@ export default function HowItWorks() {
   const [activeChapter, setActiveChapter] = useState(0);
 
   useEffect(() => {
-    const markers = Array.from(
-      root.current?.querySelectorAll(".process-step-marker") ?? [],
-    );
-    if (!markers.length) return undefined;
+    const desktop = root.current?.querySelector(".process-desktop");
+    if (!desktop) return undefined;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntries = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+    let animationFrame;
+    const updateChapter = () => {
+      animationFrame = undefined;
+      const bounds = desktop.getBoundingClientRect();
+      const scrollDistance = Math.max(desktop.offsetHeight - window.innerHeight, 1);
+      const progress = Math.min(Math.max(-bounds.top / scrollDistance, 0), 1);
+      const nextChapter = Math.min(
+        Math.round(progress * (chapters.length - 1)),
+        chapters.length - 1,
+      );
+      setActiveChapter(nextChapter);
+    };
 
-        if (!visibleEntries.length) return;
+    const handleScroll = () => {
+      if (animationFrame === undefined) {
+        animationFrame = window.requestAnimationFrame(updateChapter);
+      }
+    };
 
-        const nextChapter = Number(
-          visibleEntries[0].target.getAttribute("data-step-index") ?? 0,
-        );
-        setActiveChapter(nextChapter);
-      },
-      {
-        threshold: [0.35, 0.55, 0.75],
-        rootMargin: "-12% 0px -18% 0px",
-      },
-    );
-
-    markers.forEach((marker) => observer.observe(marker));
+    updateChapter();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
 
     return () => {
-      observer.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+      if (animationFrame !== undefined) {
+        window.cancelAnimationFrame(animationFrame);
+      }
     };
   }, []);
 
@@ -280,15 +284,6 @@ export default function HowItWorks() {
                   </BrowserShell>
                 </div>
               </div>
-            </div>
-            <div className="process-steps" aria-hidden="true">
-              {chapters.map((chapter, index) => (
-                <div
-                  key={chapter.step}
-                  className={`process-step-marker step-${index + 1}`}
-                  data-step-index={index}
-                />
-              ))}
             </div>
           </div>
 

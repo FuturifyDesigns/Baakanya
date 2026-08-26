@@ -2354,6 +2354,7 @@ footer {
 }
 .process-desktop {
   position: relative;
+  height: 340vh;
 }
 .process-stage-wrap {
   position: sticky;
@@ -2361,15 +2362,6 @@ footer {
   height: 100vh;
   display: grid;
   align-items: center;
-}
-.process-steps {
-  position: relative;
-}
-.process-step-marker {
-  height: 78vh;
-}
-.process-step-marker:last-child {
-  height: 58vh;
 }
 .process-stage {
   min-height: 100vh;
@@ -6434,7 +6426,7 @@ footer {
 /* —— Mobile polish (tools, studio, access, payments) —— */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 img,
 svg,
