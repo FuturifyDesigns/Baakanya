@@ -89,7 +89,7 @@ export default function Pricing() {
               <h2>Free trial is not available again.</h2>
             </div>
             <p>
-              Your account or device has already used the one-time trial. Choose
+              Your account, device or network has already used the one-time trial. Choose
               credits or monthly access to unlock the workspace again.
             </p>
             <Link className="btn btn-ink" to={renewHref}>
@@ -269,8 +269,8 @@ export default function Pricing() {
               <h3>Can I get another free trial?</h3>
               <p>
                 {showTrial
-                  ? "Each person and device gets one trial. After that, choose credits or monthly access."
-                  : "No — the free trial is one-time per person and device. Returning users renew with credits or monthly access."}
+                  ? "Each account, device and network gets one trial. After that, choose credits or monthly access."
+                  : "No — the free trial is one-time per account, device and network. Returning users renew with credits or monthly access."}
               </p>
             </article>
           </div>

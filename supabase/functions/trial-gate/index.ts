@@ -97,6 +97,7 @@ Deno.serve(async (request) => {
   });
   let emailHash: string | null = null;
   let deviceHash: string | null = null;
+  let deviceV2Hash: string | null = null;
   let ipHash: string | null = null;
 
   const record = async (allowed: boolean, reason: string) => {
@@ -104,6 +105,7 @@ Deno.serve(async (request) => {
       event_type: "trial_reservation",
       email_fingerprint_hash: emailHash,
       device_fingerprint_hash: deviceHash,
+      device_fingerprint_v2_hash: deviceV2Hash,
       ip_fingerprint_hash: ipHash,
       allowed,
       reason,
@@ -123,12 +125,17 @@ Deno.serve(async (request) => {
     const normalizedEmail = normalizeEmail(email);
     const deviceFingerprint =
       typeof body.deviceFingerprint === "string" ? body.deviceFingerprint : "";
+    const deviceFingerprintV2 =
+      typeof body.deviceFingerprintV2 === "string"
+        ? body.deviceFingerprintV2
+        : "";
     const installationId =
       typeof body.installationId === "string" ? body.installationId : "";
     const honeypot = typeof body.website === "string" ? body.website : "";
     if (
       !normalizedEmail ||
       !/^[a-f0-9]{64}$/.test(deviceFingerprint) ||
+      !/^[a-f0-9]{64}$/.test(deviceFingerprintV2) ||
       !/^[a-f0-9-]{20,64}$/i.test(installationId) ||
       honeypot
     ) {
@@ -154,23 +161,34 @@ Deno.serve(async (request) => {
     const clientIp =
       forwarded.split(",")[0].trim() ||
       request.headers.get("cf-connecting-ip") ||
-      "unknown";
+      request.headers.get("x-real-ip") ||
+      "";
+    if (!clientIp) {
+      await record(false, "ip_unavailable");
+      return Response.json(
+        { error: "Your network could not be verified for a free trial." },
+        { status: 403, headers },
+      );
+    }
     emailHash = await hmac(fingerprintSecret, `email:${normalizedEmail}`);
     deviceHash = await hmac(
       fingerprintSecret,
       `device:${deviceFingerprint}:${installationId}`,
     );
+    deviceV2Hash = await hmac(
+      fingerprintSecret,
+      `device-v2:${deviceFingerprintV2}`,
+    );
     ipHash = await hmac(fingerprintSecret, `ip:${clientIp}`);
 
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const ninetyDaysAgo = new Date(
-      Date.now() - 90 * 24 * 60 * 60 * 1000,
-    ).toISOString();
     const [
       normalizedTrial,
       emailTrial,
       deviceTrial,
-      recentIpTrials,
+      deviceV2Trial,
+      ipTrial,
+      identityClaims,
       ipAttempts,
       deviceAttempts,
       emailAttempts,
@@ -190,8 +208,15 @@ Deno.serve(async (request) => {
       admin
         .from("trial_records")
         .select("id", { count: "exact", head: true })
-        .eq("ip_fingerprint_hash", ipHash)
-        .gte("trial_start_date", ninetyDaysAgo),
+        .eq("device_fingerprint_v2_hash", deviceV2Hash),
+      admin
+        .from("trial_records")
+        .select("id", { count: "exact", head: true })
+        .eq("ip_fingerprint_hash", ipHash),
+      admin
+        .from("trial_identity_claims")
+        .select("identity_type")
+        .in("identity_hash", [emailHash, deviceHash, deviceV2Hash, ipHash]),
       admin
         .from("abuse_events")
         .select("id", { count: "exact", head: true })
@@ -213,7 +238,9 @@ Deno.serve(async (request) => {
       normalizedTrial.error ||
       emailTrial.error ||
       deviceTrial.error ||
-      recentIpTrials.error ||
+      deviceV2Trial.error ||
+      ipTrial.error ||
+      identityClaims.error ||
       ipAttempts.error ||
       deviceAttempts.error ||
       emailAttempts.error
@@ -224,10 +251,23 @@ Deno.serve(async (request) => {
     let reason = "eligible";
     if ((normalizedTrial.count || 0) > 0 || (emailTrial.count || 0) > 0) {
       reason = "email_already_used";
-    } else if ((deviceTrial.count || 0) > 0) {
+    } else if (
+      (deviceTrial.count || 0) > 0 ||
+      (deviceV2Trial.count || 0) > 0 ||
+      identityClaims.data?.some((row) =>
+        ["device", "device_v2"].includes(row.identity_type),
+      )
+    ) {
       reason = "device_already_used";
-    } else if ((recentIpTrials.count || 0) >= 3) {
-      reason = "ip_trial_limit";
+    } else if (
+      (ipTrial.count || 0) > 0 ||
+      identityClaims.data?.some((row) => row.identity_type === "ip")
+    ) {
+      reason = "ip_already_used";
+    } else if (
+      identityClaims.data?.some((row) => row.identity_type === "email")
+    ) {
+      reason = "email_already_used";
     } else if ((ipAttempts.count || 0) >= 10) {
       reason = "ip_rate_limit";
     } else if ((deviceAttempts.count || 0) >= 5) {
@@ -263,6 +303,7 @@ Deno.serve(async (request) => {
       email_normalized: normalizedEmail,
       email_fingerprint_hash: emailHash,
       device_fingerprint_hash: deviceHash,
+      device_fingerprint_v2_hash: deviceV2Hash,
       ip_fingerprint_hash: ipHash,
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     });

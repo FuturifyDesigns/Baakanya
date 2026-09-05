@@ -24,8 +24,7 @@ const getInstallationId = () => {
 export async function getDeviceFingerprint() {
   const installationId = getInstallationId();
   const screenBucket = `${Math.round(screen.width / 100) * 100}x${Math.round(screen.height / 100) * 100}`;
-  const signals = [
-    navigator.userAgent,
+  const deviceSignals = [
     navigator.platform || "unknown",
     navigator.language,
     Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown",
@@ -34,10 +33,20 @@ export async function getDeviceFingerprint() {
     navigator.hardwareConcurrency || 0,
     navigator.deviceMemory || 0,
     navigator.maxTouchPoints || 0,
-    installationId,
+  ];
+  const legacySignals = [navigator.userAgent, ...deviceSignals];
+  const stableSignals = [
+    navigator.userAgent.replace(/\d+(?:[._]\d+)*/g, "#"),
+    (navigator.languages || []).join(","),
+    ...deviceSignals,
   ];
   return {
     installationId,
-    deviceFingerprint: await sha256(signals.join("|")),
+    // Keep the original installation-bound hash for existing trial records.
+    deviceFingerprint: await sha256(
+      [...legacySignals, installationId].join("|"),
+    ),
+    // This remains stable when local storage is cleared or another account is used.
+    deviceFingerprintV2: await sha256(stableSignals.join("|")),
   };
 }

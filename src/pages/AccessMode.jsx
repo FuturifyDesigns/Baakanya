@@ -28,7 +28,7 @@ const modes = [
       "CV, cover letter, invoices and conversions",
       "Live countdown in your workspace",
       "No card required to start",
-      "One trial per person / device",
+      "One trial per account, device and network",
     ],
     cta: "Start free trial",
     tone: "trial",
@@ -319,7 +319,7 @@ function AccessModeBody() {
                 : renewTitle
                   ? renewCopy
                   : returningPicker
-                    ? "You have already used the free trial on this account or device. Pick credits or monthly access to unlock the tools."
+                    ? "The one-time trial has already been used by this account, device or network. Pick credits or monthly access to unlock the tools."
                     : showPay
                       ? "You selected a paid option. Finish payment here — workspace opens only after approval."
                       : "Your email is verified. Compare the options, pick one, then continue."}
