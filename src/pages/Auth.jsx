@@ -7,6 +7,9 @@ import { useAuth } from "../lib/auth";
 
 const OAUTH_NEXT_KEY = "baakanya-oauth-next";
 const allowedNextPrefixes = ["/workspace", "/account", "/access", "/tools", "/payment"];
+const appOrigin = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  ? window.location.origin
+  : "https://baakanya.co.bw";
 
 const safeNextPath = (value) => {
   if (!value || typeof value !== "string" || value.length > 1024) return "";
@@ -156,7 +159,7 @@ export default function Auth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${appOrigin}/auth`,
         queryParams: { prompt: "select_account" },
       },
     });
@@ -184,7 +187,7 @@ export default function Auth() {
         email,
         password: form.password,
         options: {
-          emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}verified.html`,
+          emailRedirectTo: `${appOrigin}/verified.html`,
           data: {
             name: form.name,
             website: form.website,
