@@ -1,4 +1,4 @@
-name: Deploy Baakanya to GitHub Pages
+name: Deploy Baakanya
 on:
   push:
     branches: [main]

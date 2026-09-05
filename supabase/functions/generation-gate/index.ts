@@ -1,9 +1,24 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+const allowedOrigins = new Set([
+  "https://baakanya.co.bw",
+  "https://www.baakanya.co.bw",
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+]);
+const getCorsHeaders = (request: Request) => {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    Vary: "Origin",
+  };
+  const origin = request.headers.get("origin") || "";
+  if (allowedOrigins.has(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 };
 const encoder = new TextEncoder();
 const hex = (buffer: ArrayBuffer) =>
@@ -22,8 +37,14 @@ const hmac = async (secret: string, value: string) => {
 };
 
 Deno.serve(async (request) => {
+  const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
+  if (request.method !== "POST")
+    return Response.json(
+      { error: "Method not allowed" },
+      { status: 405, headers: corsHeaders },
+    );
   try {
     const authorization = request.headers.get("authorization") || "";
     const token = authorization.replace(/^Bearer\s+/i, "");
@@ -40,7 +61,9 @@ Deno.serve(async (request) => {
       await authClient.auth.getUser(token);
     if (authError || !authData.user) throw new Error("Sign in required");
 
-    const body = await request.json();
+    const bodyText = await request.text();
+    if (bodyText.length > 8000) throw new Error("Invalid generation request");
+    const body = JSON.parse(bodyText);
     const toolName = typeof body.toolName === "string" ? body.toolName : "";
     const mode = body.mode === "check" ? "check" : "consume";
     const draftKey =
@@ -128,8 +151,14 @@ Deno.serve(async (request) => {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Generation denied";
+    console.error("generation-gate failed", error);
     return Response.json(
-      { error: message },
+      {
+        error:
+          message === "Sign in required"
+            ? message
+            : "The generation request could not be completed.",
+      },
       {
         status: message === "Sign in required" ? 401 : 500,
         headers: corsHeaders,

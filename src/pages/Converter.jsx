@@ -151,6 +151,7 @@ export default function Converter() {
     const queue = [...files];
     const toolName = `converter_${mode}`;
     const draftKey = crypto.randomUUID();
+    let conversionResult = null;
     try {
       await checkGenerationAccess(toolName);
       if (mode === "images") {
@@ -210,10 +211,15 @@ export default function Converter() {
         );
       }
       if (mode === "word") {
-        await convertDocxToPdf(queue[0], { onProgress: setProgress });
+        conversionResult = await convertDocxToPdf(queue[0], {
+          onProgress: setProgress,
+          draftKey,
+        });
       }
 
-      const result = await finalizeGeneration(toolName, draftKey);
+      const result =
+        conversionResult?.accessResult ||
+        (await finalizeGeneration(toolName, draftKey));
       registerFinalizedDraft(draftKey);
       setGraceDraftKey(draftKey);
       access.refresh?.();

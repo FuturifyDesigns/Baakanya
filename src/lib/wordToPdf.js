@@ -191,7 +191,7 @@ const collectDocxPreviewPages = (bodyContainer) => {
   return bodyContainer.childElementCount ? [bodyContainer] : [];
 };
 
-const convertViaServer = async (file, onProgress) => {
+const convertViaServer = async (file, onProgress, draftKey) => {
   if (!supabase) return null;
 
   const {
@@ -224,7 +224,7 @@ const convertViaServer = async (file, onProgress) => {
     await yieldToMain();
 
     const { data, error } = await supabase.functions.invoke("word-to-pdf", {
-      body: { storagePath, fileName: file.name },
+      body: { storagePath, fileName: file.name, draftKey },
     });
 
     if (data?.fallback) return null;
@@ -255,7 +255,11 @@ const convertViaServer = async (file, onProgress) => {
       throw new Error("Conversion completed but no PDF was returned.");
     }
 
-    return { engine: "ilovepdf", remainingCredits: data.remainingCredits ?? null };
+    return {
+      engine: "ilovepdf",
+      remainingCredits: data.remainingCredits ?? null,
+      accessResult: data.accessResult || null,
+    };
   } finally {
     const paths = [storagePath];
     if (pdfStoragePath) paths.push(pdfStoragePath);
@@ -362,15 +366,15 @@ const logBrowserConversion = async (file) => {
   }
 };
 
-export async function convertDocxToPdf(file, { onProgress } = {}) {
+export async function convertDocxToPdf(file, { onProgress, draftKey } = {}) {
   const report = (payload) => onProgress?.(payload);
 
   report({ label: "Reading Word document…", phase: "prepare" });
   await yieldToMain();
 
   try {
-    const serverResult = await convertViaServer(file, report);
-    if (serverResult) return;
+    const serverResult = await convertViaServer(file, report, draftKey);
+    if (serverResult) return serverResult;
   } catch (error) {
     console.error("Server Word to PDF failed:", error);
     report({ label: "Trying on-device conversion…", phase: "layout" });
@@ -388,4 +392,5 @@ export async function convertDocxToPdf(file, { onProgress } = {}) {
   }
 
   await logBrowserConversion(file);
+  return { engine: "browser", accessResult: null };
 }

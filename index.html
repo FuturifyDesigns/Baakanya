@@ -14,66 +14,19 @@
       name="description"
       content="Baakanya helps Botswana create, convert and organise professional documents."
     />
-    <link id="baakanya-favicon" rel="icon" type="image/png" sizes="32x32" />
-    <link id="baakanya-shortcut" rel="shortcut icon" />
-    <link id="baakanya-apple-icon" rel="apple-touch-icon" />
-    <script>
-      (function () {
-        var icon = "/baakanya-mark.png?v=3";
-        document.getElementById("baakanya-favicon").href = icon;
-        document.getElementById("baakanya-shortcut").href = icon;
-        document.getElementById("baakanya-apple-icon").href = icon;
-      })();
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
-      rel="stylesheet"
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://pipomzuumqggzxwgxeib.supabase.co wss://pipomzuumqggzxwgxeib.supabase.co; frame-src 'self'; child-src 'self' blob:; worker-src 'self' blob:; form-action 'self'; upgrade-insecure-requests"
     />
+    <link rel="icon" type="image/png" sizes="32x32" href="/baakanya-mark.png?v=3" />
+    <link rel="shortcut icon" href="/baakanya-mark.png?v=3" />
+    <link rel="apple-touch-icon" href="/baakanya-mark.png?v=3" />
     <title>Baakanya — Documents, sorted.</title>
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      (function () {
-        var reloadKey = "baakanya-html-reload";
-        window.addEventListener(
-          "error",
-          function (event) {
-            var target = event.target;
-            if (
-              !target ||
-              (target.tagName !== "SCRIPT" && target.tagName !== "LINK")
-            ) {
-              return;
-            }
-            var href = target.src || target.href || "";
-            if (href.indexOf("/assets/") === -1) return;
-            if (sessionStorage.getItem(reloadKey)) return;
-            sessionStorage.setItem(reloadKey, String(Date.now()));
-            window.location.reload();
-          },
-          true,
-        );
-      })();
-    </script>
-    <script>
-      (function () {
-        var route = new URLSearchParams(window.location.search).get("route");
-        if (route) {
-          window.history.replaceState(null, "", route);
-          return;
-        }
-        if (window.location.hash.indexOf("#/") === 0) {
-          window.history.replaceState(
-            null,
-            "",
-            window.location.hash.slice(1),
-          );
-        }
-      })();
-    </script>
+    <script src="/bootstrap.js"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

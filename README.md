@@ -14,4 +14,4 @@ The production app is connected to its browser-safe Supabase project configurati
 
 Never place a Supabase personal access token or service-role key in Vite environment variables. Every `VITE_` variable is bundled into public browser code.
 
-The GitHub Actions workflow publishes the site to GitHub Pages on every push to `main`.
+The deployment workflow publishes the production build after changes reach `main`.

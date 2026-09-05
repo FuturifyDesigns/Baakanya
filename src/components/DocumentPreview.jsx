@@ -38,7 +38,7 @@ const parseEntries = (text) => {
         .filter(Boolean);
       const head = lines[0] || "";
       const rest = lines.slice(1).map((line) => line.replace(/^[-•*]\s*/, ""));
-      const dated = head.match(/^(.*?)(?:\s+[—–\-]\s+|\s+\(|\s{2,})(.+)$/);
+      const dated = head.match(/^(.*?)(?:\s+[—–-]\s+|\s+\(|\s{2,})(.+)$/);
       if (dated && dated[1].length > 2) {
         return {
           title: dated[1].trim(),

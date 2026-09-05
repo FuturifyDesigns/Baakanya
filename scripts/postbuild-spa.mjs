@@ -2,7 +2,6 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const dist = resolve("dist");
-const base = "";
 
 const routes = [
   "/tools/convert",
@@ -36,30 +35,17 @@ const redirect404 = `<!doctype html>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'" />
     <title>Opening Baakanya…</title>
-    <script>
-      (function () {
-        var base = "${base}";
-        var path =
-          window.location.pathname.indexOf(base) === 0
-            ? window.location.pathname.slice(base.length)
-            : window.location.pathname;
-        var route = path + window.location.search + window.location.hash;
-        if (!route || route === "/") {
-          window.location.replace(base + "/");
-          return;
-        }
-        window.location.replace(base + "/?route=" + encodeURIComponent(route));
-      })();
-    </script>
+    <link rel="stylesheet" href="/error.css" />
+    <script src="/spa-recovery.js"></script>
   </head>
-  <body></body>
+  <body><main><img src="/baakanya-mark.png?v=3" alt="" /><p>Opening Baakanya…</p><a href="/">Return home</a></main></body>
 </html>
 `;
 
 writeFileSync(resolve(dist, "404.html"), redirect404, "utf8");
-writeFileSync(resolve(dist, ".nojekyll"), "", "utf8");
-
 console.log(
-  `GitHub Pages SPA fallbacks ready: ${routes.length} routes + 404 redirect.`,
+  `Static SPA fallbacks ready: ${routes.length} routes + 404 redirect.`,
 );

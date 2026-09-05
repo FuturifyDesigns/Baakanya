@@ -1,0 +1,4 @@
+Contact: mailto:futurifydesigns@gmail.com
+Expires: 2027-09-05T00:00:00Z
+Preferred-Languages: en
+Canonical: https://baakanya.co.bw/.well-known/security.txt

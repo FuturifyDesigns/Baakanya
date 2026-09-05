@@ -1,22 +1,25 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const allowedOrigins = new Set([
-  "https://futurifydesigns.github.io",
+  "https://baakanya.co.bw",
+  "https://www.baakanya.co.bw",
   "http://127.0.0.1:5173",
   "http://localhost:5173",
 ]);
 
 const cors = (request: Request) => {
   const origin = request.headers.get("origin") || "";
-  return {
-    "Access-Control-Allow-Origin": allowedOrigins.has(origin)
-      ? origin
-      : "https://futurifydesigns.github.io",
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
     Vary: "Origin",
   };
+  if (allowedOrigins.has(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 };
 
 const encoder = new TextEncoder();

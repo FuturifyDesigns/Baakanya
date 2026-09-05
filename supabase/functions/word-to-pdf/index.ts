@@ -1,9 +1,24 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+const allowedOrigins = new Set([
+  "https://baakanya.co.bw",
+  "https://www.baakanya.co.bw",
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+]);
+const getCorsHeaders = (request: Request) => {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    Vary: "Origin",
+  };
+  const origin = request.headers.get("origin") || "";
+  if (allowedOrigins.has(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 };
 
 type AuthContext = {
@@ -38,9 +53,13 @@ const startOfficeTask = async (publicKey: string, region: string) => {
     throw new Error("Could not start Word to PDF conversion.");
   }
   const startPayload = await startResponse.json();
+  const server = typeof startPayload?.server === "string" ? startPayload.server : "";
+  if (!/^[a-z0-9-]+\.ilovepdf\.com$/i.test(server)) {
+    throw new Error("Conversion service returned an invalid server.");
+  }
   return {
     token,
-    server: startPayload?.server as string,
+    server,
     task: startPayload?.task as string,
     remainingCredits:
       typeof startPayload?.remaining_credits === "number"
@@ -150,6 +169,7 @@ const convertOfficeToPdf = async (
 
 const authenticate = async (
   request: Request,
+  corsHeaders: Record<string, string>,
 ): Promise<AuthContext | Response> => {
   const authorization = request.headers.get("authorization") || "";
   const token = authorization.replace(/^Bearer\s+/i, "");
@@ -195,8 +215,15 @@ const authenticate = async (
 };
 
 Deno.serve(async (request) => {
+  const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+  if (request.method !== "POST") {
+    return Response.json(
+      { error: "Method not allowed" },
+      { status: 405, headers: corsHeaders },
+    );
   }
 
   try {
@@ -204,11 +231,18 @@ Deno.serve(async (request) => {
     const region = Deno.env.get("ILOVEPDF_REGION") || "eu";
     const minCredits = Number(Deno.env.get("ILOVEPDF_MIN_CREDITS") || "50");
 
-    const authResult = await authenticate(request);
+    const authResult = await authenticate(request, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const { userId, isAdmin, admin } = authResult;
 
-    const body = await request.json();
+    const bodyText = await request.text();
+    if (bodyText.length > 8000) {
+      return Response.json(
+        { error: "Request is too large." },
+        { status: 413, headers: corsHeaders },
+      );
+    }
+    const body = JSON.parse(bodyText);
     const mode = typeof body.mode === "string" ? body.mode : "convert";
 
     if (mode === "refresh_credits") {
@@ -237,9 +271,36 @@ Deno.serve(async (request) => {
 
     if (mode === "log_browser") {
       const fileName =
-        typeof body.fileName === "string" ? body.fileName.slice(0, 255) : null;
+        typeof body.fileName === "string"
+          ? body.fileName.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 255)
+          : null;
       const fileSizeBytes =
         typeof body.fileSizeBytes === "number" ? body.fileSizeBytes : null;
+      if (
+        !fileName ||
+        !/\.docx$/i.test(fileName) ||
+        fileSizeBytes == null ||
+        fileSizeBytes < 1 ||
+        fileSizeBytes > 20 * 1024 * 1024
+      ) {
+        return Response.json(
+          { error: "Invalid conversion log." },
+          { status: 400, headers: corsHeaders },
+        );
+      }
+      const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const recentLogs = await admin
+        .from("word_conversion_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", hourAgo);
+      if (recentLogs.error) throw recentLogs.error;
+      if ((recentLogs.count || 0) >= 30) {
+        return Response.json(
+          { error: "Conversion logging limit reached." },
+          { status: 429, headers: corsHeaders },
+        );
+      }
       await logConversion(admin, {
         userId,
         fileName: fileName || undefined,
@@ -258,43 +319,21 @@ Deno.serve(async (request) => {
 
     const storagePath =
       typeof body.storagePath === "string" ? body.storagePath : "";
+    const draftKey = typeof body.draftKey === "string" ? body.draftKey : "";
     const fileName =
       typeof body.fileName === "string" && body.fileName.trim()
-        ? body.fileName.trim()
+        ? body.fileName.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 255)
         : "document.docx";
 
     if (
       !storagePath ||
       !storagePath.startsWith(`${userId}/`) ||
-      !/\.docx$/i.test(storagePath)
+      !/\.docx$/i.test(storagePath) ||
+      !/^[a-f0-9-]{8,64}$/.test(draftKey)
     ) {
       return Response.json(
         { error: "Invalid document upload." },
         { status: 400, headers: corsHeaders },
-      );
-    }
-
-    const started = await startOfficeTask(publicKey, region);
-    await saveCreditBalance(admin, started.remainingCredits);
-
-    if (
-      started.remainingCredits != null &&
-      started.remainingCredits <= minCredits
-    ) {
-      await logConversion(admin, {
-        userId,
-        fileName,
-        engine: "browser",
-        creditsRemaining: started.remainingCredits,
-      });
-      return Response.json(
-        {
-          fallback: true,
-          reason: "credits_low",
-          remainingCredits: started.remainingCredits,
-          minCreditsReserve: minCredits,
-        },
-        { headers: corsHeaders },
       );
     }
 
@@ -309,10 +348,45 @@ Deno.serve(async (request) => {
     }
 
     const fileBytes = await download.data.arrayBuffer();
-    if (!fileBytes.byteLength) {
+    if (!fileBytes.byteLength || fileBytes.byteLength > 20 * 1024 * 1024) {
       return Response.json(
-        { error: "The Word file is empty." },
+        { error: "The Word file must be between 1 byte and 20 MB." },
         { status: 400, headers: corsHeaders },
+      );
+    }
+
+    const { data: accessResult, error: accessError } = await admin.rpc(
+      "authorize_generation",
+      {
+        target_user: userId,
+        tool_name: "converter_word",
+        p_draft_key: draftKey,
+      },
+    );
+    if (accessError) throw accessError;
+    if (!accessResult?.allowed) {
+      return Response.json(
+        { error: accessResult?.reason || "Conversion access denied." },
+        { status: 403, headers: corsHeaders },
+      );
+    }
+
+    const started = await startOfficeTask(publicKey, region);
+    await saveCreditBalance(admin, started.remainingCredits);
+
+    if (
+      started.remainingCredits != null &&
+      started.remainingCredits <= minCredits
+    ) {
+      return Response.json(
+        {
+          fallback: true,
+          reason: "credits_low",
+          accessResult,
+          remainingCredits: started.remainingCredits,
+          minCreditsReserve: minCredits,
+        },
+        { headers: corsHeaders },
       );
     }
 
@@ -359,14 +433,17 @@ Deno.serve(async (request) => {
         pdfStoragePath,
         fileName: outputName,
         engine: "ilovepdf",
+        accessResult,
         remainingCredits: creditsRemaining,
         minCreditsReserve: minCredits,
       },
       { headers: corsHeaders },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Word to PDF conversion failed.";
-    return Response.json({ error: message }, { status: 500, headers: corsHeaders });
+    console.error("word-to-pdf failed", error);
+    return Response.json(
+      { error: "Word to PDF conversion could not be completed." },
+      { status: 500, headers: corsHeaders },
+    );
   }
 });

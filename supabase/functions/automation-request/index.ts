@@ -1,9 +1,24 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+const allowedOrigins = new Set([
+  "https://baakanya.co.bw",
+  "https://www.baakanya.co.bw",
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+]);
+const getCorsHeaders = (request: Request) => {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    Vary: "Origin",
+  };
+  const origin = request.headers.get("origin") || "";
+  if (allowedOrigins.has(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 };
 const encoder = new TextEncoder();
 const hex = (buffer: ArrayBuffer) =>
@@ -38,6 +53,7 @@ const looksSpammy = (tool: string, details: string) => {
 };
 
 Deno.serve(async (request) => {
+  const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST")
