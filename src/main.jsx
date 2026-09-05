@@ -7,6 +7,14 @@ import { AccessProvider } from "./lib/access";
 import { LanguageProvider } from "./lib/i18n";
 import { ToastProvider } from "./lib/toast";
 import { recoverFromOutdatedChunk } from "./lib/lazyWithRefresh";
+import "@fontsource/dm-sans/latin-400.css";
+import "@fontsource/dm-sans/latin-500.css";
+import "@fontsource/dm-sans/latin-600.css";
+import "@fontsource/dm-sans/latin-700.css";
+import "@fontsource/manrope/latin-500.css";
+import "@fontsource/manrope/latin-600.css";
+import "@fontsource/manrope/latin-700.css";
+import "@fontsource/manrope/latin-800.css";
 import "./styles.css";
 
 window.addEventListener("vite:preloadError", (event) => {
