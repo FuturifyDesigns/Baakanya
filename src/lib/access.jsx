@@ -87,6 +87,7 @@ export function AccessProvider({ children }) {
     }),
   );
   const snapshot = useRef({
+    userId: null,
     trialEnd: null,
     subscriptionEnd: null,
     creditBalance: 0,
@@ -107,12 +108,14 @@ export function AccessProvider({ children }) {
 
   useEffect(() => {
     let active = true;
+    let loadSequence = 0;
     let tickId;
     let pollId;
     let channel;
 
     const publish = () => {
       if (!active) return;
+      if (user?.id && snapshot.current.userId !== user.id) return;
       const {
         trialEnd,
         subscriptionEnd,
@@ -235,6 +238,8 @@ export function AccessProvider({ children }) {
         return;
       }
 
+      const sequence = ++loadSequence;
+
       const [profileResult, subscriptionResult, creditResult, pendingResult, paymentsResult] =
         await Promise.all([
           supabase
@@ -269,7 +274,18 @@ export function AccessProvider({ children }) {
             .in("status", ["approved", "pending"]),
         ]);
 
-      if (!active) return;
+      if (!active || sequence !== loadSequence) return;
+
+      const queryError =
+        profileResult.error ||
+        subscriptionResult.error ||
+        creditResult.error ||
+        pendingResult.error ||
+        paymentsResult.error;
+      if (queryError) {
+        setState((current) => ({ ...current, loading: false }));
+        throw queryError;
+      }
 
       const trialEnd = profileResult.data?.trial_end_date
         ? new Date(profileResult.data.trial_end_date)
@@ -291,7 +307,27 @@ export function AccessProvider({ children }) {
       const { hasUsedTrial, hadSubscription, hadCredits, isReturningUser } =
         customer;
 
+      const previousEligibility =
+        snapshot.current.userId === user.id
+          ? snapshot.current.trialEligible
+          : null;
+      let trialEligible = hasUsedTrial ? false : previousEligibility;
+      if (!hasUsedTrial && trialEligible == null && user.email) {
+        try {
+          const check = await checkTrialEligible(user.email);
+          trialEligible = check.eligible;
+        } catch {
+          // An availability failure must not masquerade as a used trial.
+          trialEligible = previousEligibility;
+        }
+      } else if (!hasUsedTrial && !user.email) {
+        trialEligible = false;
+      }
+
+      if (!active || sequence !== loadSequence) return;
+
       snapshot.current = {
+        userId: user.id,
         trialEnd,
         subscriptionEnd,
         creditBalance,
@@ -303,42 +339,26 @@ export function AccessProvider({ children }) {
         hadCredits,
         hasUsedTrial,
         isReturningUser,
-        trialEligible: hasUsedTrial ? false : null,
-      };
-      publish();
-
-      let trialEligible = hasUsedTrial ? false : null;
-      if (!hasUsedTrial && user.email) {
-        try {
-          const check = await checkTrialEligible(user.email);
-          if (active) trialEligible = check.eligible;
-        } catch {
-          if (active) trialEligible = false;
-        }
-      } else if (!hasUsedTrial) {
-        trialEligible = false;
-      }
-
-      if (!active) return;
-
-      snapshot.current = {
-        ...snapshot.current,
         trialEligible,
       };
       publish();
     };
 
-    load().catch(
-      () =>
-        active &&
-        setState((current) => ({
+    load().catch(() => {
+      if (!active) return;
+      setState((current) => {
+        if (current.status !== "unknown" && current.status !== "error") {
+          return { ...current, loading: false };
+        }
+        return {
           ...current,
           loading: false,
           allowed: false,
           reason: "Access could not be verified",
           status: "error",
-        })),
-    );
+        };
+      });
+    });
 
     tickId = setInterval(publish, 1000);
     pollId = setInterval(() => {

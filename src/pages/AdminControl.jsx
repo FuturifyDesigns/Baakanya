@@ -1,5 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ExternalLink, Radio, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CreditCard,
+  ExternalLink,
+  FileText,
+  Lightbulb,
+  Radio,
+  RefreshCw,
+  ShieldCheck,
+  UsersRound,
+} from "lucide-react";
 import Layout from "../components/Layout";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -31,9 +40,11 @@ export default function AdminControl() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState("");
   const [live, setLive] = useState(false);
+  const loadSequence = useRef(0);
 
   const load = useCallback(async () => {
     if (!supabase || !isAdmin) return;
+    const sequence = ++loadSequence.current;
     setLoading(true);
     const [paymentResult, requestResult, userResult, conversionResult] =
       await Promise.all([
@@ -48,24 +59,23 @@ export default function AdminControl() {
       supabase.rpc("admin_user_statuses"),
       supabase.rpc("admin_word_conversion_stats"),
     ]);
+    if (sequence !== loadSequence.current) return;
     const error =
       paymentResult.error || requestResult.error || userResult.error;
-    if (error) setMessage(error.message);
-    else {
-      setPayments(paymentResult.data || []);
-      setRequests(requestResult.data || []);
-      setUsers(userResult.data || []);
-      setMessage("");
+    if (error) {
+      setMessage(`Could not refresh the dashboard: ${error.message}`);
+      setLoading(false);
+      return;
     }
+
+    setPayments(paymentResult.data || []);
+    setRequests(requestResult.data || []);
+    setUsers(userResult.data || []);
+    setMessage("");
     if (conversionResult.error) {
-      setConversionStats(null);
-      if (!error) {
-        setMessage(
-          (current) =>
-            current ||
-            `Word conversion stats unavailable: ${conversionResult.error.message}`,
-        );
-      }
+      setMessage(
+        `Word conversion stats unavailable: ${conversionResult.error.message}`,
+      );
     } else {
       setConversionStats(conversionResult.data || null);
     }
@@ -154,8 +164,44 @@ export default function AdminControl() {
       monthlyRenewals: payments.filter(
         (row) => row.submission_kind === "monthly_renewal",
       ).length,
+      activeAccess: users.filter((row) =>
+        ["trial_active", "subscription_active", "credits_available"].includes(
+          row.access_status,
+        ),
+      ).length,
+      expiredAccess: users.filter((row) =>
+        [
+          "trial_expired",
+          "subscription_expired",
+          "credits_exhausted",
+        ].includes(row.access_status),
+      ).length,
     }),
     [payments, requests, users],
+  );
+
+  const orderedUsers = useMemo(() => {
+    const priority = {
+      under_review: 0,
+      awaiting_payment: 1,
+      trial_expired: 2,
+      subscription_expired: 2,
+      credits_exhausted: 2,
+    };
+    return [...users].sort(
+      (a, b) =>
+        (priority[a.access_status] ?? 3) -
+        (priority[b.access_status] ?? 3),
+    );
+  }, [users]);
+
+  const orderedPayments = useMemo(
+    () =>
+      [...payments].sort(
+        (a, b) =>
+          Number(b.status === "pending") - Number(a.status === "pending"),
+      ),
+    [payments],
   );
 
   const reviewPayment = async (id, status) => {
@@ -283,77 +329,69 @@ export default function AdminControl() {
           </div>
         ) : (
           <>
-            <div className="admin-metrics">
-              <article>
-                <span>Needs review</span>
+            <nav className="admin-quick-nav" aria-label="Admin sections">
+              <a href="#admin-payments">
+                <CreditCard size={16} /> Payments <b>{metrics.pending}</b>
+              </a>
+              <a href="#admin-users">
+                <UsersRound size={16} /> Users <b>{users.length}</b>
+              </a>
+              <a href="#admin-conversions">
+                <FileText size={16} /> Conversions
+              </a>
+              <a href="#admin-requests">
+                <Lightbulb size={16} /> Ideas <b>{metrics.requests}</b>
+              </a>
+            </nav>
+
+            {message && (
+              <div className="form-message admin-message">{message}</div>
+            )}
+
+            <div className="admin-overview">
+              <article className="attention">
+                <span>
+                  <CreditCard size={17} /> Payments to review
+                </span>
                 <b>{metrics.pending}</b>
+                <small>{metrics.approved} approved in total</small>
               </article>
-              <article>
-                <span>Approved payments</span>
-                <b>{metrics.approved}</b>
+              <article className="healthy">
+                <span>
+                  <ShieldCheck size={17} /> Active access
+                </span>
+                <b>{metrics.activeAccess}</b>
+                <small>Trials, monthly plans and credit users</small>
               </article>
-              <article>
-                <span>New tool ideas</span>
-                <b>{metrics.requests}</b>
+              <article className="waiting">
+                <span>
+                  <UsersRound size={17} /> Waiting for access
+                </span>
+                <b>{metrics.awaiting + metrics.underReview}</b>
+                <small>{metrics.underReview} currently under review</small>
               </article>
-              <article>
-                <span>Trials active</span>
-                <b>{metrics.trialActive}</b>
-              </article>
-              <article>
-                <span>Trials expired</span>
-                <b>{metrics.expired}</b>
-              </article>
-              <article>
-                <span>Monthly active</span>
-                <b>{metrics.monthlyActive}</b>
-              </article>
-              <article>
-                <span>Monthly ended</span>
-                <b>{metrics.monthlyExpired}</b>
-              </article>
-              <article>
-                <span>Users with credits</span>
-                <b>{metrics.creditsActive}</b>
-              </article>
-              <article>
-                <span>Credits exhausted</span>
-                <b>{metrics.creditsEmpty}</b>
-              </article>
-              <article>
-                <span>Credits in pool</span>
-                <b>{metrics.creditPool}</b>
-              </article>
-              <article>
-                <span>Awaiting payment</span>
-                <b>{metrics.awaiting}</b>
-              </article>
-              <article>
-                <span>Under review</span>
-                <b>{metrics.underReview}</b>
-              </article>
-              <article>
-                <span>Credit top-ups</span>
-                <b>{metrics.creditTopups}</b>
-              </article>
-              <article>
-                <span>Monthly renewals</span>
-                <b>{metrics.monthlyRenewals}</b>
-              </article>
-              <article>
-                <span>Word PDF credits left</span>
+              <article className="conversion">
+                <span>
+                  <FileText size={17} /> Word PDF credits
+                </span>
                 <b>{creditsRemaining ?? "—"}</b>
-              </article>
-              <article>
-                <span>Pro conversions (month)</span>
-                <b>{conversionStats?.ilovepdf_this_month ?? 0}</b>
-              </article>
-              <article>
-                <span>On-device fallbacks (month)</span>
-                <b>{conversionStats?.browser_this_month ?? 0}</b>
+                <small>
+                  {conversionStats?.ilovepdf_this_month ?? 0} professional
+                  conversions this month
+                </small>
               </article>
             </div>
-            <div className="admin-toolbar">
+
+            <div className="admin-stat-strip" aria-label="Access summary">
+              <span><b>{users.length}</b> Total users</span>
+              <span><b>{metrics.trialActive}</b> Active trials</span>
+              <span><b>{metrics.monthlyActive}</b> Monthly users</span>
+              <span><b>{metrics.creditsActive}</b> Credit users</span>
+              <span><b>{metrics.expiredAccess}</b> Need renewal</span>
+              <span><b>{metrics.creditPool}</b> Credits in pool</span>
+            </div>
+
+            <div className="admin-toolbar admin-panel-head" id="admin-conversions">
               <div>
                 <span className="kicker">WORD TO PDF</span>
                 <h2>Conversion credit monitor</h2>
@@ -363,6 +401,16 @@ export default function AdminControl() {
                   conversion to protect your balance.
                 </p>
                 <small>Last synced: {creditsUpdated}</small>
+                <div className="admin-inline-stats">
+                  <span>
+                    {conversionStats?.ilovepdf_this_month ?? 0} professional
+                    this month
+                  </span>
+                  <span>
+                    {conversionStats?.browser_this_month ?? 0} on-device
+                    fallbacks
+                  </span>
+                </div>
               </div>
               <button
                 className="btn btn-small btn-outline"
@@ -406,10 +454,13 @@ export default function AdminControl() {
                 ))
               )}
             </div>
-            <div className="admin-toolbar">
+            <div className="admin-toolbar admin-panel-head" id="admin-users">
               <div>
                 <span className="kicker">USERS</span>
                 <h2>Access status monitor</h2>
+                <p className="admin-note">
+                  Accounts needing attention appear before active users.
+                </p>
               </div>
               <button
                 className="btn btn-small btn-outline"
@@ -423,7 +474,7 @@ export default function AdminControl() {
               {users.length === 0 ? (
                 <div className="empty-state">No users yet.</div>
               ) : (
-                users.map((row) => (
+                orderedUsers.map((row) => (
                   <article key={row.user_id}>
                     <div>
                       <b>
@@ -505,20 +556,22 @@ export default function AdminControl() {
                 ))
               )}
             </div>
-            <div className="admin-toolbar">
+            <div className="admin-toolbar admin-panel-head" id="admin-payments">
               <div>
                 <span className="kicker">PAYMENTS</span>
                 <h2>Payment reviews</h2>
+                <p className="admin-note">
+                  Pending receipts are kept at the top of the queue.
+                </p>
               </div>
             </div>
-            {message && <div className="form-message">{message}</div>}
             <div className="admin-list">
               {loading && payments.length === 0 ? (
                 <div className="empty-state">Loading payment submissions…</div>
               ) : payments.length === 0 ? (
                 <div className="empty-state">No payment submissions yet.</div>
               ) : (
-                payments.map((row) => (
+                orderedPayments.map((row) => (
                   <article key={row.id}>
                     <div>
                       <b>
@@ -572,7 +625,7 @@ export default function AdminControl() {
                 ))
               )}
             </div>
-            <div className="admin-toolbar admin-section-head">
+            <div className="admin-toolbar admin-panel-head" id="admin-requests">
               <div>
                 <span className="kicker">PRODUCT IDEAS</span>
                 <h2>Automation requests</h2>
