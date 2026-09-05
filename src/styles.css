@@ -1590,6 +1590,57 @@ footer {
   width: 100%;
   margin-top: 4px;
 }
+.google-auth-button {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 11px 18px;
+  border: 1px solid #cbd8de;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(16, 32, 42, 0.06);
+}
+.google-auth-button:hover:not(:disabled),
+.google-auth-button:focus-visible {
+  border-color: #8eb8ca;
+  background: #f7fbfd;
+}
+.google-auth-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.google-auth-button svg {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  color: #71828a;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #d7e0e4;
+}
+.auth-divider span {
+  white-space: nowrap;
+}
 .password-field {
   position: relative;
 }

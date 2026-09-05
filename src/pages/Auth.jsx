@@ -2,8 +2,37 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { Logo } from "../components/Layout";
-import { supabase } from "../lib/supabase";
+import { supabase, supabaseAnonKey, supabaseUrl } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
+
+const OAUTH_NEXT_KEY = "baakanya-oauth-next";
+const allowedNextPrefixes = ["/workspace", "/account", "/access", "/tools", "/payment"];
+
+const safeNextPath = (value) => {
+  if (!value || typeof value !== "string" || value.length > 1024) return "";
+  if (!value.startsWith("/") || value.startsWith("//")) return "";
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin) return "";
+    const allowed = allowedNextPrefixes.some(
+      (prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`),
+    );
+    return allowed ? `${url.pathname}${url.search}${url.hash}` : "";
+  } catch {
+    return "";
+  }
+};
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.33 2.98-7.41Z" />
+      <path fill="#34A853" d="M12 22c2.7 0 4.98-.9 6.63-2.36l-3.24-2.54c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.62A10 10 0 0 0 12 22Z" />
+      <path fill="#FBBC05" d="M6.39 13.93A6.02 6.02 0 0 1 6.07 12c0-.67.11-1.32.32-1.93V7.45H3.04A10 10 0 0 0 2 12c0 1.61.39 3.14 1.04 4.55l3.35-2.62Z" />
+      <path fill="#EA4335" d="M12 5.94c1.47 0 2.79.5 3.83 1.5l2.87-2.88A9.63 9.63 0 0 0 12 2a10 10 0 0 0-8.96 5.45l3.35 2.62C7.18 7.7 9.39 5.94 12 5.94Z" />
+    </svg>
+  );
+}
 
 export default function Auth() {
   const [params] = useSearchParams();
@@ -17,9 +46,13 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(null);
   const { user, isAdmin, roleLoading, signOut } = useAuth();
   const navigate = useNavigate();
-  const nextPath = params.get("next") || "/workspace";
+  const [oauthNextPath] = useState(() =>
+    safeNextPath(window.sessionStorage.getItem(OAUTH_NEXT_KEY)),
+  );
+  const nextPath = safeNextPath(params.get("next")) || oauthNextPath || "/workspace";
   const passwordChecks = {
     length: form.password.length >= 10,
     letter: /[A-Za-z]/.test(form.password),
@@ -45,8 +78,30 @@ export default function Auth() {
   }, [params]);
 
   useEffect(() => {
+    if (!supabase) {
+      setGoogleAvailable(false);
+      return undefined;
+    }
+    const controller = new AbortController();
+    fetch(`${supabaseUrl}/auth/v1/settings`, {
+      headers: { apikey: supabaseAnonKey },
+      credentials: "omit",
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((settings) =>
+        setGoogleAvailable(Boolean(settings?.external?.google)),
+      )
+      .catch((error) => {
+        if (error.name !== "AbortError") setGoogleAvailable(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (!user || roleLoading || signup) return;
     (async () => {
+      window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
       if (isAdmin) {
         navigate("/admin", { replace: true });
         return;
@@ -92,6 +147,25 @@ export default function Auth() {
       navigate(nextPath, { replace: true });
     })();
   }, [user, isAdmin, roleLoading, navigate, signup, nextPath]);
+
+  const continueWithGoogle = async () => {
+    if (!supabase || busy || googleAvailable !== true) return;
+    setBusy(true);
+    setMessage("");
+    window.sessionStorage.setItem(OAUTH_NEXT_KEY, nextPath);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth`,
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    if (error) {
+      window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
+      setBusy(false);
+      setMessage("Google sign-in could not be started. Please try again.");
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -191,6 +265,24 @@ export default function Auth() {
               ? "Verify your email, then choose free trial or paid access."
               : "Pick up where you left off."}
           </p>
+          <button
+            type="button"
+            className="google-auth-button"
+            onClick={continueWithGoogle}
+            disabled={busy || googleAvailable !== true}
+          >
+            <GoogleIcon />
+            {busy
+              ? "Opening Google…"
+              : googleAvailable === false
+                ? "Google sign-in unavailable"
+                : googleAvailable === null
+                  ? "Checking Google sign-in…"
+                  : "Continue with Google"}
+          </button>
+          <div className="auth-divider" aria-hidden="true">
+            <span>or continue with email</span>
+          </div>
           {signup && (
             <label>
               Full name
@@ -293,7 +385,7 @@ export default function Auth() {
               </div>
             </div>
           )}
-          <button className="btn btn-blue" disabled={busy}>
+          <button type="submit" className="btn btn-blue" disabled={busy}>
             {busy ? "Please wait…" : signup ? "Create account" : "Log in"}
           </button>
           {message && <div className="form-message">{message}</div>}
