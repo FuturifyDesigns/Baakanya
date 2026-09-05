@@ -19,7 +19,7 @@
     <link id="baakanya-apple-icon" rel="apple-touch-icon" />
     <script>
       (function () {
-        var icon = "/Baakanya/baakanya-mark.png?v=3";
+        var icon = "/baakanya-mark.png?v=3";
         document.getElementById("baakanya-favicon").href = icon;
         document.getElementById("baakanya-shortcut").href = icon;
         document.getElementById("baakanya-apple-icon").href = icon;
@@ -62,14 +62,14 @@
       (function () {
         var route = new URLSearchParams(window.location.search).get("route");
         if (route) {
-          window.history.replaceState(null, "", "/Baakanya" + route);
+          window.history.replaceState(null, "", route);
           return;
         }
         if (window.location.hash.indexOf("#/") === 0) {
           window.history.replaceState(
             null,
             "",
-            "/Baakanya" + window.location.hash.slice(1),
+            window.location.hash.slice(1),
           );
         }
       })();

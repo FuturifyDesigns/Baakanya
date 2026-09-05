@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const dist = resolve("dist");
-const base = "/Baakanya";
+const base = "";
 
 const routes = [
   "/tools/convert",
