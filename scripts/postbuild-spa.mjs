@@ -1,4 +1,10 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const dist = resolve("dist");
@@ -46,6 +52,45 @@ const redirect404 = `<!doctype html>
 `;
 
 writeFileSync(resolve(dist, "404.html"), redirect404, "utf8");
+
+const publicFiles = [];
+const walk = (directory) => {
+  for (const entry of readdirSync(directory)) {
+    const path = resolve(directory, entry);
+    if (statSync(path).isDirectory()) walk(path);
+    else publicFiles.push(path);
+  }
+};
+walk(dist);
+
+const forbiddenNames = /(?:^|[\\/])(?:\.git|\.env|readme(?:\.md)?|package-lock\.json|vite\.config\.[^\\/]+|\.github)(?:$|[\\/])/i;
+const forbiddenExtensions = /\.(?:map|yml|yaml)$/i;
+const forbiddenDisclosure =
+  /github pages|futurifydesigns\.github\.io|x-github|x-fastly|x-served-by:\s*cache-|server:\s*github\.com/i;
+for (const path of publicFiles) {
+  const relativePath = path.slice(dist.length + 1);
+  if (forbiddenNames.test(relativePath) || forbiddenExtensions.test(relativePath)) {
+    throw new Error(`Forbidden public build artifact: ${relativePath}`);
+  }
+  if (/\.(?:html|css|js|txt|xml)$/i.test(path)) {
+    const contents = readFileSync(path, "utf8");
+    if (forbiddenDisclosure.test(contents)) {
+      throw new Error(`Origin disclosure found in public artifact: ${relativePath}`);
+    }
+  }
+}
+
+for (const required of [
+  "404.html",
+  "robots.txt",
+  "sitemap.xml",
+  ".well-known/security.txt",
+]) {
+  if (!publicFiles.includes(resolve(dist, required))) {
+    throw new Error(`Required public security artifact is missing: ${required}`);
+  }
+}
+
 console.log(
-  `Static SPA fallbacks ready: ${routes.length} routes + 404 redirect.`,
+  `Static SPA fallbacks and public-output checks ready: ${routes.length} routes.`,
 );

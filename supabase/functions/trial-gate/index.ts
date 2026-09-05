@@ -160,12 +160,13 @@ Deno.serve(async (request) => {
       );
     }
 
-    const forwarded = request.headers.get("x-forwarded-for") || "";
-    const clientIp =
-      forwarded.split(",")[0].trim() ||
-      request.headers.get("cf-connecting-ip") ||
-      request.headers.get("x-real-ip") ||
-      "";
+    // This header is set at the trusted edge and is not accepted from the
+    // browser as application data. Do not fall back to client-controlled
+    // forwarding headers when enforcing one trial per network.
+    const clientIp = (request.headers.get("cf-connecting-ip") || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^::ffff:/, "");
     if (!clientIp) {
       await record(false, "ip_unavailable");
       return Response.json(
