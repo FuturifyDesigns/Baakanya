@@ -12,6 +12,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
+import { useAccessCta } from "../lib/accessCta";
 
 const cursorStops = [
   { left: "51%", top: "68%" },
@@ -200,6 +201,7 @@ function BrowserShell({ children }) {
 }
 
 export default function HowItWorks() {
+  const primaryCta = useAccessCta();
   const root = useRef(null);
   const [activeChapter, setActiveChapter] = useState(0);
 
@@ -336,8 +338,8 @@ export default function HowItWorks() {
         <section className="simple-cta blue">
           <div className="container">
             <h2>Ready to make one?</h2>
-            <Link className="btn btn-ink" to="/auth?mode=signup">
-              Open your workspace <ArrowRight />
+            <Link className="btn btn-ink" to={primaryCta.href}>
+              {primaryCta.label} <ArrowRight />
             </Link>
           </div>
         </section>

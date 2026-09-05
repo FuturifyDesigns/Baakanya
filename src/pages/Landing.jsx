@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Layout from "../components/Layout";
+import { useAccessCta } from "../lib/accessCta";
 import { useLanguage } from "../lib/i18n";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -11,6 +12,7 @@ gsap.registerPlugin(ScrollTrigger);
 export default function Landing() {
   const root = useRef(null);
   const { t } = useLanguage();
+  const primaryCta = useAccessCta();
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -62,8 +64,8 @@ export default function Landing() {
               </h1>
               <p>{t.sub}</p>
               <div className="hero-actions">
-                <Link className="btn btn-ink" to="/auth?mode=signup">
-                  {t.start} <ArrowRight size={18} />
+                <Link className="btn btn-ink" to={primaryCta.href}>
+                  {primaryCta.label} <ArrowRight size={18} />
                 </Link>
                 <Link className="plain-arrow" to="/how-it-works">
                   See how it works <MoveRight />
@@ -118,7 +120,7 @@ export default function Landing() {
           </div>
           <Link
             className="home-tool-row sky motion-line"
-            to="/auth?mode=signup"
+            to={primaryCta.href}
           >
             <span>01</span>
             <h3>Apply for the role</h3>
@@ -127,7 +129,7 @@ export default function Landing() {
           </Link>
           <Link
             className="home-tool-row ink motion-line"
-            to="/auth?mode=signup"
+            to={primaryCta.href}
           >
             <span>02</span>
             <h3>Bill the client</h3>
@@ -136,7 +138,7 @@ export default function Landing() {
           </Link>
           <Link
             className="home-tool-row sand motion-line"
-            to="/auth?mode=signup"
+            to={primaryCta.href}
           >
             <span>03</span>
             <h3>Get the file ready</h3>
@@ -186,8 +188,8 @@ export default function Landing() {
 
         <section className="home-final container">
           <h2 className="motion-line">One less thing hanging over you.</h2>
-          <Link className="btn btn-blue motion-line" to="/auth?mode=signup">
-            Start seven days free <ArrowRight />
+          <Link className="btn btn-blue motion-line" to={primaryCta.href}>
+            {primaryCta.label} <ArrowRight />
           </Link>
         </section>
       </div>

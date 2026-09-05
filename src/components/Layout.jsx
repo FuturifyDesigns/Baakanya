@@ -2,6 +2,7 @@ import { Globe2, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAccess } from "../lib/access";
+import { getAccessCta } from "../lib/accessCta";
 import { getAccessDestination } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
@@ -17,8 +18,21 @@ export function Logo() {
 }
 export default function Layout({ children }) {
   const [open, setOpen] = useState(false);
-  const { user, isAdmin, signOut } = useAuth();
+  const {
+    user,
+    isAdmin,
+    signOut,
+    loading: authLoading,
+    roleLoading,
+  } = useAuth();
   const access = useAccess();
+  const primaryCta = getAccessCta({
+    user,
+    isAdmin,
+    authLoading,
+    roleLoading,
+    access,
+  });
   const { language, toggle, t } = useLanguage();
   const navigate = useNavigate();
   const close = () => setOpen(false);
@@ -106,8 +120,8 @@ export default function Layout({ children }) {
             <span className="micro-label light">READY WHEN YOU ARE</span>
             <h2>Your next document can be done today.</h2>
           </div>
-          <Link className="btn btn-white" to="/auth?mode=signup">
-            Get started
+          <Link className="btn btn-white" to={primaryCta.href}>
+            {primaryCta.label}
             <span aria-hidden="true">→</span>
           </Link>
         </div>
@@ -128,7 +142,9 @@ export default function Layout({ children }) {
           <div>
             <b>Company</b>
             <Link to="/about">About Baakanya</Link>
-            <Link to="/auth?mode=signup">Create an account</Link>
+            <Link to={user ? "/account" : "/auth?mode=signup"}>
+              {user ? "My account" : "Create an account"}
+            </Link>
             <Link to="/workspace">Workspace</Link>
           </div>
           <div>

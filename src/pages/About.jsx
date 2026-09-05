@@ -7,8 +7,10 @@ import {
   UsefulMark,
 } from "../components/BrandIllustrations";
 import Layout from "../components/Layout";
+import { useAccessCta } from "../lib/accessCta";
 
 export default function About() {
+  const primaryCta = useAccessCta();
   return (
     <Layout>
       <section className="about-hero" data-cursor-theme="light">
@@ -25,8 +27,8 @@ export default function About() {
               everyday admin into finished, professional work.
             </p>
             <div className="about-hero-actions">
-              <Link className="btn btn-ink" to="/auth?mode=signup">
-                Get started <ArrowRight />
+              <Link className="btn btn-ink" to={primaryCta.href}>
+                {primaryCta.label} <ArrowRight />
               </Link>
               <Link className="plain-arrow" to="/tools">
                 Explore the tools <ArrowRight />
@@ -99,8 +101,8 @@ export default function About() {
         <div className="container">
           <span className="micro-label">YOUR NEXT DOCUMENT</span>
           <h2>Bring one unfinished job.<br />Leave with something ready.</h2>
-          <Link className="btn btn-ink" to="/auth?mode=signup">
-            Get started <ArrowRight />
+          <Link className="btn btn-ink" to={primaryCta.href}>
+            {primaryCta.label} <ArrowRight />
           </Link>
         </div>
       </section>

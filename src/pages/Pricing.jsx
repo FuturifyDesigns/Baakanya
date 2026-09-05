@@ -2,6 +2,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { useAccess } from "../lib/access";
+import { getAccessCta } from "../lib/accessCta";
 import { getAccessDestination, isRenewalStatus } from "../lib/accessRoutes";
 import { useAuth } from "../lib/auth";
 
@@ -13,8 +14,20 @@ const benefits = [
 ];
 
 export default function Pricing() {
-  const { user } = useAuth();
+  const {
+    user,
+    isAdmin,
+    loading: authLoading,
+    roleLoading,
+  } = useAuth();
   const access = useAccess();
+  const primaryCta = getAccessCta({
+    user,
+    isAdmin,
+    authLoading,
+    roleLoading,
+    access,
+  });
   const signedIn = Boolean(user);
   const renewing =
     signedIn &&
@@ -78,8 +91,8 @@ export default function Pricing() {
               Pricing here is informational only. After signup and email
               verification, choose trial or paid access in the app.
             </p>
-            <Link className="btn btn-ink" to="/auth?mode=signup">
-              Create account <ArrowRight />
+            <Link className="btn btn-ink" to={primaryCta.href}>
+              {primaryCta.label} <ArrowRight />
             </Link>
           </div>
         ) : showTrialUsed ? (

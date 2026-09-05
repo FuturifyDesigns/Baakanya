@@ -7,6 +7,7 @@ import {
   FilesMark,
 } from "../components/BrandIllustrations";
 import Layout from "../components/Layout";
+import { useAccessCta } from "../lib/accessCta";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 
@@ -45,6 +46,7 @@ const tools = [
 
 export default function ToolsOverview() {
   const { user } = useAuth();
+  const primaryCta = useAccessCta();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -257,8 +259,8 @@ export default function ToolsOverview() {
         <div className="container">
           <h2>Not sure where to begin?</h2>
           <p>Open the workspace and choose the output you need.</p>
-          <Link className="btn btn-ink" to="/auth?mode=signup">
-            Open workspace <ArrowRight />
+          <Link className="btn btn-ink" to={primaryCta.href}>
+            {primaryCta.label} <ArrowRight />
           </Link>
         </div>
       </section>
