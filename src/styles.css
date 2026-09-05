@@ -7126,3 +7126,85 @@ video {
   .admin-panel-head + .admin-list { padding: 6px 10px 10px; }
   .admin-list article { padding: 15px; }
 }
+
+/* Keep desktop pages comfortably dense without changing browser zoom or mobile sizing. */
+@media (min-width: 1100px) {
+  .container {
+    width: min(1280px, calc(100% - 64px));
+  }
+
+  .nav {
+    height: 68px;
+  }
+
+  .logo {
+    font-size: 19px;
+  }
+
+  .logo-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .nav-links {
+    gap: 24px;
+    font-size: 13px;
+  }
+
+  .workspace,
+  .tool-page,
+  .payment-page {
+    padding-top: 58px;
+    padding-bottom: 90px;
+  }
+
+  .workspace h1,
+  .tool-title h1,
+  .payment-page > h1 {
+    font-size: clamp(36px, 4vw, 52px);
+  }
+
+  .page-hero {
+    min-height: 440px;
+    padding: 80px 0;
+  }
+
+  .page-hero h1 {
+    font-size: clamp(50px, 6vw, 88px);
+  }
+
+  .section {
+    padding-top: 105px;
+    padding-bottom: 105px;
+  }
+
+  .access-mode-page {
+    max-width: 1180px;
+    padding-top: 44px;
+  }
+
+  .access-mode-head {
+    margin-bottom: 28px;
+  }
+
+  .access-mode-head h1 {
+    font-size: clamp(36px, 4vw, 52px);
+  }
+
+  .access-mode-card {
+    padding: 20px;
+  }
+
+  .admin-page {
+    max-width: 1320px;
+    padding-top: 40px;
+  }
+
+  .admin-title-row {
+    padding: 29px 34px;
+  }
+
+  .admin-title-row h1 {
+    font-size: clamp(36px, 4vw, 50px);
+  }
+}
