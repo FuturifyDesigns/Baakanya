@@ -80,7 +80,7 @@ function accessLabel(access) {
 }
 
 function AccountBody() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin, roleLoading } = useAuth();
   const access = useAccess();
   const toast = useToast();
   const navigate = useNavigate();
@@ -135,8 +135,8 @@ function AccountBody() {
   return (
     <Layout>
       <section className="account-page container">
-        <Link className="back-link" to="/workspace">
-          ← Back to workspace
+        <Link className="back-link" to={isAdmin ? "/admin" : "/workspace"}>
+          ← Back to {isAdmin ? "admin" : "workspace"}
         </Link>
 
         <header className="account-hero">
@@ -177,7 +177,7 @@ function AccountBody() {
             </p>
           </article>
 
-          <article className="account-panel account-access">
+          {!roleLoading && !isAdmin && <article className="account-panel account-access">
             <span className="kicker">ACCESS</span>
             <div className="account-access-status">
               <StatusIcon size={22} />
@@ -227,7 +227,24 @@ function AccountBody() {
                 Review pricing
               </Link>
             </div>
-          </article>
+          </article>}
+          {!roleLoading && isAdmin && (
+            <article className="account-panel account-access">
+              <span className="kicker">ROLE</span>
+              <div className="account-access-status">
+                <ShieldCheck size={22} />
+                <div>
+                  <b>Administrator</b>
+                  <small>Customer plans do not apply to this account</small>
+                </div>
+              </div>
+              <div className="account-access-actions">
+                <Link className="btn btn-blue" to="/admin">
+                  Open admin dashboard <ArrowRight size={16} />
+                </Link>
+              </div>
+            </article>
+          )}
         </div>
 
         <section className="account-danger-zone">

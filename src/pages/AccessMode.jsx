@@ -68,7 +68,7 @@ const modes = [
 ];
 
 function AccessModeBody() {
-  const { user } = useAuth();
+  const { user, isAdmin, roleLoading } = useAuth();
   const access = useAccess();
   const toast = useToast();
   const navigate = useNavigate();
@@ -98,15 +98,15 @@ function AccessModeBody() {
       : "subscription";
 
   useEffect(() => {
-    if (access.loading) return;
+    if (access.loading || roleLoading || isAdmin) return;
     if (underReview && step !== "review") {
       setParams({ step: "review" }, { replace: true });
       setForceModes(false);
     }
-  }, [access.loading, underReview, step, setParams]);
+  }, [access.loading, underReview, step, setParams, roleLoading, isAdmin]);
 
   useEffect(() => {
-    if (access.loading || forceModes || underReview) return;
+    if (access.loading || roleLoading || isAdmin || forceModes || underReview) return;
     if (isRenewalStatus(access.status) && step === "pay" && !planParam) {
       // Stay on mode pick for renewals unless they already opened payment.
       setParams({ reason: reason || access.status }, { replace: true });
@@ -120,10 +120,12 @@ function AccessModeBody() {
     planParam,
     reason,
     setParams,
+    roleLoading,
+    isAdmin,
   ]);
 
   useEffect(() => {
-    if (access.loading || forceModes || underReview) return;
+    if (access.loading || roleLoading || isAdmin || forceModes || underReview) return;
     if (access.status === "awaiting_payment" && step !== "pay") {
       setParams(
         {
@@ -141,13 +143,15 @@ function AccessModeBody() {
     setParams,
     forceModes,
     underReview,
+    roleLoading,
+    isAdmin,
   ]);
 
   useEffect(() => {
-    if (forceModes && access.status === "awaiting_mode") {
+    if (!isAdmin && forceModes && access.status === "awaiting_mode") {
       setForceModes(false);
     }
-  }, [forceModes, access.status]);
+  }, [forceModes, access.status, isAdmin]);
 
   const creditTopUp =
     access.status === "credits_available" &&
@@ -170,12 +174,16 @@ function AccessModeBody() {
     showPay && !underReview && !creditsOnlyPay && !access.allowed;
 
   // Monthly renew only after expiry — active subscribers stay in workspace.
-  if (access.loading) {
+  if (access.loading || roleLoading) {
     return (
       <Layout>
         <div className="empty-state container">Checking your access…</div>
       </Layout>
     );
+  }
+
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
   }
 
   if (access.status === "subscription_active") {

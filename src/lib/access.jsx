@@ -76,7 +76,13 @@ const emptyState = (overrides = {}) => ({
 const AccessContext = createContext(null);
 
 export function AccessProvider({ children }) {
-  const { configured, user, loading: authLoading } = useAuth();
+  const {
+    configured,
+    user,
+    loading: authLoading,
+    isAdmin,
+    roleLoading,
+  } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState(() =>
     emptyState({
@@ -227,12 +233,22 @@ export function AccessProvider({ children }) {
         );
         return;
       }
-      if (authLoading) return;
+      if (authLoading || roleLoading) return;
       if (!user) {
         setState(
           emptyState({
             reason: "Sign in to use this tool",
             status: "signed_out",
+          }),
+        );
+        return;
+      }
+      if (isAdmin) {
+        setState(
+          emptyState({
+            allowed: true,
+            reason: "Administrator account",
+            status: "admin",
           }),
         );
         return;
@@ -365,7 +381,7 @@ export function AccessProvider({ children }) {
       load().catch(() => {});
     }, 10000);
 
-    if (configured && user && supabase) {
+    if (configured && user && !isAdmin && !roleLoading && supabase) {
       // Unique topic per hook instance — Layout + ToolShell/etc. all call
       // useAccess(); reusing `access-${user.id}` returns an already-subscribed
       // channel and throws if more postgres_changes callbacks are added.
@@ -421,7 +437,7 @@ export function AccessProvider({ children }) {
       clearInterval(pollId);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [configured, user, authLoading, refreshKey]);
+  }, [configured, user, authLoading, isAdmin, roleLoading, refreshKey]);
 
   const value = { ...state, refresh };
 
