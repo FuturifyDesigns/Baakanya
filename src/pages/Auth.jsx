@@ -283,6 +283,11 @@ export default function Auth() {
                   ? "Checking Google sign-in…"
                   : "Continue with Google"}
           </button>
+          <p className="auth-legal-note">
+            By continuing with Google, you agree to our{" "}
+            <Link to="/terms">Terms of Use</Link> and acknowledge our{" "}
+            <Link to="/privacy">Privacy Policy</Link>.
+          </p>
           <div className="auth-divider" aria-hidden="true">
             <span>or continue with email</span>
           </div>
@@ -391,6 +396,11 @@ export default function Auth() {
           <button type="submit" className="btn btn-blue" disabled={busy}>
             {busy ? "Please wait…" : signup ? "Create account" : "Log in"}
           </button>
+          <p className="auth-legal-note">
+            {signup ? "By creating an account" : "By continuing"}, you agree to
+            our <Link to="/terms">Terms of Use</Link> and acknowledge our{" "}
+            <Link to="/privacy">Privacy Policy</Link>.
+          </p>
           {message && <div className="form-message">{message}</div>}
           <p className="switch-auth">
             {signup ? "Already have an account?" : "New to Baakanya?"}{" "}

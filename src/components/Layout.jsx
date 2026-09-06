@@ -148,6 +148,14 @@ export default function Layout({ children }) {
             <Link to="/workspace">Workspace</Link>
           </div>
           <div>
+            <b>Legal</b>
+            <Link to="/privacy">Privacy policy</Link>
+            <Link to="/terms">Terms of use</Link>
+            <a href="mailto:futurifydesigns@gmail.com?subject=Privacy%20request">
+              Privacy request
+            </a>
+          </div>
+          <div>
             <b>Contact</b>
             <a href="mailto:futurifydesigns@gmail.com">
               futurifydesigns@gmail.com
@@ -157,6 +165,10 @@ export default function Layout({ children }) {
         </div>
         <div className="container footer-bottom">
           <span>© {new Date().getFullYear()} Baakanya</span>
+          <span className="footer-legal-links">
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+          </span>
           <span>
             Built by{" "}
             <a

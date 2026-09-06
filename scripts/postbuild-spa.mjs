@@ -25,6 +25,8 @@ const routes = [
   "/how-it-works",
   "/pricing",
   "/about",
+  "/privacy",
+  "/terms",
 ];
 
 const indexHtml = readFileSync(resolve(dist, "index.html"), "utf8");

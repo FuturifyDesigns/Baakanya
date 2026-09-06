@@ -19,6 +19,8 @@ const NotFound = lazyWithRefresh(() => import("./pages/NotFound"));
 const About = lazyWithRefresh(() => import("./pages/About"));
 const DocumentEditor = lazyWithRefresh(() => import("./pages/DocumentEditor"));
 const DocumentHistory = lazyWithRefresh(() => import("./pages/DocumentHistory"));
+const Privacy = lazyWithRefresh(() => import("./pages/Privacy"));
+const Terms = lazyWithRefresh(() => import("./pages/Terms"));
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -43,6 +45,8 @@ export default function App() {
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/about" element={<About />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/workspace" element={<Workspace />} />
         <Route path="/workspace/history" element={<DocumentHistory />} />
         <Route path="/account" element={<Account />} />
