@@ -6,6 +6,7 @@ import { supabase, supabaseAnonKey, supabaseUrl } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 
 const OAUTH_NEXT_KEY = "baakanya-oauth-next";
+const OAUTH_MODE_KEY = "baakanya-oauth-mode";
 const allowedNextPrefixes = ["/workspace", "/account", "/access", "/tools", "/payment"];
 const appOrigin = ["localhost", "127.0.0.1"].includes(window.location.hostname)
   ? window.location.origin
@@ -81,6 +82,47 @@ export default function Auth() {
   }, [params]);
 
   useEffect(() => {
+    const resetReturnedOAuth = () => {
+      if (document.visibilityState === "visible") setBusy(false);
+    };
+    window.addEventListener("pageshow", resetReturnedOAuth);
+    document.addEventListener("visibilitychange", resetReturnedOAuth);
+    return () => {
+      window.removeEventListener("pageshow", resetReturnedOAuth);
+      document.removeEventListener("visibilitychange", resetReturnedOAuth);
+    };
+  }, []);
+
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const oauthError = params.get("error") || hashParams.get("error");
+    const notice = params.get("notice");
+
+    if (oauthError) {
+      const attemptedMode = window.sessionStorage.getItem(OAUTH_MODE_KEY);
+      window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
+      window.sessionStorage.removeItem(OAUTH_MODE_KEY);
+      setBusy(false);
+      setMessage(
+        oauthError === "access_denied"
+          ? "Google sign-in was cancelled. You can try again whenever you are ready."
+          : "Google sign-in could not be completed. Please try again.",
+      );
+      navigate(`/auth?mode=${attemptedMode === "signup" ? "signup" : "signin"}`, {
+        replace: true,
+      });
+      return;
+    }
+
+    if (notice === "account-exists") {
+      setBusy(false);
+      setMessage(
+        "An account already exists for that Google email. Please sign in with Google below.",
+      );
+    }
+  }, [params, navigate, signup]);
+
+  useEffect(() => {
     if (!supabase) {
       setGoogleAvailable(false);
       return undefined;
@@ -104,7 +146,25 @@ export default function Auth() {
   useEffect(() => {
     if (!user || roleLoading || signup) return;
     (async () => {
+      const oauthMode = window.sessionStorage.getItem(OAUTH_MODE_KEY);
+      if (oauthMode === "signup") {
+        const createdAt = Date.parse(user.created_at || "");
+        const isNewAccount =
+          Number.isFinite(createdAt) && Date.now() - createdAt < 2 * 60 * 1000;
+
+        if (!isNewAccount) {
+          window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
+          window.sessionStorage.removeItem(OAUTH_MODE_KEY);
+          await signOut();
+          navigate("/auth?mode=signin&notice=account-exists", {
+            replace: true,
+          });
+          return;
+        }
+      }
+
       window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
+      window.sessionStorage.removeItem(OAUTH_MODE_KEY);
       if (isAdmin) {
         navigate("/admin", { replace: true });
         return;
@@ -149,13 +209,14 @@ export default function Auth() {
       }
       navigate(nextPath, { replace: true });
     })();
-  }, [user, isAdmin, roleLoading, navigate, signup, nextPath]);
+  }, [user, isAdmin, roleLoading, navigate, signup, nextPath, signOut]);
 
   const continueWithGoogle = async () => {
     if (!supabase || busy || googleAvailable !== true) return;
     setBusy(true);
     setMessage("");
     window.sessionStorage.setItem(OAUTH_NEXT_KEY, nextPath);
+    window.sessionStorage.setItem(OAUTH_MODE_KEY, signup ? "signup" : "signin");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -165,6 +226,7 @@ export default function Auth() {
     });
     if (error) {
       window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
+      window.sessionStorage.removeItem(OAUTH_MODE_KEY);
       setBusy(false);
       setMessage("Google sign-in could not be started. Please try again.");
     }
@@ -172,6 +234,8 @@ export default function Auth() {
 
   const submit = async (e) => {
     e.preventDefault();
+    window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
+    window.sessionStorage.removeItem(OAUTH_MODE_KEY);
     if (!supabase) {
       setMessage(
         "Account services are temporarily unavailable. Please try again shortly.",
@@ -281,10 +345,12 @@ export default function Auth() {
                 ? "Google sign-in unavailable"
                 : googleAvailable === null
                   ? "Checking Google sign-in…"
-                  : "Continue with Google"}
+                  : signup
+                    ? "Sign up with Google"
+                    : "Sign in with Google"}
           </button>
           <p className="auth-legal-note">
-            By continuing with Google, you agree to our{" "}
+            By {signup ? "signing up" : "signing in"} with Google, you agree to our{" "}
             <Link to="/terms">Terms of Use</Link> and acknowledge our{" "}
             <Link to="/privacy">Privacy Policy</Link>.
           </p>
@@ -407,6 +473,8 @@ export default function Auth() {
             <button
               type="button"
               onClick={() => {
+                window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
+                window.sessionStorage.removeItem(OAUTH_MODE_KEY);
                 setSignup(!signup);
                 setMessage("");
                 setShowPassword(false);
