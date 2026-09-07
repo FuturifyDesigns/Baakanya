@@ -7,6 +7,8 @@ import { useAuth } from "../lib/auth";
 
 const OAUTH_NEXT_KEY = "baakanya-oauth-next";
 const OAUTH_MODE_KEY = "baakanya-oauth-mode";
+const VERIFICATION_EMAIL_KEY = "baakanya-verification-email";
+const RESEND_COOLDOWN_SECONDS = 60;
 const allowedNextPrefixes = ["/workspace", "/account", "/access", "/tools", "/payment"];
 const appOrigin = ["localhost", "127.0.0.1"].includes(window.location.hostname)
   ? window.location.origin
@@ -51,6 +53,10 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [googleAvailable, setGoogleAvailable] = useState(null);
+  const [verificationEmail, setVerificationEmail] = useState(() =>
+    window.sessionStorage.getItem(VERIFICATION_EMAIL_KEY) || "",
+  );
+  const [resendCooldown, setResendCooldown] = useState(0);
   const { user, isAdmin, roleLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [oauthNextPath] = useState(() =>
@@ -80,6 +86,15 @@ export default function Auth() {
   useEffect(() => {
     setSignup(params.get("mode") === "signup");
   }, [params]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+    const timer = window.setInterval(
+      () => setResendCooldown((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     const resetReturnedOAuth = () => {
@@ -232,6 +247,31 @@ export default function Auth() {
     }
   };
 
+  const resendVerification = async () => {
+    if (!supabase || !verificationEmail || busy || resendCooldown > 0) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: verificationEmail,
+        options: { emailRedirectTo: `${appOrigin}/verified.html` },
+      });
+      if (error) throw error;
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      setMessage(
+        `A new verification email was requested for ${verificationEmail}. Check your inbox and spam folder.`,
+      );
+    } catch (error) {
+      setMessage(
+        error?.message ||
+          "The verification email could not be resent. Please check your connection and try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     window.sessionStorage.removeItem(OAUTH_NEXT_KEY);
@@ -245,37 +285,47 @@ export default function Auth() {
     setBusy(true);
     setMessage("");
     const email = form.email.trim().toLowerCase();
-    let result;
-    if (signup) {
-      result = await supabase.auth.signUp({
-        email,
-        password: form.password,
-        options: {
-          emailRedirectTo: `${appOrigin}/verified.html`,
-          data: {
-            name: form.name,
-            website: form.website,
+    try {
+      let result;
+      if (signup) {
+        result = await supabase.auth.signUp({
+          email,
+          password: form.password,
+          options: {
+            emailRedirectTo: `${appOrigin}/verified.html`,
+            data: {
+              name: form.name,
+              website: form.website,
+            },
           },
-        },
-      });
-      if (!result.error) {
-        if (result.data?.session) await signOut();
-        setBusy(false);
-        setSignup(false);
-        setMessage(
-          "Please check your email and verify your account, then sign in.",
-        );
-        navigate("/auth?mode=signin", { replace: true });
-        return;
+        });
+        if (!result.error) {
+          if (result.data?.session) await signOut();
+          window.sessionStorage.setItem(VERIFICATION_EMAIL_KEY, email);
+          setVerificationEmail(email);
+          setResendCooldown(RESEND_COOLDOWN_SECONDS);
+          setSignup(false);
+          setMessage(
+            `Verification requested for ${email}. Check your inbox and spam folder. If it does not arrive, use the resend button below.`,
+          );
+          navigate("/auth?mode=signin", { replace: true });
+          return;
+        }
+      } else {
+        result = await supabase.auth.signInWithPassword({
+          email,
+          password: form.password,
+        });
       }
-    } else {
-      result = await supabase.auth.signInWithPassword({
-        email,
-        password: form.password,
-      });
+      if (result.error) setMessage(result.error.message);
+    } catch (error) {
+      setMessage(
+        error?.message ||
+          "Account services could not be reached. Please check your connection and try again.",
+      );
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
-    if (result.error) setMessage(result.error.message);
   };
 
   return (
@@ -468,6 +518,21 @@ export default function Auth() {
             <Link to="/privacy">Privacy Policy</Link>.
           </p>
           {message && <div className="form-message">{message}</div>}
+          {!signup && verificationEmail && (
+            <div className="verification-actions">
+              <span>Still waiting for your verification email?</span>
+              <button
+                type="button"
+                className="btn btn-small"
+                disabled={busy || resendCooldown > 0}
+                onClick={resendVerification}
+              >
+                {resendCooldown > 0
+                  ? `Resend available in ${resendCooldown}s`
+                  : "Resend verification email"}
+              </button>
+            </div>
+          )}
           <p className="switch-auth">
             {signup ? "Already have an account?" : "New to Baakanya?"}{" "}
             <button

@@ -7359,6 +7359,19 @@ video {
   .admin-panel-head + .admin-list { padding: 6px 10px 10px; }
   .admin-list article { padding: 15px; }
 }
+.verification-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #cbdde7;
+  background: #f8fbfc;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.verification-actions .btn {
+  width: 100%;
+}
 
 /* Keep desktop pages comfortably dense without changing browser zoom or mobile sizing. */
 @media (min-width: 1100px) {
