@@ -9,7 +9,7 @@ export default function NotFound() {
           <span className="micro-label">404 / PAGE NOT FOUND</span>
           <h1>This page moved without leaving paperwork.</h1>
           <p>The address may be incomplete, outdated or no longer available.</p>
-          <Link className="btn btn-ink" to="/">
+          <Link className="btn btn-ink" to="/home">
             Back to Baakanya
           </Link>
         </div>

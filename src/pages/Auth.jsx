@@ -302,7 +302,7 @@ export default function Auth() {
         </div>
       </div>
       <div className="auth-form-wrap">
-        <Link to="/" className="auth-back">
+        <Link to="/home" className="auth-back">
           ← Back to home
         </Link>
         <form className="auth-form" onSubmit={submit}>

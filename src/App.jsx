@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from "react";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import CustomCursor from "./components/CustomCursor";
 import { lazyWithRefresh } from "./lib/lazyWithRefresh";
 const Landing = lazyWithRefresh(() => import("./pages/Landing"));
@@ -40,7 +40,8 @@ export default function App() {
       <CustomCursor />
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/home" element={<Landing />} />
         <Route path="/tools" element={<ToolsOverview />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/pricing" element={<Pricing />} />

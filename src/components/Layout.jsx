@@ -8,7 +8,7 @@ import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 export function Logo() {
   return (
-    <Link className="logo" to="/">
+    <Link className="logo" to="/home">
       <span className="logo-mark">
         <img src={`${import.meta.env.BASE_URL}baakanya-mark.png?v=2`} alt="" />
       </span>
@@ -42,7 +42,7 @@ export default function Layout({ children }) {
   const handleSignOut = async () => {
     close();
     await signOut();
-    navigate("/", { replace: true });
+    navigate("/home", { replace: true });
   };
   return (
     <div className="site">

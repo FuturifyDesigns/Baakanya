@@ -10,6 +10,7 @@ import { dirname, resolve } from "node:path";
 const dist = resolve("dist");
 
 const routes = [
+  "/home",
   "/tools/convert",
   "/tools/career",
   "/tools/invoice",
@@ -49,7 +50,7 @@ const redirect404 = `<!doctype html>
     <link rel="stylesheet" href="/error.css" />
     <script src="/spa-recovery.js"></script>
   </head>
-  <body><main><img src="/baakanya-mark.png?v=3" alt="" /><p>Opening Baakanya…</p><a href="/">Return home</a></main></body>
+  <body><main><img src="/baakanya-mark.png?v=3" alt="" /><p>Opening Baakanya…</p><a href="/home">Return home</a></main></body>
 </html>
 `;
 
